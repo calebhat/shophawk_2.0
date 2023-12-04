@@ -1,0 +1,109 @@
+<div class="mx-auto max-w-fit" >
+<.header>
+  Listing Tools 
+  <:actions>
+    <%= if @restock != [] do  %>
+      <.link patch={~p"/tools/restock"}>
+        <.button>Tools to be Restocked</.button>
+      </.link>
+    <% end  %>
+  </:actions>
+  <:actions>
+    <.link patch={~p"/tools/new"}>
+      <.button>New Tool</.button>
+    </.link>
+  </:actions>
+ 
+</.header>
+
+<form phx-change="search" phx-submit="search">
+  <input type="text" name="query" placeholder="Scan barcode or search" autofocus phx-debounce="200">
+  <button type="submit">Search</button>
+</form>
+
+<%= if @results != [] do %>
+<ul>
+  <%= for result <- @results do %>
+    <li><%= result.description %></li>
+  <% end %>
+</ul>
+<% end  %>
+
+
+<.table
+  id="tools"
+  rows={@streams.tools}
+  row_click={fn {_id, tool} -> JS.navigate(~p"/tools/#{tool}/checkout") end}
+>
+  <:col :let={{_id, tool}} label="Part number"><%= tool.part_number %></:col>
+  <:col :let={{_id, tool}} label="Description"><%= tool.description %></:col>
+  <:col :let={{_id, tool}} label="Balance"><%= tool.balance %></:col>
+  <:col :let={{_id, tool}} label="Location"><%= tool.location %></:col>
+  <:col :let={{_id, tool}} label="Vendor"><%= tool.vendor %></:col>
+  <:col :let={{_id, tool}} label="checkouts"><%= tool.number_of_checkouts %></:col>
+  <:action :let={{_id, tool}}>
+    <div class="sr-only">
+      <.link navigate={~p"/tools/#{tool}"}>Show</.link>
+    </div>
+    <.link patch={~p"/tools/#{tool}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{_id, tool}}>
+    <.link patch={~p"/tools/#{tool}/checkout"}>Checkout</.link>
+  </:action>
+  <:action :let={{id, tool}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: tool.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+      hidden
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+
+</div>
+
+<.modal :if={@live_action in [:new, :edit]} id="tool-modal" show on_cancel={JS.patch(~p"/tools")}>
+  <.live_component
+    module={ShophawkWeb.ToolLive.FormComponent}
+    id={@tool.id || :new}
+    title={@page_title}
+    action={@live_action}
+    tool={@tool}
+    patch={~p"/tools"}
+  />
+</.modal>
+
+<.modal :if={@live_action in [:checkout]} id="tool-modal" show on_cancel={JS.navigate(~p"/tools")}>
+  <.live_component
+    module={ShophawkWeb.ToolLive.CheckoutComponent}
+    id={@tool.id}
+    title={@page_title}
+    action={@live_action}
+    tool={@tool}
+    patch={~p"/tools"}
+  />
+</.modal>
+
+<.modal :if={@live_action in [:checkin]} id="tool-modal" show on_cancel={JS.patch(~p"/tools")}>
+  <.live_component
+    module={ShophawkWeb.ToolLive.CheckinComponent}
+    id={@tool.id}
+    title={@page_title}
+    action={@live_action}
+    tool={@tool}
+    patch={~p"/tools"}
+  />
+</.modal>
+
+<.modal :if={@live_action in [:restock]} id="tool-modal" show on_cancel={JS.patch(~p"/tools")}>
+  <.live_component
+    module={ShophawkWeb.ToolLive.RestockComponent}
+    id={"restock"}
+    title={@page_title}
+    action={@live_action}
+    tools={@tools}
+    patch={~p"/tools"}
+  />
+</.modal>

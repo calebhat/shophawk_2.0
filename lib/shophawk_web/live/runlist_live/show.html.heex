@@ -1,0 +1,58 @@
+<.header>
+  Runlist <%= @runlist.id %>
+  <:subtitle>This is a runlist record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/runlists/#{@runlist}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit runlist</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Job"><%= @runlist.job %></:item>
+  <:item title="Job operation"><%= @runlist.job_operation %></:item>
+  <:item title="Wc vendor"><%= @runlist.wc_vendor %></:item>
+  <:item title="Operation service"><%= @runlist.operation_service %></:item>
+  <:item title="Sched start"><%= @runlist.sched_start %></:item>
+  <:item title="Sched end"><%= @runlist.sched_end %></:item>
+  <:item title="Sequence"><%= @runlist.sequence %></:item>
+  <:item title="Customer"><%= @runlist.customer %></:item>
+  <:item title="Order date"><%= @runlist.order_date %></:item>
+  <:item title="Part number"><%= @runlist.part_number %></:item>
+  <:item title="Rev"><%= @runlist.rev %></:item>
+  <:item title="Description"><%= @runlist.description %></:item>
+  <:item title="Order quantity"><%= @runlist.order_quantity %></:item>
+  <:item title="Extra quantity"><%= @runlist.extra_quantity %></:item>
+  <:item title="Pick quantity"><%= @runlist.pick_quantity %></:item>
+  <:item title="Make quantity"><%= @runlist.make_quantity %></:item>
+  <:item title="Open operations"><%= @runlist.open_operations %></:item>
+  <:item title="Shipped quantity"><%= @runlist.shipped_quantity %></:item>
+  <:item title="Customer po"><%= @runlist.customer_po %></:item>
+  <:item title="Customer po line"><%= @runlist.customer_po_line %></:item>
+  <:item title="Job sched end"><%= @runlist.job_sched_end %></:item>
+  <:item title="Job sched start"><%= @runlist.job_sched_start %></:item>
+  <:item title="Note text"><%= @runlist.note_text %></:item>
+  <:item title="Released date"><%= @runlist.released_date %></:item>
+  <:item title="Material"><%= @runlist.material %></:item>
+  <:item title="Mat vendor"><%= @runlist.mat_vendor %></:item>
+  <:item title="Mat description"><%= @runlist.mat_description %></:item>
+  <:item title="assignment"><%= @runlist.assignment %></:item>
+  <:item title="Dots"><%= @runlist.dots %></:item>
+  <:item title="Currentop"><%= @runlist.currentop %></:item>
+  <:item title="Material waiting"><%= @runlist.material_waiting %></:item>
+  <:item title="Status"><%= @runlist.status %></:item>
+  <:item title="Est total hrs"><%= @runlist.est_total_hrs %></:item>
+</.list>
+
+<.back navigate={~p"/runlists"}>Back to runlists</.back>
+
+<.modal :if={@live_action == :edit} id="runlist-modal" show on_cancel={JS.patch(~p"/runlists/#{@runlist}")}>
+  <.live_component
+    module={ShophawkWeb.RunlistLive.FormComponent}
+    id={@runlist.id}
+    title={@page_title}
+    action={@live_action}
+    runlist={@runlist}
+    patch={~p"/runlists/#{@runlist}"}
+  />
+</.modal>

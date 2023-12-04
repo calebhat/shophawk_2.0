@@ -1,0 +1,35 @@
+<.header>
+  Tool <%= @tool.id %>
+  <:subtitle>This is a tool record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/tools/#{@tool}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit tool</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Part number"><%= @tool.part_number %></:item>
+  <:item title="Description"><%= @tool.description %></:item>
+  <:item title="Balance"><%= @tool.balance %></:item>
+  <:item title="Minimum"><%= @tool.minimum %></:item>
+  <:item title="Location"><%= @tool.location %></:item>
+  <:item title="Vendor"><%= @tool.vendor %></:item>
+  <:item title="Tool info"><%= @tool.tool_info %></:item>
+  <:item title="Number of checkouts"><%= @tool.number_of_checkouts %></:item>
+  <:item title="Status"><%= @tool.status %></:item>
+  <:item title="Department"><%= @tool.department %></:item>
+</.list>
+
+<.back navigate={~p"/tools"}>Back to tools</.back>
+
+<.modal :if={@live_action == :edit} id="tool-modal" show on_cancel={JS.patch(~p"/tools/#{@tool}")}>
+  <.live_component
+    module={ShophawkWeb.ToolLive.FormComponent}
+    id={@tool.id}
+    title={@page_title}
+    action={@live_action}
+    tool={@tool}
+    patch={~p"/tools/#{@tool}"}
+  />
+</.modal>
