@@ -54,7 +54,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     IO.puts(count)
     socket
 
-    {:noreply, stream(socket, :runlists, Shop.list_runlists())}
+    {:noreply, stream(socket, :runlists, [])}
     #{:noreply, stream(socket, :runlists, Shop.list_runlists())}
   end
 
@@ -63,7 +63,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     #IO.puts(Enum.count(tempjobs))
     socket
 
-    {:noreply, stream(socket, :runlists, Shop.list_runlists())}
+    {:noreply, stream(socket, :runlists, [])}
     #{:noreply, stream(socket, :runlists, Shop.list_runlists())}
   end
 end

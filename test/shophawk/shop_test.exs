@@ -124,4 +124,64 @@ defmodule Shophawk.ShopTest do
       assert %Ecto.Changeset{} = Shop.change_runlist(runlist)
     end
   end
+
+  describe "departments" do
+    alias Shophawk.Shop.Department
+
+    import Shophawk.ShopFixtures
+
+    @invalid_attrs %{department: nil, capacity: nil, machine_count: nil, show_jobs_started: nil}
+
+    test "list_departments/0 returns all departments" do
+      department = department_fixture()
+      assert Shop.list_departments() == [department]
+    end
+
+    test "get_department!/1 returns the department with given id" do
+      department = department_fixture()
+      assert Shop.get_department!(department.id) == department
+    end
+
+    test "create_department/1 with valid data creates a department" do
+      valid_attrs = %{department: "some department", capacity: 120.5, machine_count: 120.5, show_jobs_started: true}
+
+      assert {:ok, %Department{} = department} = Shop.create_department(valid_attrs)
+      assert department.department == "some department"
+      assert department.capacity == 120.5
+      assert department.machine_count == 120.5
+      assert department.show_jobs_started == true
+    end
+
+    test "create_department/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Shop.create_department(@invalid_attrs)
+    end
+
+    test "update_department/2 with valid data updates the department" do
+      department = department_fixture()
+      update_attrs = %{department: "some updated department", capacity: 456.7, machine_count: 456.7, show_jobs_started: false}
+
+      assert {:ok, %Department{} = department} = Shop.update_department(department, update_attrs)
+      assert department.department == "some updated department"
+      assert department.capacity == 456.7
+      assert department.machine_count == 456.7
+      assert department.show_jobs_started == false
+    end
+
+    test "update_department/2 with invalid data returns error changeset" do
+      department = department_fixture()
+      assert {:error, %Ecto.Changeset{}} = Shop.update_department(department, @invalid_attrs)
+      assert department == Shop.get_department!(department.id)
+    end
+
+    test "delete_department/1 deletes the department" do
+      department = department_fixture()
+      assert {:ok, %Department{}} = Shop.delete_department(department)
+      assert_raise Ecto.NoResultsError, fn -> Shop.get_department!(department.id) end
+    end
+
+    test "change_department/1 returns a department changeset" do
+      department = department_fixture()
+      assert %Ecto.Changeset{} = Shop.change_department(department)
+    end
+  end
 end

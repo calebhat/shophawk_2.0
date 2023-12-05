@@ -51,4 +51,21 @@ defmodule Shophawk.ShopFixtures do
 
     runlist
   end
+
+  @doc """
+  Generate a department.
+  """
+  def department_fixture(attrs \\ %{}) do
+    {:ok, department} =
+      attrs
+      |> Enum.into(%{
+        capacity: 120.5,
+        department: "some department",
+        machine_count: 120.5,
+        show_jobs_started: true
+      })
+      |> Shophawk.Shop.create_department()
+
+    department
+  end
 end

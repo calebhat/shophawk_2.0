@@ -38,6 +38,13 @@ defmodule ShophawkWeb.Router do
     live "/runlists/:id/show/edit", RunlistLive.Show, :edit
     live "/runlists/importall", RunlistLive.Importall, :importall
 
+    live "/departments", DepartmentLive.Index, :index
+    live "/departments/new", DepartmentLive.Index, :new
+    live "/departments/:id/edit", DepartmentLive.Index, :edit
+
+    live "/departments/:id", DepartmentLive.Show, :show
+    live "/departments/:id/show/edit", DepartmentLive.Show, :edit
+
   end
 
   # Other scopes may use custom stacks.

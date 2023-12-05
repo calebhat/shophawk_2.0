@@ -1,0 +1,44 @@
+<.header>
+  Listing Departments
+  <:actions>
+    <.link patch={~p"/departments/new"}>
+      <.button>New Department</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="departments"
+  rows={@streams.departments}
+  row_click={fn {_id, department} -> JS.navigate(~p"/departments/#{department}") end}
+>
+  <:col :let={{_id, department}} label="Department"><%= department.department %></:col>
+  <:col :let={{_id, department}} label="Capacity"><%= department.capacity %></:col>
+  <:col :let={{_id, department}} label="Machine count"><%= department.machine_count %></:col>
+  <:col :let={{_id, department}} label="Show jobs started"><%= department.show_jobs_started %></:col>
+  <:action :let={{_id, department}}>
+    <div class="sr-only">
+      <.link navigate={~p"/departments/#{department}"}>Show</.link>
+    </div>
+    <.link patch={~p"/departments/#{department}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, department}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: department.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="department-modal" show on_cancel={JS.patch(~p"/departments")}>
+  <.live_component
+    module={ShophawkWeb.DepartmentLive.FormComponent}
+    id={@department.id || :new}
+    title={@page_title}
+    action={@live_action}
+    department={@department}
+    patch={~p"/departments"}
+  />
+</.modal>

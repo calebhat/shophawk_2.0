@@ -9,6 +9,7 @@ defmodule Shophawk.Shop.Csvimport do
       |> runlist_ops("C:/phoenixapps/csv_files/yearlyRunlistOps.csv") #create map of all operations with a job listed in above function
       |> jobs_merge("C:/phoenixapps/csv_files/yearlyJobs.csv") #Merge job data with each operation
       |> mat_merge("C:/phoenixapps/csv_files/yearlyMat.csv") #Merge material data with each operation
+      |> data_collection_merge("C:/phoenixapps/csv_files/operationtime.csv") #merge data collection
       |> uservalues_merge("C:/phoenixapps/csv_files/yearlyUserValues.csv") #Merge dots data with each operation
       |> Enum.map(fn map ->
         list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
@@ -81,6 +82,7 @@ defmodule Shophawk.Shop.Csvimport do
       runlist_ops("C:/phoenixapps/csv_files/yearlyRunlistOps.csv") #create map of all operations from the past year
       |> jobs_merge("C:/phoenixapps/csv_files/yearlyJobs.csv") #Merge job data with each operation
       |> mat_merge("C:/phoenixapps/csv_files/yearlyMat.csv") #Merge material data with each operation
+      |> data_collection_merge("C:/phoenixapps/csv_files/yearlyoperationtime.csv")
       |> uservalues_merge("C:/phoenixapps/csv_files/yearlyUserValues.csv") #Merge dots data with each operation
       |> Enum.map(fn map ->
         list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
@@ -275,6 +277,65 @@ defmodule Shophawk.Shop.Csvimport do
               #map2 = Map.merge(map1, map2)
               map2 = Enum.reduce(matching_maps, %{}, fn map, acc ->
                 Map.merge(acc, Map.take(map, Map.keys(map) -- [:job]), fn _, value1, value2 ->
+                  "#{value1} | #{value2}"
+                end)
+              end)
+              Map.merge(map1, map2)
+          end
+        end)
+  end
+
+  def data_collection_merge(operations, file) do
+    empty_map = #used in case no match is found in material csv
+      %{employee: nil,
+        work_date: nil,
+        act_setup_hrs: nil,
+        act_run_hrs: nil,
+        act_run_qty: nil,
+        act_scrap_qty: nil,
+        data_collection_note_text: nil
+    }
+    new_list =
+      File.stream!(file)
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.split(&1, "`"))
+      |> Stream.filter(fn
+        ["\uFEFFJob_Operation", _ | _] -> false #filter out header line
+        ["-------------" | _] -> false
+        [_, "NULL" | _] -> false
+        [_] -> false #lines with only one entry
+        [job_operation | _] -> true end)
+      |> Enum.reduce( [],
+      fn
+      [ job_operation,
+        employee,
+        work_date,
+        act_setup_hrs,
+        act_run_hrs,
+        act_run_qty,
+        act_scrap_qty,
+        data_collection_note_text | _], acc ->
+          new_map =
+            %{job_operation: job_operation,
+            employee: employee,
+            work_date: work_date,
+            act_setup_hrs: act_setup_hrs,
+            act_run_hrs: act_run_hrs,
+            act_run_qty: act_run_qty,
+            act_scrap_qty: act_scrap_qty,
+            data_collection_note_text: data_collection_note_text
+            }
+        [new_map | acc]  end)
+        Enum.map(operations, fn %{job_operation: job_operation} = map1 ->
+          matching_maps = Enum.reverse(new_list) |> Enum.filter(&(&1.job_operation == job_operation)) #gets matching job_operation's
+          case Enum.count(matching_maps) do #case if multiple maps found in the list, ie multiple materials
+            0 -> Map.merge(map1, Map.take(empty_map, Map.keys(empty_map) -- [:job_operation]))
+            1 ->
+              map2 = Enum.at(matching_maps, 0)
+              Map.merge(map1, Map.take(map2, Map.keys(map2) -- [:job_operation])) #merges all except job to keep job in place (overwrites the job to nil if there no material ie. pick jobs)
+            _ ->
+              map2 = Enum.reduce(matching_maps, %{}, fn map, acc ->
+                Map.merge(acc, Map.take(map, Map.keys(map) -- [:job_operation]), fn _, value1, value2 ->
                   "#{value1} | #{value2}"
                 end)
               end)

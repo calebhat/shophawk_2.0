@@ -39,6 +39,13 @@ defmodule Shophawk.Repo.Migrations.CreateRunlists do
       add :material_waiting, :boolean, default: false, null: false
       add :status, :string
       add :est_total_hrs, :float
+      add :employee, :string
+      add :work_date, :date
+      add :act_setup_hrs, :float
+      add :act_run_hrs, :float
+      add :act_run_qty, :float
+      add :act_scrap_qty, :float
+      add :data_collection_note_text, :string
 
       timestamps()
     end
