@@ -55,7 +55,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
     save_department(socket, socket.assigns.action, department_params)
   end
 
-  defp save_department(socket, :edit, department_params) do
+  defp save_department(socket, :edit_department, department_params) do
     case Shop.update_department(socket.assigns.department, department_params) do
       {:ok, department} ->
         notify_parent({:saved, department})
@@ -70,7 +70,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
     end
   end
 
-  defp save_department(socket, :new, department_params) do
+  defp save_department(socket, :new_department, department_params) do
     case Shop.create_department(department_params) do
       {:ok, department} ->
         notify_parent({:saved, department})
@@ -78,7 +78,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
         {:noreply,
          socket
          |> put_flash(:info, "Department created successfully")
-         |> push_patch(to: socket.assigns.patch)}
+         |> push_patch(to: "/runlists")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

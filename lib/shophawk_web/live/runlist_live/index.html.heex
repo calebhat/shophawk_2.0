@@ -1,8 +1,8 @@
 <.header>
   Listing Runlists
   <:actions>
-    <.link patch={~p"/runlists/new"}>
-      <.button>New Runlist</.button>
+    <.link patch={~p"/departments/new_department"}>
+      <.button>New Department</.button>
     </.link>
     <.button phx-click="importall" class="ml-2">Import All Test</.button>
     <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>
@@ -72,5 +72,16 @@
     action={@live_action}
     runlist={@runlist}
     patch={~p"/runlists"}
+  />
+</.modal>
+
+<.modal :if={@live_action in [:new_department, :edit_department]} id="department-modal" show on_cancel={JS.patch(~p"/runlists")}>
+  <.live_component
+    module={ShophawkWeb.DepartmentLive.FormComponent}
+    id={@department.id || :new}
+    title={@page_title}
+    action={@live_action}
+    department={@department}
+    patch={~p"/departments"}
   />
 </.modal>

@@ -3,11 +3,20 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   alias Shophawk.Shop
   alias Shophawk.Shop.Runlist
+  alias Shophawk.Shop.Department
   alias Shophawk.Shop.Csvimport
 
   @impl true
   def mount(_params, _session, socket) do
     #{:ok, stream(socket, :runlists, Shop.list_runlists())}
+
+    department_list =
+      Shop.list_departments()
+      |> Enum.map(&(&1.department))
+
+      IO.inspect(department_list)
+
+
     {:ok, stream(socket, :runlists, [])}
   end
 
@@ -23,10 +32,22 @@ defmodule ShophawkWeb.RunlistLive.Index do
     |> assign(:runlist, Shop.get_runlist!(id))
   end
 
-  defp apply_action(socket, :new, _params) do
+#  defp apply_action(socket, :new, _params) do
+#    socket
+#    |> assign(:page_title, "New Runlist")
+#    |> assign(:runlist, %Runlist{})
+#  end
+
+  defp apply_action(socket, :edit_department, %{"id" => id}) do
     socket
-    |> assign(:page_title, "New Runlist")
-    |> assign(:runlist, %Runlist{})
+    |> assign(:page_title, "Edit Department")
+    |> assign(:department, Shop.get_department!(id))
+  end
+
+  defp apply_action(socket, :new_department, _params) do
+    socket
+    |> assign(:page_title, "New Department")
+    |> assign(:department, %Department{})
   end
 
   defp apply_action(socket, :index, _params) do
@@ -35,18 +56,29 @@ defmodule ShophawkWeb.RunlistLive.Index do
     |> assign(:runlist, nil)
   end
 
-  @impl true
-  def handle_info({ShophawkWeb.RunlistLive.FormComponent, {:saved, runlist}}, socket) do
-    {:noreply, stream_insert(socket, :runlists, runlist)}
-  end
+  #@impl true
+  #def handle_info({ShophawkWeb.RunlistLive.FormComponent, {:saved, runlist}}, socket) do
+  #  {:noreply, stream_insert(socket, :runlists, runlist)}
+  #end
 
   @impl true
-  def handle_event("delete", %{"id" => id}, socket) do
-    runlist = Shop.get_runlist!(id)
-    {:ok, _} = Shop.delete_runlist(runlist)
+  def handle_info({ShophawkWeb.DepartmentLive.FormComponent, {:saved, department}}, socket) do
+    #{:noreply, stream_insert(socket, :departments, department)}
+    department_list =
+      Shop.list_departments()
+      |> Enum.map(&(&1.department))
+    IO.inspect(department_list)
 
-    {:noreply, stream_delete(socket, :runlists, runlist)}
+    {:noreply, socket}
   end
+
+#  @impl true
+#  def handle_event("delete", %{"id" => id}, socket) do
+#    runlist = Shop.get_runlist!(id)
+#    {:ok, _} = Shop.delete_runlist(runlist)
+#
+#    {:noreply, stream_delete(socket, :runlists, runlist)}
+#  end
 
   def handle_event("importall", _, socket) do
     tempjobs = Csvimport.import_operations()
