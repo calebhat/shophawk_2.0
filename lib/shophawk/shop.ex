@@ -116,6 +116,7 @@ defmodule Shophawk.Shop do
   end
 
   alias Shophawk.Shop.Department
+  alias Shophawk.Shop.Workcenter
 
   @doc """
   Returns the list of departments.
@@ -128,6 +129,10 @@ defmodule Shophawk.Shop do
   """
   def list_departments do
     Repo.all(Department)
+  end
+
+  def list_workcenters do
+    Repo.all(Workcenter)
   end
 
   @doc """

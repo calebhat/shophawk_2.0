@@ -8,6 +8,10 @@ defmodule Shophawk.Shop.Department do
     field :machine_count, :float
     field :show_jobs_started, :boolean, default: false
 
+    has_many :department_workcenters, Shophawk.Shop.DepartmentWorkcenter
+    has_many :workcenters, through: [:department_workcenters, :workcenter]
+
+
     timestamps()
   end
 

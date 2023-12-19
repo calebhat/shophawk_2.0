@@ -10,12 +10,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def mount(_params, _session, socket) do
     #{:ok, stream(socket, :runlists, Shop.list_runlists())}
 
-    department_list =
-      Shop.list_departments()
-      |> Enum.map(&(&1.department))
-
-      IO.inspect(department_list)
-
 
     {:ok, stream(socket, :runlists, [])}
   end
@@ -45,15 +39,23 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :new_department, _params) do
+
+    #IO.inspect(Shop.list_workcenters())
+
     socket
     |> assign(:page_title, "New Department")
     |> assign(:department, %Department{})
+    |> assign(:workcenters, Shop.list_workcenters())
   end
 
   defp apply_action(socket, :index, _params) do
+#    department_list =
+#      Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.map(&String.capitalize/1) |> Enum.sort
+#      IO.inspect(department_list)
     socket
     |> assign(:page_title, "Listing Runlists")
     |> assign(:runlist, nil)
+    |> assign(:departments, Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.map(&String.capitalize/1) |> Enum.sort)
   end
 
   #@impl true
@@ -89,6 +91,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, stream(socket, :runlists, [])}
     #{:noreply, stream(socket, :runlists, Shop.list_runlists())}
   end
+
+
 
   def handle_event("5_minute_import", _, socket) do
     Csvimport.update_operations()

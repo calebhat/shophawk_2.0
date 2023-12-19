@@ -23,6 +23,33 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
         <.input field={@form[:capacity]} type="number" label="Capacity" step="any" />
         <.input field={@form[:machine_count]} type="number" label="Machine count" step="any" />
         <.input field={@form[:show_jobs_started]} type="checkbox" label="Show jobs started" />
+
+        <%= for workcenter <- @workcenters do %>
+        <label>
+          <input
+            field={workcenter.id}
+            name="workcenter_ids[]"
+            id={"workcenter-" <> Integer.to_string(workcenter.id)}
+            type="checkbox"
+            checked={workcenter.id in @selected_workcenters}
+            value={workcenter.id}
+            />
+            <%= workcenter.workcenter %>
+          </label>
+        <% end %>
+    <br>
+    <!-- input box that's empty, used to keep "workcenter_ids[]" in parameters passed to validation. otherwise errors out -->
+          <input
+            style="display: none"
+            field={0}
+            name="workcenter_ids[]"
+            id={"workcenter-show"}
+            type="checkbox"
+            checked={true}
+            value={0}
+            />
+
+
         <:actions>
           <.button phx-disable-with="Saving...">Save Department</.button>
         </:actions>
@@ -34,21 +61,30 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   @impl true
   def update(%{department: department} = assigns, socket) do
     changeset = Shop.change_department(department)
-
+    workcenters = Enum.map(Shop.list_workcenters(), &Map.from_struct/1)
+    #Add a field to workcenters map for which workcenters are already linked to this department. Mainly for editing.
+    #IO.inspect(socket)
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_form(changeset)}
+     |> assign_form(changeset)
+     |> assign(:workcenters, workcenters) #workcenters for checkboxes
+     |> assign(:selected_workcenters, []) #keeps track of which workcenters are selected.
+    }
   end
 
-  @impl true
-  def handle_event("validate", %{"department" => department_params}, socket) do
+  def handle_event("validate", %{"department" => department_params, "workcenter_ids" => workcenters}, socket) do
     changeset =
       socket.assigns.department
       |> Shop.change_department(department_params)
       |> Map.put(:action, :validate)
 
-    {:noreply, assign_form(socket, changeset)}
+      socket =
+        socket
+        |> assign_form(changeset)
+        |> assign(:selected_workcenters, Enum.map(workcenters, &String.to_integer/1))
+
+    {:noreply, socket}
   end
 
   def handle_event("save", %{"department" => department_params}, socket) do
@@ -56,7 +92,9 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
     save_department(socket, socket.assigns.action, department_params)
   end
 
-  defp save_department(socket, :edit, department_params) do
+
+
+  defp save_department(socket, :edit_department, department_params) do
     case Shop.update_department(socket.assigns.department, department_params) do
       {:ok, department} ->
         notify_parent({:saved, department})
@@ -79,7 +117,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
         {:noreply,
          socket
          |> put_flash(:info, "Department created successfully")
-         |> push_patch(to: "/runlists")}
+         |> push_navigate(to: "/runlists")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

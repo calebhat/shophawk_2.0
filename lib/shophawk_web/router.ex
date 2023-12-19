@@ -39,8 +39,8 @@ defmodule ShophawkWeb.Router do
     live "/departments/:id/edit_department", RunlistLive.Index, :edit_department
 
     live "/departments", DepartmentLive.Index, :index
-    live "/departments/new", DepartmentLive.Index, :new
-    live "/departments/:id/edit", DepartmentLive.Index, :edit
+    live "/departments/new", DepartmentLive.Index, :new_department
+    live "/departments/:id/edit", DepartmentLive.Index, :edit_department
 
     live "/departments/:id", DepartmentLive.Show, :show
     live "/departments/:id/show/edit", DepartmentLive.Show, :edit

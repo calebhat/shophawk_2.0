@@ -32,7 +32,7 @@
   </:action>
 </.table>
 
-<.modal :if={@live_action in [:new, :edit]} id="department-modal" show on_cancel={JS.patch(~p"/departments")}>
+<.modal :if={@live_action in [:new_department, :edit_department]} id="department-modal" show on_cancel={JS.patch(~p"/departments")}>
   <.live_component
     module={ShophawkWeb.DepartmentLive.FormComponent}
     id={@department.id || :new}

@@ -14,13 +14,13 @@ defmodule ShophawkWeb.DepartmentLive.Index do
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
-  defp apply_action(socket, :edit, %{"id" => id}) do
+  defp apply_action(socket, :edit_deparment, %{"id" => id}) do
     socket
     |> assign(:page_title, "Edit Department")
     |> assign(:department, Shop.get_department!(id))
   end
 
-  defp apply_action(socket, :new, _params) do
+  defp apply_action(socket, :new_department, _params) do
     socket
     |> assign(:page_title, "New Department")
     |> assign(:department, %Department{})
