@@ -25,29 +25,23 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
         <.input field={@form[:show_jobs_started]} type="checkbox" label="Show jobs started" />
 
         <%= for workcenter <- @workcenters do %>
-        <label>
-          <input
-            field={workcenter.id}
-            name="workcenter_ids[]"
-            id={"workcenter-" <> Integer.to_string(workcenter.id)}
-            type="checkbox"
-            checked={workcenter.id in @selected_workcenters}
-            value={workcenter.id}
+
+          <label class="flex items-center gap-4 text-sm leading-6 text-zinc-600">
+            <input type="hidden" name={workcenter.workcenter} value="false" />
+            <input
+              type="checkbox"
+              id={"workcenter-" <> Integer.to_string(workcenter.id)}
+              name="workcenter_ids[]"
+              value={workcenter.id}
+              checked={workcenter.id in @selected_workcenters}
+              class="rounded border-zinc-300 text-zinc-900 focus:ring-0"
             />
             <%= workcenter.workcenter %>
           </label>
+
         <% end %>
     <br>
     <!-- input box that's empty, used to keep "workcenter_ids[]" in parameters passed to validation. otherwise errors out -->
-          <input
-            style="display: none"
-            field={0}
-            name="workcenter_ids[]"
-            id={"workcenter-show"}
-            type="checkbox"
-            checked={true}
-            value={0}
-            />
 
 
         <:actions>
@@ -62,8 +56,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   def update(%{department: department} = assigns, socket) do
     changeset = Shop.change_department(department)
     workcenters = Enum.map(Shop.list_workcenters(), &Map.from_struct/1)
-    #Add a field to workcenters map for which workcenters are already linked to this department. Mainly for editing.
-    #IO.inspect(socket)
+
     {:ok,
      socket
      |> assign(assigns)
@@ -73,7 +66,11 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
     }
   end
 
-  def handle_event("validate", %{"department" => department_params, "workcenter_ids" => workcenters}, socket) do
+  def handle_event("validate", %{"department" => department_params} = params, socket) do
+    workcenters = Map.get(params, "workcenter_ids", []) #gets checked workcenters, defaults to empty list "[]" if none checked
+    department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters to department params
+    IO.inspect(department_params)
+
     changeset =
       socket.assigns.department
       |> Shop.change_department(department_params)
@@ -87,8 +84,11 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
     {:noreply, socket}
   end
 
-  def handle_event("save", %{"department" => department_params}, socket) do
-    IO.puts(socket.assigns.action)
+  def handle_event("save", %{"department" => department_params} = params, socket) do
+    #Make workcenters into a map for changeset and saving
+    workcenters = Map.get(params, "workcenter_ids", [])
+    department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters into params
+    IO.inspect(department_params)
     save_department(socket, socket.assigns.action, department_params)
   end
 

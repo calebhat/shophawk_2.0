@@ -166,6 +166,7 @@ defmodule Shophawk.Shop do
   def create_department(attrs \\ %{}) do
     %Department{}
     |> Department.changeset(attrs)
+    |> cast_assoc(:workcenters)
     |> Repo.insert()
   end
 
