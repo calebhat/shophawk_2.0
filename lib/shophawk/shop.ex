@@ -6,7 +6,9 @@ defmodule Shophawk.Shop do
   import Ecto.Query, warn: false
   alias Shophawk.Repo
 
-  alias Shophawk.Shop.Runlist
+ alias Shophawk.Shop.Runlist
+ alias Shophawk.Shop.Department
+ alias Shophawk.Shop.Workcenter
 
   def import_all(operations) do #WARNING, THIS TAKES A MINUTE AND WILL OVERLOAD CHROME IF ALL DATA IS LOADED.
     operations
@@ -115,8 +117,7 @@ defmodule Shophawk.Shop do
     Runlist.changeset(runlist, attrs)
   end
 
-  alias Shophawk.Shop.Department
-  alias Shophawk.Shop.Workcenter
+
 
   @doc """
   Returns the list of departments.
@@ -151,6 +152,8 @@ defmodule Shophawk.Shop do
   """
   def get_department!(id), do: Repo.get!(Department, id)
 
+  def get_workcenter!(id), do: Repo.get!(Workcenter, id)
+
   @doc """
   Creates a department.
 
@@ -164,9 +167,11 @@ defmodule Shophawk.Shop do
 
   """
   def create_department(attrs \\ %{}) do
+    IO.inspect(attrs)
     %Department{}
     |> Department.changeset(attrs)
-    |> cast_assoc(:workcenters)
+    #|> Shophawk.Repo.preload(:workcenters)
+    |> Ecto.Changeset.cast_assoc(:workcenters, with: &Shophawk.Shop.Workcenter.changeset/2)
     |> Repo.insert()
   end
 

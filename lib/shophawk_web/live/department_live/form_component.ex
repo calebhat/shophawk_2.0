@@ -67,7 +67,9 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   end
 
   def handle_event("validate", %{"department" => department_params} = params, socket) do
-    workcenters = Map.get(params, "workcenter_ids", []) #gets checked workcenters, defaults to empty list "[]" if none checked
+    workcenters =
+      Map.get(params, "workcenter_ids", []) #gets checked workcenters, defaults to empty list "[]" if none checked
+      #|> Enum.map(fn id -> %{"id" => id} end)
     department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters to department params
     IO.inspect(department_params)
 
@@ -86,9 +88,19 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
 
   def handle_event("save", %{"department" => department_params} = params, socket) do
     #Make workcenters into a map for changeset and saving
-    workcenters = Map.get(params, "workcenter_ids", [])
+    workcenters =
+    Map.get(params, "workcenter_ids", [])
+    |> Enum.map(fn id -> %{"workcenter" => Shop.get_workcenter!(id).workcenter} end)
+
+
+
+    #workcenters = Enum.map(Shop.get_department!(), &Map.from_struct/1)
+
+    #IO.inspect(workcenters)
+#    workcenters =
+#      Map.get(params, "workcenter_ids", [])
+#      |> Enum.map(fn id -> %{"workcenter" => id} end)
     department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters into params
-    IO.inspect(department_params)
     save_department(socket, socket.assigns.action, department_params)
   end
 

@@ -8,8 +8,8 @@ defmodule Shophawk.Shop.Department do
     field :machine_count, :float
     field :show_jobs_started, :boolean, default: false
 
-    has_many :department_workcenters, Shophawk.Shop.DepartmentWorkcenter
-    has_many :workcenters, through: [:department_workcenters, :workcenter]
+    #has_many :department_workcenters, Shophawk.Shop.DepartmentWorkcenter
+    many_to_many :workcenters, Shophawk.Shop.Workcenter, join_through: Shophawk.Shop.DepartmentWorkcenter
 
 
     timestamps()
@@ -19,6 +19,7 @@ defmodule Shophawk.Shop.Department do
   def changeset(department, attrs) do
     department
     |> cast(attrs, [:department, :capacity, :machine_count, :show_jobs_started])
-    |> validate_required([:department, :capacity, :machine_count, :show_jobs_started])
+    |> validate_required([:department, :capacity, :machine_count])
+
   end
 end
