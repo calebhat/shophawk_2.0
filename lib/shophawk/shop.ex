@@ -167,11 +167,15 @@ defmodule Shophawk.Shop do
 
   """
   def create_department(attrs \\ %{}) do
-    IO.inspect(attrs)
+    workcenter_names = attrs["workcenters"] |> Enum.map(&Map.get(&1, "workcenter"))
+    existing_workcenters =
+      Workcenter
+      |> where([w], w.workcenter in ^workcenter_names)
+      |> Repo.all()
+
     %Department{}
     |> Department.changeset(attrs)
-    #|> Shophawk.Repo.preload(:workcenters)
-    |> Ecto.Changeset.cast_assoc(:workcenters, with: &Shophawk.Shop.Workcenter.changeset/2)
+    |> Ecto.Changeset.put_assoc(:workcenters, existing_workcenters)
     |> Repo.insert()
   end
 
