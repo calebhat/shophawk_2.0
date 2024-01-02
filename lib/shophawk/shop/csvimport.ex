@@ -2,8 +2,31 @@ defmodule Shophawk.Shop.Csvimport do
   alias Shophawk.Shop.Runlist
   alias Shophawk.Shop
 
+  def update_workcenters do
+    workcenters =
+      File.stream!("C:/phoenixapps/csv_files/yearlyRunlistOps.csv")
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.split(&1, "`"))
+      |> Stream.filter(fn
+        [_, "Job_Operation" | _] -> false #filter out header line
+        ["---" | _] -> false
+        [_, "NULL" | _] -> false
+        [_] -> false #lines with only one entry
+        [job | _] -> true
+      end)
+      |> Enum.reduce( [], fn [ _, _, wc_vendor | _], acc -> [wc_vendor | acc] end)
+      |> Enum.uniq
+      |> Enum.sort
 
-  def update_operations do
+    saved_workcenters = Enum.map(Shop.list_workcenters, &(&1.workcenter))
+    workcenters
+      |> Enum.reject(fn workcenter -> Enum.member?(saved_workcenters, workcenter) end)
+      |> Enum.reduce(%{}, fn workcenter, acc ->
+        Shop.create_workcenter(%{"workcenter" => workcenter})
+      end)
+  end
+
+  def update_operations do #quick import of most recent changes
     operations = #Takes 25 seconds to merge 43K operations
       jobs_to_update() #creates list of all jobs #'s that have a change somewhere
       |> runlist_ops("C:/phoenixapps/csv_files/yearlyRunlistOps.csv") #create map of all operations with a job listed in above function
@@ -35,7 +58,7 @@ defmodule Shophawk.Shop.Csvimport do
       end)
   end
 
-  def jobs_to_update() do
+  def jobs_to_update() do #creates list of all jobs to update
     job_list = #make a list of jobs that changed
       File.stream!("C:/phoenixapps/csv_files/Jobs.csv")
       |> Stream.map(&String.trim(&1))

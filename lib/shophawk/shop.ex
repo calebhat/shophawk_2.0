@@ -129,7 +129,7 @@ defmodule Shophawk.Shop do
 
   """
   def list_departments do
-    Repo.all(Department)
+   Repo.all(Department)
   end
 
   def list_workcenters do
@@ -177,6 +177,11 @@ defmodule Shophawk.Shop do
     |> Department.changeset(attrs)
     |> Ecto.Changeset.put_assoc(:workcenters, existing_workcenters)
     |> Repo.insert()
+  end
+
+  def create_workcenter(attrs \\ %{}) do
+    changeset = Workcenter.changeset(%Workcenter{}, attrs)
+    Repo.insert(changeset)
   end
 
   @doc """

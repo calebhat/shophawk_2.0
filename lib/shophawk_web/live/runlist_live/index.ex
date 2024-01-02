@@ -8,17 +8,21 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    #{:ok, stream(socket, :runlists, Shop.list_runlists())}
-
-
-    {:ok, stream(socket, :runlists, [])}
+    socket = stream(socket, :runlists, [])
+    {:ok, socket}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
+
+  defp apply_action(socket, :index, _params) do
+        socket
+        |> assign(:page_title, "Listing Runlists")
+        |> assign(:runlist, nil)
+        |> assign(:departments, Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.map(&String.capitalize/1) |> Enum.sort)
+      end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
     socket
@@ -39,8 +43,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :new_department, _params) do
-
-    #IO.inspect(Shop.list_workcenters())
+    Csvimport.update_workcenters()
 
     socket
     |> assign(:page_title, "New Department")
@@ -48,15 +51,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     |> assign(:workcenters, Shop.list_workcenters())
   end
 
-  defp apply_action(socket, :index, _params) do
-#    department_list =
-#      Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.map(&String.capitalize/1) |> Enum.sort
-#      IO.inspect(department_list)
-    socket
-    |> assign(:page_title, "Listing Runlists")
-    |> assign(:runlist, nil)
-    |> assign(:departments, Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.map(&String.capitalize/1) |> Enum.sort)
-  end
+
 
   #@impl true
   #def handle_info({ShophawkWeb.RunlistLive.FormComponent, {:saved, runlist}}, socket) do
@@ -82,6 +77,12 @@ defmodule ShophawkWeb.RunlistLive.Index do
 #    {:noreply, stream_delete(socket, :runlists, runlist)}
 #  end
 
+  def handle_event("select_department", _ , socket) do
+
+
+    {:noreply, socket}
+  end
+
   def handle_event("importall", _, socket) do
     tempjobs = Csvimport.import_operations()
     count = Enum.count(tempjobs)
@@ -102,4 +103,5 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, stream(socket, :runlists, [])}
     #{:noreply, stream(socket, :runlists, Shop.list_runlists())}
   end
+
 end

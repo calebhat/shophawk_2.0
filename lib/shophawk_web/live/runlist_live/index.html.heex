@@ -1,11 +1,15 @@
 <.header>
   Listing Runlists
-  <:actions>
+<form>
+  <.input phx-change="select_department" name="my-input" type="select" errors={["oh no!"]} options={@departments} value="" />
+</form>
+    <:actions>
     <.link patch={~p"/departments/new_department"}>
       <.button>New Department</.button>
     </.link>
     <.button phx-click="importall" class="ml-2">Import All Test</.button>
     <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>
+    
     </:actions>
     
 </.header>
