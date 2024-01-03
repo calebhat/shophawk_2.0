@@ -9,7 +9,7 @@ defmodule Shophawk.Shop.Department do
     field :show_jobs_started, :boolean, default: false
 
     #has_many :department_workcenters, Shophawk.Shop.DepartmentWorkcenter
-    many_to_many :workcenters, Shophawk.Shop.Workcenter, join_through: Shophawk.Shop.DepartmentWorkcenter
+    many_to_many :workcenters, Shophawk.Shop.Workcenter, join_through: Shophawk.Shop.DepartmentWorkcenter, on_replace: :delete
 
 
     timestamps()

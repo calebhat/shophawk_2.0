@@ -16,15 +16,6 @@ defmodule Shophawk.Shop do
     |> Enum.each(fn chunk -> Repo.insert_all(Runlist, chunk) end)
   end
 
-  def find_matching_operations(operations) do
-    query =
-      from r in Runlist,
-      where: r.job_operation in ^operations
-
-      Repo.all(query)
-      #|> Enum.map(&Map.delete(&1, :__meta__))
-    end
-
   @doc """
   Returns the list of runlists.
 
@@ -136,6 +127,13 @@ defmodule Shophawk.Shop do
     Repo.all(Workcenter)
   end
 
+  def list_joined_workcenters(department_id) do  #working to load checked workcenters when editing a department.
+    Repo.all(
+      from w in Workcenter,
+      where: w.department_id == ^department_id
+    )
+  end
+
   @doc """
   Gets a single department.
 
@@ -150,7 +148,11 @@ defmodule Shophawk.Shop do
       ** (Ecto.NoResultsError)
 
   """
-  def get_department!(id), do: Repo.get!(Department, id)
+  def get_department!(id), do: Repo.get!(Department, id) |> Repo.preload(:workcenters)
+
+  def get_department_by_name(department) do
+    Repo.get_by!(Department, department: department)
+  end
 
   def get_workcenter!(id), do: Repo.get!(Workcenter, id)
 
@@ -167,15 +169,9 @@ defmodule Shophawk.Shop do
 
   """
   def create_department(attrs \\ %{}) do
-    workcenter_names = attrs["workcenters"] |> Enum.map(&Map.get(&1, "workcenter"))
-    existing_workcenters =
-      Workcenter
-      |> where([w], w.workcenter in ^workcenter_names)
-      |> Repo.all()
-
     %Department{}
     |> Department.changeset(attrs)
-    |> Ecto.Changeset.put_assoc(:workcenters, existing_workcenters)
+    |> Ecto.Changeset.put_assoc(:workcenters, extract_workcenters(attrs))
     |> Repo.insert()
   end
 
@@ -199,7 +195,15 @@ defmodule Shophawk.Shop do
   def update_department(%Department{} = department, attrs) do
     department
     |> Department.changeset(attrs)
+    |> Ecto.Changeset.put_assoc(:workcenters, extract_workcenters(attrs))
     |> Repo.update()
+  end
+
+  defp extract_workcenters(attrs) do
+    workcenter_names = attrs["workcenters"] |> Enum.map(&Map.get(&1, "workcenter"))
+    Workcenter
+    |> where([w], w.workcenter in ^workcenter_names)
+    |> Repo.all()
   end
 
   @doc """

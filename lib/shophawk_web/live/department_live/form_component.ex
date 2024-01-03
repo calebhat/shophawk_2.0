@@ -41,8 +41,6 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
 
         <% end %>
     <br>
-    <!-- input box that's empty, used to keep "workcenter_ids[]" in parameters passed to validation. otherwise errors out -->
-
 
         <:actions>
           <.button phx-disable-with="Saving...">Save Department</.button>
@@ -54,17 +52,25 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
 
   @impl true
   def update(%{department: department} = assigns, socket) do
+    IO.inspect(department)
     changeset = Shop.change_department(department)
     workcenters = Enum.map(Shop.list_workcenters(), &Map.from_struct/1)
+    selected_workcenters =
+      if department.id != nil do
+        Enum.map(department.workcenters, &(&1.id)) #makes list of associated workcenter ID's for editing a department
+      else
+        []
+      end
 
     {:ok,
      socket
      |> assign(assigns)
      |> assign_form(changeset)
      |> assign(:workcenters, workcenters) #workcenters for checkboxes
-     |> assign(:selected_workcenters, []) #keeps track of which workcenters are selected.
+     |> assign(:selected_workcenters, selected_workcenters) #keeps track of which workcenters are selected.
     }
   end
+
 
   def handle_event("validate", %{"department" => department_params} = params, socket) do
     workcenters =
@@ -89,22 +95,13 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   def handle_event("save", %{"department" => department_params} = params, socket) do
     #Make workcenters into a map for changeset and saving
     workcenters =
-    Map.get(params, "workcenter_ids", [])
-    |> Enum.map(fn id -> %{"workcenter" => Shop.get_workcenter!(id).workcenter} end)
+      Map.get(params, "workcenter_ids", [])
+      |> Enum.map(fn id -> %{"workcenter" => Shop.get_workcenter!(id).workcenter} end)
 
-
-
-    #workcenters = Enum.map(Shop.get_department!(), &Map.from_struct/1)
-
-    #IO.inspect(workcenters)
-#    workcenters =
-#      Map.get(params, "workcenter_ids", [])
-#      |> Enum.map(fn id -> %{"workcenter" => id} end)
     department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters into params
+    IO.inspect(department_params)
     save_department(socket, socket.assigns.action, department_params)
   end
-
-
 
   defp save_department(socket, :edit_department, department_params) do
     case Shop.update_department(socket.assigns.department, department_params) do
@@ -114,7 +111,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
         {:noreply,
          socket
          |> put_flash(:info, "Department updated successfully")
-         |> push_patch(to: socket.assigns.patch)}
+         |> push_navigate(to: "/runlists")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

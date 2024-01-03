@@ -4,8 +4,6 @@ defmodule Shophawk.Shop.Workcenter do
 
   schema "workcenters" do
     field :workcenter, :string
-
-
     many_to_many :departments, Shophawk.Shop.Department, join_through: Shophawk.Shop.DepartmentWorkcenter
 
     timestamps()

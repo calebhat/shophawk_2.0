@@ -8,6 +8,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    socket =
+      assign(socket,
+      department_id: nil
+      )
     socket = stream(socket, :runlists, [])
     {:ok, socket}
   end
@@ -18,10 +22,13 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
+
+        departments = ["Select a department" | Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.sort]
+        IO.inspect(departments)
         socket
         |> assign(:page_title, "Listing Runlists")
         |> assign(:runlist, nil)
-        |> assign(:departments, Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.map(&String.capitalize/1) |> Enum.sort)
+        |> assign(:departments, departments)
       end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -37,6 +44,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 #  end
 
   defp apply_action(socket, :edit_department, %{"id" => id}) do
+    Csvimport.update_workcenters()
     socket
     |> assign(:page_title, "Edit Department")
     |> assign(:department, Shop.get_department!(id))
@@ -77,7 +85,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
 #    {:noreply, stream_delete(socket, :runlists, runlist)}
 #  end
 
-  def handle_event("select_department", _ , socket) do
+  def handle_event("select_department", %{"my-input" => department}, socket) do
+    IO.inspect(department)
+    department_id =
+      case department do
+        "Select a department" -> nil
+        _ -> Shop.get_department_by_name(department)
+      end
+
+
+      socket = assign(socket, department_id: department_id)
 
 
     {:noreply, socket}
