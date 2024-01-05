@@ -1,22 +1,20 @@
 <.header>
   Listing Runlists
-<form>
-  <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" />
-  <%= if @department_id do %>
-    <.link patch={~p"/departments/#{@department_id}/edit_department"}>
-      <.button>Edit department</.button>
-    </.link>
-  <% end %>
-</form>
-    <:actions>
+  <form>
+    <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" />
+    <%= if @department_id do %>
+      <.link patch={~p"/departments/#{@department_id}/edit_department"}>
+        <.button>Edit department</.button>
+      </.link>
+    <% end %>
+  </form>
+  <:actions>
     <.link patch={~p"/departments/new_department"}>
       <.button>New Department</.button>
     </.link>
     <.button phx-click="importall" class="ml-2">Import All Test</.button>
-    <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>
-    
-    </:actions>
-    
+    <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>    
+  </:actions>    
 </.header>
 
 

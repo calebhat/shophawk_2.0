@@ -25,9 +25,16 @@ defmodule Shophawk.Shop do
       [%Runlist{}, ...]
 
   """
-  def list_runlists do
-    Repo.all(Runlist)
+  def list_runlists(department) do
+    #Repo.all(Runlist)
+    Repo.all(
+      from r in Runlist,
+      where: r.wc_vendor in ^department,
+      where: r.status == "O"
+      #select: r
+    )
   end
+
 
   @doc """
   Gets a single runlist.
@@ -127,12 +134,7 @@ defmodule Shophawk.Shop do
     Repo.all(Workcenter)
   end
 
-  def list_joined_workcenters(department_id) do  #working to load checked workcenters when editing a department.
-    Repo.all(
-      from w in Workcenter,
-      where: w.department_id == ^department_id
-    )
-  end
+
 
   @doc """
   Gets a single department.
@@ -151,7 +153,7 @@ defmodule Shophawk.Shop do
   def get_department!(id), do: Repo.get!(Department, id) |> Repo.preload(:workcenters)
 
   def get_department_by_name(department) do
-    Repo.get_by!(Department, department: department)
+    Repo.get_by!(Department, department: department)  |> Repo.preload(:workcenters)
   end
 
   def get_workcenter!(id), do: Repo.get!(Workcenter, id)
