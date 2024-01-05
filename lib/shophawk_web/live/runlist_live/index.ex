@@ -85,7 +85,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 #    {:noreply, stream_delete(socket, :runlists, runlist)}
 #  end
 
-  def handle_event("select_department", %{"my-input" => department}, socket) do
+  def handle_event("select_department", %{"selection" => department}, socket) do
     IO.inspect(department)
     department_id =
       case department do

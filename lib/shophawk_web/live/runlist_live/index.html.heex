@@ -1,7 +1,7 @@
 <.header>
   Listing Runlists
 <form>
-  <.input phx-change="select_department" name="my-input" type="select" options={@departments} value="" />
+  <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" />
   <%= if @department_id do %>
     <.link patch={~p"/departments/#{@department_id}/edit_department"}>
       <.button>Edit department</.button>
