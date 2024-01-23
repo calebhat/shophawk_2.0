@@ -18,44 +18,26 @@
 </.header>
 
 
-<.table
+<.runlist_table
   id="runlists"
   rows={@streams.runlists}
   row_click={fn {_id, runlist} -> JS.navigate(~p"/runlists/#{runlist}") end}
 >
   <:col :let={{_id, runlist}} label="Job"><%= runlist.job %></:col>
-  <:col :let={{_id, runlist}} label="Job operation"><%= runlist.job_operation %></:col>
-  <:col :let={{_id, runlist}} label="Wc vendor"><%= runlist.wc_vendor %></:col>
-  <:col :let={{_id, runlist}} label="Operation service"><%= runlist.operation_service %></:col>
-  <:col :let={{_id, runlist}} label="Sched start"><%= runlist.sched_start %></:col>
-  <:col :let={{_id, runlist}} label="Sched end"><%= runlist.sched_end %></:col>
-  <:col :let={{_id, runlist}} label="Sequence"><%= runlist.sequence %></:col>
-  <:col :let={{_id, runlist}} label="Customer"><%= runlist.customer %></:col>
-  <:col :let={{_id, runlist}} label="Order date"><%= runlist.order_date %></:col>
-  <:col :let={{_id, runlist}} label="Part number"><%= runlist.part_number %></:col>
-  <:col :let={{_id, runlist}} label="Rev"><%= runlist.rev %></:col>
-  <:col :let={{_id, runlist}} label="Description"><%= runlist.description %></:col>
   <:col :let={{_id, runlist}} label="Order quantity"><%= runlist.order_quantity %></:col>
-  <:col :let={{_id, runlist}} label="Extra quantity"><%= runlist.extra_quantity %></:col>
-  <:col :let={{_id, runlist}} label="Pick quantity"><%= runlist.pick_quantity %></:col>
-  <:col :let={{_id, runlist}} label="Make quantity"><%= runlist.make_quantity %></:col>
-  <:col :let={{_id, runlist}} label="Open operations"><%= runlist.open_operations %></:col>
-  <:col :let={{_id, runlist}} label="Shipped quantity"><%= runlist.shipped_quantity %></:col>
-  <:col :let={{_id, runlist}} label="Customer po"><%= runlist.customer_po %></:col>
-  <:col :let={{_id, runlist}} label="Customer po line"><%= runlist.customer_po_line %></:col>
-  <:col :let={{_id, runlist}} label="Job sched end"><%= runlist.job_sched_end %></:col>
-  <:col :let={{_id, runlist}} label="Job sched start"><%= runlist.job_sched_start %></:col>
-  <:col :let={{_id, runlist}} label="Note text"><%= runlist.note_text %></:col>
-  <:col :let={{_id, runlist}} label="Released date"><%= runlist.released_date %></:col>
-  <:col :let={{_id, runlist}} label="Material"><%= runlist.material %></:col>
-  <:col :let={{_id, runlist}} label="Mat vendor"><%= runlist.mat_vendor %></:col>
-  <:col :let={{_id, runlist}} label="Mat description"><%= runlist.mat_description %></:col>
-  <:col :let={{_id, runlist}} label="assignment"><%= runlist.assignment %></:col>
-  <:col :let={{_id, runlist}} label="Dots"><%= runlist.dots %></:col>
-  <:col :let={{_id, runlist}} label="Currentop"><%= runlist.currentop %></:col>
-  <:col :let={{_id, runlist}} label="Material waiting"><%= runlist.material_waiting %></:col>
-  <:col :let={{_id, runlist}} label="Status"><%= runlist.status %></:col>
   <:col :let={{_id, runlist}} label="Est total hrs"><%= runlist.est_total_hrs %></:col>
+  <:col :let={{_id, runlist}} label="Material"><%= runlist.material %></:col>
+  <:col :let={{_id, runlist}} label="Part number"><%= runlist.part_number %></:col>
+  <:col :let={{_id, runlist}} label="Description"><%= runlist.description %></:col>
+  <:col :let={{_id, runlist}} label="job_sched_end"><%= runlist.job_sched_end %></:col>
+  <:col :let={{_id, runlist}} label="Customer"><%= runlist.customer %></:col>
+  <:col :let={{_id, runlist}} label="assignment"><%= runlist.assignment %></:col>
+  <:col :let={{_id, runlist}} label="Material waiting"><%= runlist.material_waiting %></:col> 
+  <:col :let={{_id, runlist}} label="Currentop"><%= runlist.currentop %></:col>
+  <:col :let={{_id, runlist}} label="Operation service"><%= runlist.operation_service %></:col>
+  <:col :let={{_id, runlist}} label="Wc vendor"><%= runlist.wc_vendor %></:col>
+  <:col :let={{_id, runlist}} label="Rev"><%= runlist.rev %></:col>
+  <:col :let={{_id, runlist}} label="Dots"><%= runlist.dots %></:col>
   <:action :let={{_id, runlist}}>
     <div class="sr-only">
       <.link navigate={~p"/runlists/#{runlist}"}>Show</.link>
@@ -70,7 +52,7 @@
       Delete
     </.link>
   </:action>
-</.table>
+</.runlist_table>
 
 <.modal :if={@live_action in [:new, :edit]} id="runlist-modal" show on_cancel={JS.patch(~p"/runlists")}>
   <.live_component

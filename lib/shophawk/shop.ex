@@ -27,12 +27,33 @@ defmodule Shophawk.Shop do
   """
   def list_runlists(department) do
     #Repo.all(Runlist)
-    Repo.all(
-      from r in Runlist,
-      where: r.wc_vendor in ^department,
-      where: r.status == "O"
-      #select: r
-    )
+    runlists =
+      Repo.all(
+        from r in Runlist,
+        where: r.wc_vendor in ^department,
+        where: r.status == "O",
+        order_by: [asc: r.sched_start],
+        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs}
+      )
+    #|> IO.inspect()
+    if Enum.empty?(runlists) do
+      []
+    else
+      {rows, _} =
+        Enum.reduce_while(runlists, {[], nil}, fn row, {acc, prev_sched_start} ->
+          sched_start = row.sched_start
+          IO.inspect(sched_start)
+
+          if prev_sched_start == sched_start do
+            {:cont, {acc ++ [row], sched_start}}
+          else
+            date_row = [%Runlist{sched_start: sched_start, id: 0}]
+            {:cont, {acc ++ date_row ++ [row], sched_start}}
+          end
+        end)
+      rows
+      end
+
   end
 
 

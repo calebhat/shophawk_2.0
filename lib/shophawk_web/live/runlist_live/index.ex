@@ -80,22 +80,22 @@ defmodule ShophawkWeb.RunlistLive.Index do
 #  end
 
   def handle_event("select_department", %{"selection" => department_name}, socket) do
-    IO.inspect(department_name)
     department =
       case department_name do
         "Select a department" -> nil
         _ -> Shop.get_department_by_name(department_name)
       end
-      #IO.inspect(department)
       workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
       IO.inspect(workcenter_list)
-      runlists = Shop.list_runlists(workcenter_list)
-      IO.inspect(Enum.count(runlists))
+      runlists =
+        Shop.list_runlists(workcenter_list)
+
+      #IO.inspect(Enum.count(runlists))
 
       socket =
         socket
         |> assign(department_id: department)
-        |> stream(:runlists, runlists) #Stream isn't replacing the data, need a total refresh of data when changing department.
+        |> stream(:runlists, runlists, reset: true)
 
 
     {:noreply, socket}
