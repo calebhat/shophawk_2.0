@@ -15,6 +15,9 @@ module.exports = {
     extend: {
       colors: {
         brand: "#FD4F00",
+      },
+      backgroundImage: {
+        'shophawk': "url('../images/gearhawk.jpg')",
       }
     },
   },

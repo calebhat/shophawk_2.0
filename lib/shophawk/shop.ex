@@ -42,7 +42,6 @@ defmodule Shophawk.Shop do
       {rows, _} =
         Enum.reduce_while(runlists, {[], nil}, fn row, {acc, prev_sched_start} ->
           sched_start = row.sched_start
-          IO.inspect(sched_start)
 
           if prev_sched_start == sched_start do
             {:cont, {acc ++ [row], sched_start}}

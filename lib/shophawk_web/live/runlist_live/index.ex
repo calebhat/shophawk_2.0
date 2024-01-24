@@ -86,11 +86,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
         _ -> Shop.get_department_by_name(department_name)
       end
       workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-      IO.inspect(workcenter_list)
+      #IO.inspect(workcenter_list)
       runlists =
         Shop.list_runlists(workcenter_list)
-
-      #IO.inspect(Enum.count(runlists))
 
       socket =
         socket
@@ -98,6 +96,20 @@ defmodule ShophawkWeb.RunlistLive.Index do
         |> stream(:runlists, runlists, reset: true)
 
 
+    {:noreply, socket}
+  end
+
+  defp operation_alteration(operation) do
+    new_value =
+      if operation == "NULL" do
+        ""
+      else
+        operation
+      end
+  end
+
+  def handle_event("mat_waiting_toggle", _, socket) do
+    IO.puts("hej")
     {:noreply, socket}
   end
 

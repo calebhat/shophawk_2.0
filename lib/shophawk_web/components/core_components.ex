@@ -225,7 +225,7 @@ defmodule ShophawkWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
+        "phx-submit-loading:opacity-75 rounded-lg bg-lime-800 hover:bg-zinc-700 py-2 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
@@ -543,40 +543,51 @@ defmodule ShophawkWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] mt-11 sm:w-full">
-        <thead class="text-sm text-left leading-6 text-zinc-500">
+    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 bg-cyan-950 rounded-lg">
+      <table class="w-[40rem] mt-11 sm:w-full table-fixed text-nowrap">
+        <thead class="text-xl text-center leading-6 text-stone-200 ">
           <tr>
-            <th :for={col <- @col} class="p-0 pr-6 pb-4 font-normal"><%= col[:label] %></th>
+            <th :for={col <- @col} class="p-0 pr-1 pb-4 font-normal" width={col[:width]} ><%= col[:label] %></th>
             <th class="relative p-0 pb-4"><span class="sr-only"><%= gettext("Actions") %></span></th>
           </tr>
         </thead>
         <tbody
           id={@id}
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="relative divide-y divide-zinc-100 border-t border-zinc-200 text-sm leading-6 text-zinc-700"
+          class="relative divide-y divide-zinc-100 border-t border-zinc-200 text-m leading-5 text-stone-200"
         >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-zinc-50">
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
           <%= if elem(row, 1).job == nil do %>
-
-            <td colspan="3" class="bg-yellow-200">
-
+            <td colspan="15" class="bg-stone-300">
               <span class={["font-semibold text-zinc-900"]}>
-              <%= elem(row, 1).sched_start %>
+              <%= Calendar.strftime(elem(row, 1).sched_start, "%m-%d-%y") %>
               </span>
-             </td>
-          <%= else %>
+            </td>
+          <% else %>
             <td
               :for={{col, i} <- Enum.with_index(@col)}
-              phx-click={@row_click && @row_click.(row)}
-              class={["relative p-0", @row_click && "hover:cursor-pointer"]}
+              class={["relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start)] }
             >
-              <div class="block py-4 pr-6">
-                <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-50 sm:rounded-l-xl" />
-                <span class={["relative", i == 0 && "font-semibold text-zinc-900"]}>
-                  <%= render_slot(col, @row_item.(row)) %>
-                </span>
-              </div>
+              <%= case i do %>
+              <% 9 -> %>
+                <div class="block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4 group-hover:bg-cyan-800" phx-click="mat_waiting_toggle">
+                  <input class="rounded text-lime-800 " type="checkbox" id="myCheckbox" name="myCheckbox" value={elem(row, 1).material_waiting}>
+                  <label for="myCheckbox"><%= elem(row, 1).material_waiting %></label>
+                </div>
+              <% 8 -> %>
+                <div class="block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4 group-hover:bg-cyan-800" >
+                  hi
+                </div>
+              <% _ -> %>
+                <div class="block py-3 pr-2 pl-2 truncate" phx-click={@row_click && @row_click.(row)} >
+                  <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-cyan-800 sm:rounded-l-xl" />
+                  <span class={["relative", i == 0 && "font-semibold"]}>
+                  <span class={["relative", i == 9 && "font-bold"]}>
+                    <%= render_slot(col, @row_item.(row)) %>
+                  </span>
+                  </span>
+                </div>
+              <% end %>
             </td>
             <td :if={@action != []} class="relative w-14 p-0">
               <div class="relative whitespace-nowrap py-4 text-right text-sm font-medium">
@@ -595,6 +606,14 @@ defmodule ShophawkWeb.CoreComponents do
       </table>
     </div>
     """
+  end
+
+  defp date_color(date) do
+    case Date.compare(date, Date.utc_today()) do
+      :lt -> "bg-rose-400/40"
+      :eq -> "bg-lime-800"
+      :gt -> "bg-cyan-950"
+    end
   end
 
   @doc """
