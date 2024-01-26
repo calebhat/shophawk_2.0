@@ -32,7 +32,7 @@ defmodule Shophawk.Shop do
         from r in Runlist,
         where: r.wc_vendor in ^department,
         where: r.status == "O",
-        order_by: [asc: r.sched_start],
+        order_by: [asc: r.sched_start, asc: r.job],
         select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs}
       )
     #|> IO.inspect()
@@ -106,6 +106,15 @@ defmodule Shophawk.Shop do
     Repo.update(changeset)
   end
 
+  def toggle_mat_waiting(id) do
+    op = Repo.get!(Runlist, id)
+    new_matertial_waiting = !op.material_waiting
+    Repo.update_all(
+      from(r in Runlist, where: r.job == ^op.job),
+      set: [material_waiting: new_matertial_waiting]
+    )
+  end
+
   @doc """
   Deletes a runlist.
 
@@ -170,7 +179,12 @@ defmodule Shophawk.Shop do
       ** (Ecto.NoResultsError)
 
   """
-  def get_department!(id), do: Repo.get!(Department, id) |> Repo.preload(:workcenters)
+  def get_department!(id) do
+    Repo.get!(Department, id) |> Repo.preload([workcenters: from(c in Workcenter, order_by: c.workcenter)])
+    #Repo.get!(Department, id) |> Repo.preload(:workcenters)
+  end
+
+  defp subquery(query), do: from wc in query, order_by: [wc.name]
 
   def get_department_by_name(department) do
     Repo.get_by!(Department, department: department)  |> Repo.preload(:workcenters)

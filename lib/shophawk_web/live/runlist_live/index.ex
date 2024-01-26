@@ -108,8 +108,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
       end
   end
 
-  def handle_event("mat_waiting_toggle", _, socket) do
-    IO.puts("hej")
+  def handle_event("mat_waiting_toggle", %{"id" => id}, socket) do
+    Shop.toggle_mat_waiting(id)
     {:noreply, socket}
   end
 
