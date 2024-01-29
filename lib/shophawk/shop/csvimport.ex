@@ -2,7 +2,7 @@ defmodule Shophawk.Shop.Csvimport do
   alias Shophawk.Shop.Runlist
   alias Shophawk.Shop
 
-  def update_workcenters do
+  def update_workcenters do #check for new workcenters to be added for department workcenter selection
     workcenters =
       File.stream!("C:/phoenixapps/csv_files/yearlyRunlistOps.csv")
       |> Stream.map(&String.trim(&1))
@@ -20,7 +20,7 @@ defmodule Shophawk.Shop.Csvimport do
 
     saved_workcenters = Enum.map(Shop.list_workcenters, &(&1.workcenter))
     workcenters
-      |> Enum.reject(fn workcenter -> Enum.member?(saved_workcenters, workcenter) end)
+      |> Enum.reject(fn workcenter -> Enum.member?(saved_workcenters, workcenter) end) #filters out workcenters that already exist
       |> Enum.reduce(%{}, fn workcenter, acc ->
         Shop.create_workcenter(%{"workcenter" => workcenter})
       end)

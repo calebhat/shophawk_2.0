@@ -28,19 +28,19 @@
     rows={@streams.runlists}
     row_click={fn {_id, runlist} -> JS.navigate(~p"/runlists/#{runlist}") end}
   >
-    <:col :let={{_id, runlist}} label="Job" width="75rem"><%= runlist.job %></:col>
-    <:col :let={{_id, runlist}} label="Qty" width="50rem"><%= runlist.order_quantity %></:col>
-    <:col :let={{_id, runlist}} label="Hrs" width="55rem"><%= runlist.est_total_hrs %></:col>
-    <:col :let={{_id, runlist}} label="Material" width="160rem"><%= runlist.material %></:col>
-    <:col :let={{_id, runlist}} label="Part number" width="140rem"><%= runlist.part_number %></:col>
-    <:col :let={{_id, runlist}} label="Description" width="160rem"><%= runlist.description %></:col>
-    <:col :let={{_id, runlist}} label="Ship Date" width="100rem"><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
-    <:col :let={{_id, runlist}} label="Customer" width="120rem"><%= runlist.customer %></:col>
-    <:col :let={{_id, runlist}} label="assignment" width="120rem"><%= runlist.assignment %></:col>
-    <:col :let={{_id, runlist}} label="Material waiting" width="80rem"><%= runlist.material_waiting %></:col> 
-    <:col :let={{_id, runlist}} label="Currentop" width="120rem"><%= runlist.currentop %></:col>
-    <:col :let={{_id, runlist}} label="Workcenter" width="120rem"><%= runlist.wc_vendor %></:col>
-    <:col :let={{_id, runlist}} label="Operation" width="120rem"><%= operation_alteration(runlist.operation_service) %></:col>
+    <:col :let={{_id, runlist}} label="Job" headerstyle="w-20 text-center" cellstyle="text-center"><%= runlist.job %></:col>
+    <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14 text-center" cellstyle=""><%= runlist.order_quantity %></:col>
+    <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-14 text-center" cellstyle=""><%= runlist.est_total_hrs %></:col>
+    <:col :let={{_id, runlist}} label="Material" headerstyle="hidden w-40 lg:table-cell" cellstyle="hidden lg:table-cell"><%= runlist.material %></:col>
+    <:col :let={{_id, runlist}} label="Part number" headerstyle="w-40 xl:w-52" cellstyle=""><%= runlist.part_number %></:col>
+    <:col :let={{_id, runlist}} label="Description" headerstyle="hidden w-40 lg:table-cell lg:w-40" cellstyle="hidden lg:table-cell "><%= runlist.description %></:col>
+    <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24" cellstyle=""><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
+    <:col :let={{_id, runlist}} label="Customer" headerstyle="hidden w-32 2xl:table-cell" cellstyle="hidden 2xl:table-cell"><%= runlist.customer %></:col>
+    <:col :let={{_id, runlist}} label="assignment" headerstyle="" cellstyle="text-center"><%= runlist.assignment %></:col>
+    <:col :let={{_id, runlist}} label="Material waiting" headerstyle="w-14 text-sm" cellstyle="text-center"><%= runlist.material_waiting %></:col> 
+    <:col :let={{_id, runlist}} label="Current Location" headerstyle="text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
+    <:col :let={{_id, runlist}} label="Workcenter" headerstyle="text-center" cellstyle="text-center"><%= runlist.wc_vendor %></:col>
+    <:col :let={{_id, runlist}} label="Service" headerstyle="text-center hidden lg:table-cell" cellstyle="text-center hidden lg:table-cell"><%= operation_alteration(runlist.operation_service) %></:col>
     
 
   </.runlist_table>

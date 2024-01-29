@@ -543,41 +543,47 @@ defmodule ShophawkWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 bg-cyan-800 rounded-lg">
-      <table class="w-[40rem] mt-11 sm:w-full text-nowrap">
-        <thead class="text-xl text-center leading-6 text-stone-200 ">
+    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
+      <table class="w-[40rem] mt-4 sm:w-full table-fixed">
+        <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
           <tr>
-            <th :for={col <- @col} class="p-0 pr-1 pb-4 font-normal" width={col[:width]} ><%= col[:label] %></th>
+            <th :for={col <- @col} class={["p-0 pr-1 pb-4 font-normal", col[:headerstyle] ]} ><%= col[:label] %></th>
           </tr>
         </thead>
         <tbody
           id={@id}
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="relative divide-y divide-stone-800 border-t border-stone-200 text-m leading-5 text-stone-200"
+          class="relative divide-y divide-stone-800 border-t border-stone-200 leading-5 text-stone-200"
         >
           <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
           <%= if elem(row, 1).job == nil do %>
-            <td colspan="15" class="bg-stone-300">
-              <span class={["font-semibold text-zinc-900"]}>
-              <%= Calendar.strftime(elem(row, 1).sched_start, "%m-%d-%y") %>
-              </span>
+            <td :for={{col, i} <- Enum.with_index(@col)}
+            class={[col[:cellstyle], "bg-stone-300"]}>
+              <%= case i do %>
+              <% 0 -> %>
+                <span class={["font-semibold text-zinc-900"]}>
+                <%= Calendar.strftime(elem(row, 1).sched_start, "%m-%d-%y") %>
+                </span>
+              <% _ -> %>
+                <div></div>
+              <% end %>
             </td>
           <% else %>
             <td
               :for={{col, i} <- Enum.with_index(@col)}
-              class={["relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}
+              class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}
             >
               <%= case i do %>
               <% 9 -> %>
-                <div class={["text-center block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}>
+                <div class={[ "text-center block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}>
                   <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                 </div>
               <% 8 -> %>
-                <div class={["block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                <div class={[ "block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
                   hi
                 </div>
               <% _ -> %>
-                <div class="block py-3 pr-2 pl-2 truncate" phx-click={@row_click && @row_click.(row)} >
+                <div class={[ "block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
                   <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
                   <span class={["relative", i == 0 && "font-semibold"]}>
                   <span class={["relative", i == 9 && "font-bold"]}>
@@ -587,7 +593,7 @@ defmodule ShophawkWeb.CoreComponents do
                 </div>
               <% end %>
             </td>
-            <% end %>
+          <% end %>
           </tr>
         </tbody>
       </table>
