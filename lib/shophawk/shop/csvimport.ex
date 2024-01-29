@@ -26,14 +26,28 @@ defmodule Shophawk.Shop.Csvimport do
       end)
   end
 
-  def update_operations do #quick import of most recent changes
+  def job_finder(operations) do
+    Enum.each(operations, fn op ->
+      case op.job_operation do
+      770743 -> IO.inspect(op.job_operation)
+      IO.inspect(op.wc_vendor)
+      _ ->
+      end
+    end)
+    operations
+  end
+
+  def update_operations do #quick import of most recent changes, updates currentop too.
     operations = #Takes 25 seconds to merge 43K operations
       jobs_to_update() #creates list of all jobs #'s that have a change somewhere
       |> runlist_ops("C:/phoenixapps/csv_files/yearlyRunlistOps.csv") #create map of all operations with a job listed in above function
       |> jobs_merge("C:/phoenixapps/csv_files/yearlyJobs.csv") #Merge job data with each operation
       |> mat_merge("C:/phoenixapps/csv_files/yearlyMat.csv") #Merge material data with each operation
+
       |> data_collection_merge("C:/phoenixapps/csv_files/operationtime.csv") #merge data collection
+
       |> uservalues_merge("C:/phoenixapps/csv_files/yearlyUserValues.csv") #Merge dots data with each operation
+
       |> Enum.map(fn map ->
         list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
           %Runlist{}
@@ -42,17 +56,56 @@ defmodule Shophawk.Shop.Csvimport do
           list.changes #The changeset results in a list of data, extracts needed map from changeset.
           |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
           |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+          |> Map.put_new(:currentop, nil)
         end)
-    existing_records = #get structs of all operations needed for update
-      Enum.map(operations, &(&1.job_operation))
-      |> Enum.uniq #makes list of operation ID's to check for
-      |> Shop.find_matching_operations #create list of structs that already exist in DB
 
-      Enum.each(operations, fn op ->
+        {updated_list, _, _, _} =
+          Enum.reduce(Enum.reverse(operations), {[], nil, nil, false}, fn op, {acc, last_wc_vendor, last_job, hold} ->
+            case {op.status, op.job, hold} do
+              {"O", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
+                {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job}
+
+              {"O", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
+                {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+              {"O", job, true} when job == last_job -> #continues setting the previous wc_vendor
+                {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
+
+              {"O", job, true} -> #if found a new job
+                {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+              {"S", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job}
+
+              {"S", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
+                {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+              {"S", job, true} when job == last_job -> #continues setting the previous wc_vendor
+                {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
+
+              {"S", job, _} -> #if found a new job
+                {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+              {"C", job, _}  ->
+                {[%{op | currentop: nil} | acc], nil, op.job, false}
+
+              {_, _, _} ->
+                {[%{op | currentop: nil} | acc], nil, op.job, false}
+            end
+          end)
+
+      existing_records = #get structs of all operations needed for update
+        Enum.map(operations, &(&1.job_operation))
+        |> Enum.uniq #makes list of operation ID's to check for
+        |> Shop.find_matching_operations #create list of structs that already exist in DB
+        |> job_finder()
+
+      Enum.each(updated_list, fn op ->
         case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
           record ->   #if the record exists, update it with the new values
+            #IO.inspect(record)
             Shop.update_runlist(record, op)
           end
       end)

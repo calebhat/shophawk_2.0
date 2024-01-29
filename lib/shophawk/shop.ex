@@ -16,6 +16,14 @@ defmodule Shophawk.Shop do
     |> Enum.each(fn chunk -> Repo.insert_all(Runlist, chunk) end)
   end
 
+  def find_matching_operations(operations) do #used in csvimport
+    query =
+      from r in Runlist,
+      where: r.job_operation in ^operations
+
+      Repo.all(query)
+    end
+
   @doc """
   Returns the list of runlists.
 
@@ -85,7 +93,11 @@ defmodule Shophawk.Shop do
 
   """
   def create_runlist(attrs \\ %{}) do
+
+    #IO.inspect(attrs)
+    #Repo.insert(attrs)
     changeset = Runlist.changeset(%Runlist{}, attrs)
+    |> IO.inspect
     Repo.insert(changeset)
   end
 
