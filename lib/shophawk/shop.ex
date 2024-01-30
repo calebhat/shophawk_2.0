@@ -9,6 +9,7 @@ defmodule Shophawk.Shop do
  alias Shophawk.Shop.Runlist
  alias Shophawk.Shop.Department
  alias Shophawk.Shop.Workcenter
+ alias Shophawk.Shop.Assignment
 
   def import_all(operations) do #WARNING, THIS TAKES A MINUTE AND WILL OVERLOAD CHROME IF ALL DATA IS LOADED.
     operations
@@ -164,6 +165,10 @@ defmodule Shophawk.Shop do
     Runlist.changeset(runlist, attrs)
   end
 
+  def change_assignment(%Assignment{} = assignemnt, attrs \\ %{}) do
+    Assignment.changeset(assignemnt, attrs)
+  end
+
 
 
   @doc """
@@ -204,7 +209,7 @@ defmodule Shophawk.Shop do
     #Repo.get!(Department, id) |> Repo.preload(:workcenters)
   end
 
-  defp subquery(query), do: from wc in query, order_by: [wc.name]
+  defp subquery(query), do: (from wc in query, order_by: [wc.name])
 
   def get_department_by_name(department) do
     Repo.get_by!(Department, department: department)  |> Repo.preload(:workcenters)
@@ -234,6 +239,11 @@ defmodule Shophawk.Shop do
   def create_workcenter(attrs \\ %{}) do
     changeset = Workcenter.changeset(%Workcenter{}, attrs)
     Repo.insert(changeset)
+  end
+
+  def create_assignment(attrs \\ %{}) do
+    Assignment.changeset(%Assignment{}, attrs)
+    |> Repo.insert()
   end
 
   @doc """

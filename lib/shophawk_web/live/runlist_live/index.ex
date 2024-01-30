@@ -5,6 +5,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.Shop.Runlist
   alias Shophawk.Shop.Department
   alias Shophawk.Shop.Csvimport
+  alias Shophawk.Shop.Assignment
 
   @impl true
   def mount(_params, _session, socket) do
@@ -13,6 +14,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
+    IO.inspect(socket.assigns.live_action)
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
@@ -23,7 +25,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         |> assign(:page_title, "Listing Runlists")
         |> assign(:runlist, nil)
         |> assign(:departments, departments)
-      end
+  end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
     socket
@@ -53,7 +55,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
     |> assign(:workcenters, Shop.list_workcenters())
   end
 
+  defp apply_action(socket, :new_assignment, _params) do
+    socket =
+    socket
+    |> assign(:page_title, "New Assignment")
+    |> assign(:assignment, %Assignment{})
 
+    IO.inspect(socket)
+
+    socket
+  end
 
   #@impl true
   #def handle_info({ShophawkWeb.RunlistLive.FormComponent, {:saved, runlist}}, socket) do

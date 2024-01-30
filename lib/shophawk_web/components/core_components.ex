@@ -593,7 +593,7 @@ defmodule ShophawkWeb.CoreComponents do
                     <div class={[ ]}>
                     <%= if i== 10 do %>
                       &#x2705 Job at <%= render_slot(col, @row_item.(row)) %>
-                    <%= else %>
+                    <% else %>
                       <%= render_slot(col, @row_item.(row)) %>
                     <% end %>
                     </div>
