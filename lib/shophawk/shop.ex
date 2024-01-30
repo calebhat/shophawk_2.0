@@ -50,6 +50,13 @@ defmodule Shophawk.Shop do
       {rows, _} =
         Enum.reduce_while(runlists, {[], nil}, fn row, {acc, prev_sched_start} ->
           sched_start = row.sched_start
+          row = #combines workcenter and service if a service exists
+            if row.operation_service != "NULL" do
+              combined = "#{row.wc_vendor} -#{row.operation_service}"
+              Map.put(row, :wc_vendor, combined)
+            else
+              row
+            end
 
           if prev_sched_start == sched_start do
             {:cont, {acc ++ [row], sched_start}}
@@ -57,6 +64,7 @@ defmodule Shophawk.Shop do
             date_row = [%Runlist{sched_start: sched_start, id: 0}]
             {:cont, {acc ++ date_row ++ [row], sched_start}}
           end
+
         end)
       rows
       end

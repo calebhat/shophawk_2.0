@@ -569,30 +569,48 @@ defmodule ShophawkWeb.CoreComponents do
               <% end %>
             </td>
           <% else %>
-            <td
-              :for={{col, i} <- Enum.with_index(@col)}
-              class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}
-            >
+          <div :for={{col, i} <- Enum.with_index(@col)}
+              >
+
               <%= case i do %>
-              <% 9 -> %>
-                <div class={[ "text-center block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}>
-                  <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
-                </div>
               <% 8 -> %>
+              <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
                 <div class={[ "block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
                   hi
                 </div>
-              <% _ -> %>
-                <div class={[ "block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
-                  <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
-                  <span class={["relative", i == 0 && "font-semibold"]}>
-                  <span class={["relative", i == 9 && "font-bold"]}>
-                    <%= render_slot(col, @row_item.(row)) %>
-                  </span>
-                  </span>
+              </td>
+              <% 9 -> %>
+              <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                <div class={[ "text-center block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}>
+                  <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                 </div>
+              </td>
+              <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
+                <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                  <div class={["block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
+                    <span class={["relative", i == 0 && "font-semibold"]}>
+                    <div class={[ ]}>
+                    <%= if i== 10 do %>
+                      &#x2705 Job at <%= render_slot(col, @row_item.(row)) %>
+                    <%= else %>
+                      <%= render_slot(col, @row_item.(row)) %>
+                    <% end %>
+                    </div>
+                    </span>
+                  </div>
+                </td>
+              <% _ -> %>
+                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                  <div class={["block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
+                    <span class={["relative", i == 0 && "font-semibold"]}>
+                      <%= render_slot(col, @row_item.(row)) %>
+                    </span>
+                  </div>
+                </td>
               <% end %>
-            </td>
+            </div>
           <% end %>
           </tr>
         </tbody>
