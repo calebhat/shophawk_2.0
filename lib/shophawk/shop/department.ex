@@ -10,7 +10,7 @@ defmodule Shophawk.Shop.Department do
 
     #has_many :department_workcenters, Shophawk.Shop.DepartmentWorkcenter
     many_to_many :workcenters, Shophawk.Shop.Workcenter, join_through: Shophawk.Shop.DepartmentWorkcenter, on_replace: :delete
-    has_many :assignments, Shophawk.Assignment
+    has_many :assignments, Shophawk.Shop.Assignment
 
 
     timestamps()

@@ -94,7 +94,7 @@ defmodule ShophawkWeb.RunlistLive.FormComponent do
         {:noreply,
          socket
          |> put_flash(:info, "Runlist updated successfully")
-         |> push_patch(to: socket.assigns.patch)}
+         |> push_patch(to: socket.assigns.patch, replace: true)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

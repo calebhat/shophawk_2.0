@@ -35,7 +35,6 @@ defmodule Shophawk.Shop do
 
   """
   def list_runlists(department) do
-    #Repo.all(Runlist)
     runlists =
       Repo.all(
         from r in Runlist,
@@ -44,7 +43,6 @@ defmodule Shophawk.Shop do
         order_by: [asc: r.sched_start, asc: r.job],
         select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs}
       )
-    #|> IO.inspect()
     if Enum.empty?(runlists) do
       []
     else
@@ -65,7 +63,6 @@ defmodule Shophawk.Shop do
             date_row = [%Runlist{sched_start: sched_start, id: 0}]
             {:cont, {acc ++ date_row ++ [row], sched_start}}
           end
-
         end)
       rows
       end
@@ -106,7 +103,6 @@ defmodule Shophawk.Shop do
     #IO.inspect(attrs)
     #Repo.insert(attrs)
     changeset = Runlist.changeset(%Runlist{}, attrs)
-    |> IO.inspect
     Repo.insert(changeset)
   end
 
@@ -124,6 +120,11 @@ defmodule Shophawk.Shop do
   """
   def update_runlist(%Runlist{} = runlist, attrs) do
     changeset = Runlist.changeset(runlist, attrs)
+    Repo.update(changeset)
+  end
+
+  def update_assignment(%Assignment{} = assignment, attrs) do
+    changeset = Assignment.changeset(assignment, attrs)
     Repo.update(changeset)
   end
 
@@ -165,8 +166,8 @@ defmodule Shophawk.Shop do
     Runlist.changeset(runlist, attrs)
   end
 
-  def change_assignment(%Assignment{} = assignemnt, attrs \\ %{}) do
-    Assignment.changeset(assignemnt, attrs)
+  def change_assignment(%Assignment{} = assignment, attrs \\ %{}) do
+    Assignment.changeset(assignment, attrs)
   end
 
 
@@ -206,7 +207,6 @@ defmodule Shophawk.Shop do
   """
   def get_department!(id) do
     Repo.get!(Department, id) |> Repo.preload([workcenters: from(c in Workcenter, order_by: c.workcenter)])
-    #Repo.get!(Department, id) |> Repo.preload(:workcenters)
   end
 
   defp subquery(query), do: (from wc in query, order_by: [wc.name])
@@ -241,8 +241,10 @@ defmodule Shophawk.Shop do
     Repo.insert(changeset)
   end
 
-  def create_assignment(attrs \\ %{}) do
-    Assignment.changeset(%Assignment{}, attrs)
+  def create_assignment(department_id, attrs \\ %{}) do
+    get_department!(department_id)
+    |> Ecto.build_assoc(:assignments)
+    |> Ecto.Changeset.cast(attrs, [:assignment])
     |> Repo.insert()
   end
 

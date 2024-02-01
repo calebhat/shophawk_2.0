@@ -1,14 +1,19 @@
 <.header>
   <form> 
-    <div class="grid grid-cols-3 gap-4">    
-      <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" />   
+    <div class="grid grid-cols-3 gap-4">
+       
       <%= if @department_id do %>
+      <form>
+        <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" department={@department}  />  
         <.link patch={~p"/departments/#{@department_id}/edit_department"}>
           <.button>Edit department</.button>
         </.link>
-        <.link patch={~p"/runlists/#{@department_id}/new_assignment"}>
+        <.link phx-update="ignore" patch={~p"/runlists/#{@department_id}/new_assignment"}>
           <.button>New Assignment</.button>
         </.link>
+        </form>
+      <% else %>
+        <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" />  
       <% end %>    
     </div> 
   </form>
@@ -21,7 +26,6 @@
     <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>    
   </:actions>    
 </.header>
-
 
 <%= if @streams.runlists.inserts != [] do %>
   <div class="">
@@ -78,6 +82,8 @@
     title={@page_title}
     action={@live_action}
     assignment={@assignment}
+    department_id={@department_id}
+    department={@department}
     patch={~p"/runlists"}
   />
 </.modal>

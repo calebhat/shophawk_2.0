@@ -266,6 +266,8 @@ defmodule ShophawkWeb.CoreComponents do
   attr :label, :string, default: nil
   attr :value, :any
 
+  attr :department, :string, default: nil
+
   attr :type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file hidden month number password
@@ -293,6 +295,7 @@ defmodule ShophawkWeb.CoreComponents do
     |> assign_new(:name, fn -> if assigns.multiple, do: field.name <> "[]", else: field.name end)
     |> assign_new(:value, fn -> field.value end)
     |> input()
+
   end
 
   def input(%{type: "checkbox", value: value} = assigns) do
@@ -320,6 +323,8 @@ defmodule ShophawkWeb.CoreComponents do
   end
 
   def input(%{type: "select"} = assigns) do
+
+    #IO.inspect(assigns)
     ~H"""
     <div phx-feedback-for={@name}>
       <.label for={@id}><%= @label %></.label>
@@ -331,7 +336,13 @@ defmodule ShophawkWeb.CoreComponents do
         {@rest}
       >
         <option :if={@prompt} value=""><%= @prompt %></option>
-        <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
+        <%= for option <- @options do %>
+          <%= if option == @department do %>
+            <option selected> <%= option %></option>
+          <% else %>
+            <option> <%= option %></option>
+          <% end %>
+        <% end %>
       </select>
       <.error :for={msg <- @errors}><%= msg %></.error>
     </div>
@@ -555,68 +566,71 @@ defmodule ShophawkWeb.CoreComponents do
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
           class="relative divide-y divide-stone-800 border-t border-stone-200 leading-5 text-stone-200"
         >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
-          <%= if elem(row, 1).job == nil do %>
-            <td :for={{col, i} <- Enum.with_index(@col)}
-            class={[col[:cellstyle], "bg-stone-300"]}>
-              <%= case i do %>
-              <% 0 -> %>
-                <span class={["font-semibold text-zinc-900"]}>
-                <%= Calendar.strftime(elem(row, 1).sched_start, "%m-%d-%y") %>
-                </span>
-              <% _ -> %>
-                <div></div>
-              <% end %>
-            </td>
-          <% else %>
-          <div :for={{col, i} <- Enum.with_index(@col)}
-              >
-
-              <%= case i do %>
-              <% 8 -> %>
-              <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
-                <div class={[ "block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
-                  hi
-                </div>
+        <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
+            <%= if elem(row, 1).job == nil do %>
+              <td :for={{col, i} <- Enum.with_index(@col)}
+              class={[col[:cellstyle], "bg-stone-300"]}>
+                <%= case i do %>
+                <% 0 -> %>
+                  <span class={["font-semibold text-zinc-900"]}>
+                  <%= Calendar.strftime(elem(row, 1).sched_start, "%m-%d-%y") %>
+                  </span>
+                <% _ -> %>
+                  <div></div>
+                <% end %>
               </td>
-              <% 9 -> %>
-              <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
-                <div class={[ "text-center block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}>
-                  <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
-                </div>
-              </td>
-              <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
-                <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
-                  <div class={["block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
-                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
-                    <span class={["relative", i == 0 && "font-semibold"]}>
-                    <div class={[ ]}>
-                    <%= if i== 10 do %>
-                      &#x2705 Job at <%= render_slot(col, @row_item.(row)) %>
-                    <% else %>
-                      <%= render_slot(col, @row_item.(row)) %>
-                    <% end %>
-                    </div>
-                    </span>
-                  </div>
-                </td>
-              <% _ -> %>
+            <% else %>
+            <div :for={{col, i} <- Enum.with_index(@col)}
+                >
+                <%= case i do %>
+                <% 8 -> %>
                 <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
-                  <div class={["block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
-                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
-                    <span class={["relative", i == 0 && "font-semibold"]}>
-                      <%= render_slot(col, @row_item.(row)) %>
-                    </span>
+                  <div class={[ "block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                    hi
                   </div>
                 </td>
-              <% end %>
-            </div>
-          <% end %>
+                <% 9 -> %>
+                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                  <div class={[ "text-center block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}>
+                    <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
+                  </div>
+                </td>
+                <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
+                  <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                    <div class={["block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
+                      <span class={["relative", i == 0 && "font-semibold"]}>
+                      <div class={[ ]}>
+                      <%= if i== 10 do %>
+                        &#x2705 Job at <%= render_slot(col, @row_item.(row)) %>
+                      <% else %>
+                        <%= render_slot(col, @row_item.(row)) %>
+                      <% end %>
+                      </div>
+                      </span>
+                    </div>
+                  </td>
+                <% _ -> %>
+                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                    <div class={["block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
+                      <span class={["relative", i == 0 && "font-semibold"]}>
+                        <%= render_slot(col, @row_item.(row)) %>
+                      </span>
+                    </div>
+                  </td>
+                <% end %>
+              </div>
+            <% end %>
           </tr>
         </tbody>
       </table>
     </div>
     """
+  end
+
+  defp different_sched_start?(prev_sched_start, current_sched_start) do
+    prev_sched_start != current_sched_start
   end
 
   defp date_color(date, dots) do

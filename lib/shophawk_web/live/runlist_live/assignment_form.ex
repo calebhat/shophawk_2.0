@@ -31,7 +31,6 @@ defmodule ShophawkWeb.RunlistLive.AssignmentForm do
   @impl true
   def update(%{assignment: assignment} = assigns, socket) do
     changeset = Shop.change_assignment(assignment)
-
     {:ok,
      socket
      |> assign(assigns)
@@ -39,27 +38,27 @@ defmodule ShophawkWeb.RunlistLive.AssignmentForm do
   end
 
   @impl true
-  def handle_event("validate", %{"runlist" => runlist_params}, socket) do
+  def handle_event("validate", %{"assignment" => assignment_params}, socket) do
     changeset =
-      socket.assigns.runlist
-      |> Shop.change_runlist(runlist_params)
+      socket.assigns.assignment
+      |> Shop.change_assignment(assignment_params)
       |> Map.put(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
   end
 
-  def handle_event("save", %{"runlist" => runlist_params}, socket) do
-    save_runlist(socket, socket.assigns.action, runlist_params)
+  def handle_event("save", %{"assignment" => assignment_params}, socket) do
+    save_assignment(socket, socket.assigns.action, assignment_params)
   end
 
-  defp save_runlist(socket, :edit, runlist_params) do
-    case Shop.update_runlist(socket.assigns.runlist, runlist_params) do
-      {:ok, runlist} ->
-        notify_parent({:saved, runlist})
+  defp save_assignment(socket, :edit_assignment, assignment_params) do
+    case Shop.update_assignment(socket.assigns.assignment, assignment_params) do
+      {:ok, assignment} ->
+        notify_parent({:saved, assignment})
 
         {:noreply,
          socket
-         |> put_flash(:info, "Runlist updated successfully")
+         |> put_flash(:info, "assignment updated successfully")
          |> push_patch(to: socket.assigns.patch)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -67,15 +66,15 @@ defmodule ShophawkWeb.RunlistLive.AssignmentForm do
     end
   end
 
-  defp save_runlist(socket, :new, runlist_params) do
-    case Shop.create_runlist(runlist_params) do
-      {:ok, runlist} ->
-        notify_parent({:saved, runlist})
+  defp save_assignment(socket, :new_assignment, assignment_params) do
+    case Shop.create_assignment(socket.assigns.department_id, assignment_params) do
+      {:ok, assignment} ->
+        notify_parent({:saved, assignment})
 
         {:noreply,
          socket
-         |> put_flash(:info, "Runlist created successfully")
-         |> push_patch(to: socket.assigns.patch)}
+         |> put_flash(:info, "Assignment created successfully")
+         |> push_patch(to: socket.assigns.patch, replace: true)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}
