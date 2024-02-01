@@ -1,0 +1,48 @@
+<div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
+    <table class="w-[40rem] mt-4 sm:w-full table-fixed">
+      <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
+        <tr>          
+          <th class={["p-0 pr-1 pb-4 font-normal w-20 text-center" ]}> Job</th>
+          <th class={["p-0 pr-1 pb-4 font-normal w-14 text-center" ]}> Qty</th>
+          <th class={["p-0 pr-1 pb-4 font-normal w-14 text-center" ]}> Hrs</th>
+          <th class={["p-0 pr-1 pb-4 font-normal hidden w-40 lg:table-cell" ]}>Material</th>
+          <th class={["p-0 pr-1 pb-4 font-normal w-40 xl:w-52" ]}> Part number</th>
+          <th class={["p-0 pr-1 pb-4 font-normal hidden w-40 lg:table-cell lg:w-80" ]}>Description</th>
+          <th class={["p-0 pr-1 pb-4 font-normal w-24" ]}>Ship Date </th>
+          <th class={["p-0 pr-1 pb-4 font-normal hidden w-32 2xl:table-cell" ]}>Customer </th>
+          <th class={["p-0 pr-1 pb-4 font-normal text-center" ]}> assignment</th>
+          <th class={["p-0 pr-1 pb-4 font-normal w-14 text-sm"]}>Material waiting </th>
+          <th class={["p-0 pr-1 pb-4 font-normal w-28 text-base text-center" ]}>Current Location</th>
+          <th class={["p-0 pr-1 pb-4 font-normal w-52 text-lg" ]}> Workcenter</th>
+        </tr>
+      </thead>
+      <tbody>
+      <%= Stream.transform(@streams.runlists.inserts, nil, fn runlist, acc -> %>
+      <% IO.inspect(runlist) %>
+      <% #IO.inspect(elem(runlist, 2).sched_start) %>
+        <% #if prev_date != elem(runlist, 2).sched_start || prev_date == nil do %>
+          <tr>
+            <td colspan="your_column_count">Custom Row for <%= elem(runlist, 2).sched_start %></td>
+          </tr>
+        <% #end %>
+        <tr>
+          <td><%= elem(runlist, 2).job %></td>
+          <td><%= elem(runlist, 2).order_quantity %></td>
+          <td><%= elem(runlist, 2).est_total_hrs %></td>
+          <td><%= elem(runlist, 2).material %></td>
+          <td><%= elem(runlist, 2).part_number %></td>
+          <td><%= elem(runlist, 2).description %></td>
+          <td><%= Calendar.strftime(elem(runlist, 2).job_sched_end, "%m-%d-%y") %></td>
+          <td><%= elem(runlist, 2).customer %></td>
+          <td><%= elem(runlist, 2).assignment %></td>
+          <td><%= elem(runlist, 2).material_waiting %></td>
+          <td><%= elem(runlist, 2).currentop %></td>
+          <td><%= elem(runlist, 2).wc_vendor %></td>
+        </tr>
+
+          <% #IO.inspect(elem(runlist, 2)) %>
+          <% {[runlist], runlist.sched_start} %>
+      <% end) %>
+      </tbody>
+    </table>
+  </div>

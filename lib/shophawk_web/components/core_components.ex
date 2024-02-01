@@ -567,7 +567,7 @@ defmodule ShophawkWeb.CoreComponents do
           class="relative divide-y divide-stone-800 border-t border-stone-200 leading-5 text-stone-200"
         >
         <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
-            <%= if elem(row, 1).job == nil do %>
+            <%= if elem(row, 1).id == 0 do %>
               <td :for={{col, i} <- Enum.with_index(@col)}
               class={[col[:cellstyle], "bg-stone-300"]}>
                 <%= case i do %>

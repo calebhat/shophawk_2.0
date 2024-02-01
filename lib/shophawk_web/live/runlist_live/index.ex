@@ -74,9 +74,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   defp apply_action(socket, :edit_department, %{"id" => id}) do
     Csvimport.update_workcenters()
+
+    department = Shop.get_department_by_name("Turning")
+        workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
+        runlists =
+          Shop.list_runlists(workcenter_list)
+
     socket
     |> assign(:page_title, "Edit Department")
     |> assign(:department, Shop.get_department!(id))
+    |> stream(:runlists, runlists, reset: true)
   end
 
   defp apply_action(socket, :new_department, _params) do
@@ -90,12 +97,18 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   defp apply_action(socket, :new_assignment, %{"id" => id}) do
     IO.inspect(socket.assigns.streams.runlists)
+
+    department = Shop.get_department_by_name("Turning")
+    workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
+    runlists =
+      Shop.list_runlists(workcenter_list)
+
     socket =
       socket
       |> assign(:page_title, "New Assignment")
       |> assign(:department_id, id)
       |> assign(:assignment, %Assignment{})
-      |> stream(:runlists, [], reset: true)
+      |> stream(:runlists, runlists, reset: true)
     socket
   end
 
@@ -138,7 +151,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
             |> assign(department_id: nil)
             |> stream(:runlists, [], reset: true)
 
-        _ -> department = Shop.get_department_by_name(department)
+        _ ->
+        #Create a function that just does this part to use in other functions
+        #Reload the stream whenever a modal is called, this prevents duplicate date rows from showing up.
+         department = Shop.get_department_by_name(department)
         workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
         runlists =
           Shop.list_runlists(workcenter_list)
