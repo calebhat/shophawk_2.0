@@ -29,12 +29,14 @@ defmodule ShophawkWeb.RunlistLive.AssignmentForm do
   end
 
   @impl true
-  def update(%{assignment: assignment} = assigns, socket) do
+  def update(%{assignment: assignment, department_name: department_name} = assigns, socket) do
+    IO.inspect(assigns)
     changeset = Shop.change_assignment(assignment)
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_form(changeset)}
+     |> assign_form(changeset)
+     |> assign(department_name: department_name)}
   end
 
   @impl true

@@ -99,9 +99,6 @@ defmodule Shophawk.Shop do
 
   """
   def create_runlist(attrs \\ %{}) do
-
-    #IO.inspect(attrs)
-    #Repo.insert(attrs)
     changeset = Runlist.changeset(%Runlist{}, attrs)
     Repo.insert(changeset)
   end

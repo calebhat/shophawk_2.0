@@ -9,16 +9,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{})}
+    {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "")}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
+
     socket =
       socket
       |> assign(:departments,  ["Select Department" | Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.sort] )
 
-      IO.inspect(socket.assigns.live_action)
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
@@ -30,34 +30,18 @@ defmodule ShophawkWeb.RunlistLive.Index do
           |> assign(:runlist, nil)
 
           socket =
-          if Map.has_key?(socket.assigns.department, :department) do
-            IO.inspect( socket.assigns.department.department)
-            IO.inspect(load_runlist(socket, socket.assigns.department.department))
-            load_runlist(socket, socket.assigns.department.department)
+          if Map.has_key?(socket.assigns, :department_name) do
+            if is_nil(socket.assigns.department_name) do
+              #IO.inspect("here")
+              load_runlist(socket, "Select Department")
+            else
+              load_runlist(socket, socket.assigns.department_name)
+            end
           else
             socket
           end
 
           socket
-          #
-
-          #load_runlist(socket, department)
-
-     #   if socket.assigns.department != "" do
-     #     IO.inspect(socket.assigns.department.department)
-     #     handle_event("select_department", %{"selection" => socket.assigns.department.department}, socket)
-     #   end
-
-
-        #if socket.assigns do
-        #IO.inspect(socket.assigns.department.department)
-        #end
-
-        #need to get department value passed through to here.
-        #if department == nil, set it to "select department"
-        #def handle_event("select_department", %{"selection" => department}, socket)
-
-        #socket
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -66,50 +50,33 @@ defmodule ShophawkWeb.RunlistLive.Index do
     |> assign(:runlist, Shop.get_runlist!(id))
   end
 
-#  defp apply_action(socket, :new, _params) do
-#    socket
-#    |> assign(:page_title, "New Runlist")
-#    |> assign(:runlist, %Runlist{})
-#  end
-
   defp apply_action(socket, :edit_department, %{"id" => id}) do
     Csvimport.update_workcenters()
+    socket =
+      socket
+      |> assign(:page_title, "Edit Department")
 
-    department = Shop.get_department_by_name("Turning")
-        workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-        runlists =
-          Shop.list_runlists(workcenter_list)
-
-    socket
-    |> assign(:page_title, "Edit Department")
-    |> assign(:department, Shop.get_department!(id))
-    |> stream(:runlists, runlists, reset: true)
+    load_runlist(socket, Shop.get_department!(id).department)
   end
 
-  defp apply_action(socket, :new_department, _params) do
+  defp apply_action(socket, :new_department, params) do
     Csvimport.update_workcenters()
+    IO.inspect(socket.assigns.department_id)
 
-    socket
-    |> assign(:page_title, "New Department")
-    |> assign(:department, %Department{})
-    |> assign(:workcenters, Shop.list_workcenters())
+    socket =
+        socket
+      |> assign(:page_title, "New Department")
+      |> assign(:workcenters, Shop.list_workcenters())
+      |> load_runlist(socket.assigns.department_name)
+      |> assign(:department, %Department{})
   end
 
   defp apply_action(socket, :new_assignment, %{"id" => id}) do
-    IO.inspect(socket.assigns.streams.runlists)
-
-    department = Shop.get_department_by_name("Turning")
-    workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-    runlists =
-      Shop.list_runlists(workcenter_list)
-
     socket =
       socket
       |> assign(:page_title, "New Assignment")
-      |> assign(:department_id, id)
       |> assign(:assignment, %Assignment{})
-      |> stream(:runlists, runlists, reset: true)
-    socket
+      |> load_runlist(Shop.get_department!(id).department)
   end
 
   #@impl true
@@ -130,36 +97,33 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-#  @impl true
-#  def handle_event("delete", %{"id" => id}, socket) do
-#    runlist = Shop.get_runlist!(id)
-#    {:ok, _} = Shop.delete_runlist(runlist)
-#
-#    {:noreply, stream_delete(socket, :runlists, runlist)}
-#  end
-
   def handle_event("select_department", %{"selection" => department}, socket) do
     {:noreply, load_runlist(socket, department)}
   end
 
-  defp load_runlist(socket, department) do
+  defp load_runlist(socket, department_name) do
     socket =
-      case department do
+      case department_name do
         "Select Department" ->
           socket =
             socket
             |> assign(department_id: nil)
             |> stream(:runlists, [], reset: true)
 
+        "" ->
+          socket =
+            socket
+            |> assign(department_id: nil)
+            |> stream(:runlists, [], reset: true)
+
         _ ->
-        #Create a function that just does this part to use in other functions
-        #Reload the stream whenever a modal is called, this prevents duplicate date rows from showing up.
-         department = Shop.get_department_by_name(department)
+        department = Shop.get_department_by_name(department_name)
         workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
         runlists =
           Shop.list_runlists(workcenter_list)
         socket =
           socket
+          |> assign(department_name: department_name)
           |> assign(department: department)
           |> assign(department_id: department.id)
           |> stream(:runlists, runlists, reset: true)
@@ -183,7 +147,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_event("importall", _, socket) do
     tempjobs = Csvimport.import_operations()
     count = Enum.count(tempjobs)
-    IO.puts(count)
     socket
 
     {:noreply, stream(socket, :runlists, [])}
@@ -194,7 +157,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_event("5_minute_import", _, socket) do
     Csvimport.update_operations()
-    #IO.puts(Enum.count(tempjobs))
     socket
 
     {:noreply, stream(socket, :runlists, [])}

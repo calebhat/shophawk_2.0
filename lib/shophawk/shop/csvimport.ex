@@ -105,7 +105,6 @@ defmodule Shophawk.Shop.Csvimport do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
           record ->   #if the record exists, update it with the new values
-            #IO.inspect(record)
             Shop.update_runlist(record, op)
           end
       end)

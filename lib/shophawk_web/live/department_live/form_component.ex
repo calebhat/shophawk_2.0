@@ -52,7 +52,6 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
 
   @impl true
   def update(%{department: department} = assigns, socket) do
-    IO.inspect(department)
     changeset = Shop.change_department(department)
     workcenters = Enum.map(Shop.list_workcenters(), &Map.from_struct/1)
     selected_workcenters =
@@ -68,6 +67,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
      |> assign_form(changeset)
      |> assign(:workcenters, workcenters) #workcenters for checkboxes
      |> assign(:selected_workcenters, selected_workcenters) #keeps track of which workcenters are selected.
+     |> assign(department_name: assigns.department.department)
     }
   end
 
@@ -77,7 +77,6 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
       Map.get(params, "workcenter_ids", []) #gets checked workcenters, defaults to empty list "[]" if none checked
       #|> Enum.map(fn id -> %{"id" => id} end)
     department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters to department params
-    IO.inspect(department_params)
 
     changeset =
       socket.assigns.department
@@ -99,19 +98,20 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
       |> Enum.map(fn id -> %{"workcenter" => Shop.get_workcenter!(id).workcenter} end)
 
     department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters into params
-    IO.inspect(department_params)
     save_department(socket, socket.assigns.action, department_params)
   end
 
   defp save_department(socket, :edit_department, department_params) do
     case Shop.update_department(socket.assigns.department, department_params) do
       {:ok, department} ->
+        IO.inspect(department.department)
         notify_parent({:saved, department})
 
         {:noreply,
          socket
+         |> assign(department_name: department.department)
          |> put_flash(:info, "Department updated successfully")
-         |> push_navigate(to: "/runlists")}
+         |> push_patch(to: "/runlists", replace: true)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

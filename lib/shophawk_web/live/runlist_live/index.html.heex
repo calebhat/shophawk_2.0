@@ -4,7 +4,7 @@
        
       <%= if @department_id do %>
       <form>
-        <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" department={@department}  />  
+        <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" department_name={@department_name}  />  
         <.link patch={~p"/departments/#{@department_id}/edit_department"}>
           <.button>Edit department</.button>
         </.link>
@@ -69,7 +69,9 @@
     module={ShophawkWeb.DepartmentLive.FormComponent}
     id={@department.id || :new}
     title={@page_title}
-    action={@live_action}
+    action={@live_action}    
+    department_id={@department_id}
+    department_name={@department_name}
     department={@department}
     patch={~p"/departments"}
   />
@@ -83,6 +85,7 @@
     action={@live_action}
     assignment={@assignment}
     department_id={@department_id}
+    department_name={@department_name}
     department={@department}
     patch={~p"/runlists"}
   />

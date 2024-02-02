@@ -266,7 +266,7 @@ defmodule ShophawkWeb.CoreComponents do
   attr :label, :string, default: nil
   attr :value, :any
 
-  attr :department, :string, default: nil
+  attr :department_name, :string, default: nil
 
   attr :type, :string,
     default: "text",
@@ -323,8 +323,6 @@ defmodule ShophawkWeb.CoreComponents do
   end
 
   def input(%{type: "select"} = assigns) do
-
-    #IO.inspect(assigns)
     ~H"""
     <div phx-feedback-for={@name}>
       <.label for={@id}><%= @label %></.label>
@@ -337,7 +335,7 @@ defmodule ShophawkWeb.CoreComponents do
       >
         <option :if={@prompt} value=""><%= @prompt %></option>
         <%= for option <- @options do %>
-          <%= if option == @department do %>
+          <%= if option == @department_name do %>
             <option selected> <%= option %></option>
           <% else %>
             <option> <%= option %></option>
@@ -586,7 +584,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <% 8 -> %>
                 <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
                   <div class={[ "block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
-                    hi
+                    hi - <%= elem(row, 1).assignment %>
                   </div>
                 </td>
                 <% 9 -> %>
