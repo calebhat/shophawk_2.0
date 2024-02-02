@@ -67,7 +67,7 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
      |> assign_form(changeset)
      |> assign(:workcenters, workcenters) #workcenters for checkboxes
      |> assign(:selected_workcenters, selected_workcenters) #keeps track of which workcenters are selected.
-     |> assign(department_name: assigns.department.department)
+     |> assign(department_id: assigns.department.id)
     }
   end
 
@@ -104,12 +104,11 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   defp save_department(socket, :edit_department, department_params) do
     case Shop.update_department(socket.assigns.department, department_params) do
       {:ok, department} ->
-        IO.inspect(department.department)
         notify_parent({:saved, department})
 
         {:noreply,
          socket
-         |> assign(department_name: department.department)
+         |> assign(department_id: department.id)
          |> put_flash(:info, "Department updated successfully")
          |> push_patch(to: "/runlists", replace: true)}
 
@@ -119,14 +118,15 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   end
 
   defp save_department(socket, :new_department, department_params) do
+
     case Shop.create_department(department_params) do
       {:ok, department} ->
         notify_parent({:saved, department})
-
+        #IO.inspect()
         {:noreply,
          socket
          |> put_flash(:info, "Department created successfully")
-         |> push_navigate(to: "/runlists")}
+         |> push_patch(to: "/runlists", replace: true)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}
