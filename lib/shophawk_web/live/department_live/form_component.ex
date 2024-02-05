@@ -12,6 +12,8 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
         <:subtitle>Use this form to manage department records in your database.</:subtitle>
       </.header>
 
+
+
       <.simple_form
         for={@form}
         id="department-form"
@@ -23,6 +25,18 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
         <.input field={@form[:capacity]} type="number" label="Capacity" step="any" />
         <.input field={@form[:machine_count]} type="number" label="Machine count" step="any" />
         <.input field={@form[:show_jobs_started]} type="checkbox" label="Show jobs started" />
+
+        <%= if @department.id do %>
+          <button
+            phx-target={@myself}
+            phx-click="delete_department"
+            phx-value-id={@department_id}
+            class={[
+              "phx-submit-loading:opacity-75 rounded-lg bg-lime-800 hover:bg-zinc-700 py-1.5 px-3",
+              "text-sm font-semibold leading-6 text-white active:text-white/80"]}>
+            Destroy Department
+          </button>
+        <% end %>
 
         <%= for workcenter <- @workcenters do %>
 
@@ -75,7 +89,6 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   def handle_event("validate", %{"department" => department_params} = params, socket) do
     workcenters =
       Map.get(params, "workcenter_ids", []) #gets checked workcenters, defaults to empty list "[]" if none checked
-      #|> Enum.map(fn id -> %{"id" => id} end)
     department_params = Map.put(department_params, "workcenters", workcenters) #merges workcenters to department params
 
     changeset =
@@ -91,8 +104,23 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
     {:noreply, socket}
   end
 
+  def handle_event("delete_department", %{"id" => id} = params, socket) do
+    department = Shop.get_department!(String.to_integer(id))
+    case Shop.delete_department(department) do
+      {:ok, department} ->
+        notify_parent({:destroyed, department})
+        {:noreply,
+            socket
+            |> put_flash(:info, "Department Destroyed successfully")
+            |> push_patch(to: "/runlists", replace: true)}
+
+         {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply, assign_form(socket, changeset)}
+      end
+  end
+
+
   def handle_event("save", %{"department" => department_params} = params, socket) do
-    #Make workcenters into a map for changeset and saving
     workcenters =
       Map.get(params, "workcenter_ids", [])
       |> Enum.map(fn id -> %{"workcenter" => Shop.get_workcenter!(id).workcenter} end)
@@ -108,7 +136,6 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
 
         {:noreply,
          socket
-         |> assign(department_id: department.id)
          |> put_flash(:info, "Department updated successfully")
          |> push_patch(to: "/runlists", replace: true)}
 
@@ -118,7 +145,6 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
   end
 
   defp save_department(socket, :new_department, department_params) do
-
     case Shop.create_department(department_params) do
       {:ok, department} ->
         notify_parent({:saved, department})

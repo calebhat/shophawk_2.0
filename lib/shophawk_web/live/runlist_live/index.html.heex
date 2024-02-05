@@ -5,10 +5,10 @@
       <%= if @department_id do %>
       <form>
         <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" department_name={@department_name}  />  
-        <.link patch={~p"/departments/#{@department_id}/edit_department"}>
+        <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
           <.button>Edit department</.button>
         </.link>
-        <.link phx-update="ignore" patch={~p"/runlists/#{@department_id}/new_assignment"}>
+        <.link patch={~p"/runlists/#{@department_id}/new_assignment"}>
           <.button>New Assignment</.button>
         </.link>
         </form>
@@ -19,7 +19,7 @@
   </form>
   <:actions>
     
-    <.link patch={~p"/departments/new_department"}>
+    <.link patch={~p"/runlists/new_department"}>
       <.button>New Department</.button>
     </.link>
     <.button phx-click="importall" class="ml-2">Import All Test</.button>
@@ -66,14 +66,14 @@
 
 <.modal :if={@live_action in [:new_department, :edit_department]} id="department-modal" show on_cancel={JS.patch(~p"/runlists")}>
   <.live_component
-    module={ShophawkWeb.DepartmentLive.FormComponent}
+    module={ShophawkWeb.RunlistLive.DepartmentForm}
     id={@department.id || :new}
     title={@page_title}
     action={@live_action}    
     department_id={@department_id}
     department_name={@department_name}
     department={@department}
-    patch={~p"/departments"}
+    patch={~p"/runlists"}
   />
 </.modal>
 

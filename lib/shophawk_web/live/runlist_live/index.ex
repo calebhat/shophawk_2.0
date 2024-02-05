@@ -22,6 +22,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
+    IO.inspect(socket.assigns)
         socket =
           socket
           |> assign(:page_title, "Listing Runlists")
@@ -81,7 +82,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   #end
 
   @impl true
-  def handle_info({ShophawkWeb.DepartmentLive.FormComponent, {:saved, department}}, socket) do
+  def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
     socket =
       assign(socket,
         department_id: department.id,
@@ -90,12 +91,15 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, apply_action(socket, :index, nil)}
   end
 
+  def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:destroyed, department}}, socket) do
+    {:noreply, socket}
+  end
+
   def handle_info({ShophawkWeb.RunlistLive.AssignmentForm, {:saved, assignment}}, socket) do
     {:noreply, socket}
   end
 
   def handle_event("select_department", %{"selection" => department}, socket) do
-
     {:noreply, load_runlist(socket, Shop.get_department_by_name(department).id)}
   end
 

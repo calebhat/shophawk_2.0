@@ -198,7 +198,7 @@ defmodule ShophawkWeb.CoreComponents do
     <.form :let={f} for={@for} as={@as} {@rest}>
       <div class="mt-10 space-y-8 bg-white">
         <%= render_slot(@inner_block, f) %>
-        <div :for={action <- @actions} class="mt-2 flex items-center justify-between gap-6">
+        <div :for={action <- @actions} class="mt-2 items-center">
           <%= render_slot(action, f) %>
         </div>
       </div>
@@ -225,7 +225,7 @@ defmodule ShophawkWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-lime-800 hover:bg-zinc-700 py-1.5 px-3",
+        "phx-submit-loading:opacity-75 rounded-lg bg-lime-800 hover:bg-lime-700 py-1.5 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
@@ -304,7 +304,7 @@ defmodule ShophawkWeb.CoreComponents do
 
     ~H"""
     <div phx-feedback-for={@name}>
-      <label class="flex items-center gap-4 text-sm leading-6 text-zinc-600">
+      <label class="flex items-center gap-4 text-xl leading-6 text-zinc-600">
         <input type="hidden" name={@name} value="false" />
         <input
           type="checkbox"
@@ -312,7 +312,7 @@ defmodule ShophawkWeb.CoreComponents do
           name={@name}
           value="true"
           checked={@checked}
-          class="rounded border-zinc-300 text-zinc-900 focus:ring-0"
+          class="h-6 w-6 rounded text-gray-800 focus:ring-0"
           {@rest}
         />
         <%= @label %>
@@ -590,7 +590,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <% 9 -> %>
                 <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
                   <div class={[ "text-center block py-3 pr-2 pl-2 absolute -inset-y-px right-0 -left-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]}>
-                    <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
+                    <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                   </div>
                 </td>
                 <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
