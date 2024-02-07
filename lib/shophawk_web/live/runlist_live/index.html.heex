@@ -4,7 +4,7 @@
        
       <%= if @department_id do %>
       <form>
-        <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" department_name={@department_name}  />  
+        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@department_name}  />  
         <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
           <.button>Edit department</.button>
         </.link>
@@ -13,7 +13,7 @@
         </.link>
         </form>
       <% else %>
-        <.input phx-change="select_department" name="selection" type="select" options={@departments} value="" />  
+        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />  
       <% end %>    
     </div> 
   </form>
@@ -34,6 +34,7 @@
   <.runlist_table
     id="runlists"
     rows={@streams.runlists}
+    assignments={@assignments}
     row_click={fn {_id, runlist} -> JS.navigate(~p"/runlists/#{runlist}") end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-20 text-center" cellstyle="text-center"><%= runlist.job %></:col>
@@ -44,7 +45,7 @@
     <:col :let={{_id, runlist}} label="Description" headerstyle="hidden w-40 lg:table-cell lg:w-80" cellstyle="hidden lg:table-cell "><%= runlist.description %></:col>
     <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24" cellstyle=""><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
     <:col :let={{_id, runlist}} label="Customer" headerstyle="hidden w-32 2xl:table-cell" cellstyle="hidden 2xl:table-cell"><%= runlist.customer %></:col>
-    <:col :let={{_id, runlist}} label="assignment" headerstyle="text-center" cellstyle="text-center"><%= runlist.assignment %></:col>
+    <:col :let={{_id, runlist}} label="Assignment" headerstyle="text-center" cellstyle="text-center"><%= runlist.assignment %></:col>
     <:col :let={{_id, runlist}} label="Material waiting" headerstyle="w-14 text-sm" cellstyle="text-center"><%= runlist.material_waiting %></:col> 
     <:col :let={{_id, runlist}} label="Current Location" headerstyle="w-28 text-base text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
     <:col :let={{_id, runlist}} label="Workcenter" headerstyle="w-52 text-lg" cellstyle=""><%= runlist.wc_vendor %></:col>

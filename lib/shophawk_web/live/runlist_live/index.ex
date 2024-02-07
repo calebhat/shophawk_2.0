@@ -22,7 +22,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
-    IO.inspect(socket.assigns)
         socket =
           socket
           |> assign(:page_title, "Listing Runlists")
@@ -126,6 +125,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         _ ->
         department = Shop.get_department!(department_id)
         workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
+        assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
         runlists =
           Shop.list_runlists(workcenter_list)
         socket =
@@ -133,6 +133,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
           |> assign(department_name: department.department)
           |> assign(department: department)
           |> assign(department_id: department.id)
+          |> assign(assignments: [""] ++ assignment_list)
           |> stream(:runlists, runlists, reset: true)
       end
   end
@@ -148,6 +149,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_event("mat_waiting_toggle", %{"id" => id}, socket) do
     Shop.toggle_mat_waiting(id)
+    {:noreply, socket}
+  end
+
+  def handle_event("change_assignment", %{"id" => id, "selection" => selection } = params, socket) do
+    Shop.update_runlist(Shop.get_runlist!(id), %{assignment: selection})
     {:noreply, socket}
   end
 

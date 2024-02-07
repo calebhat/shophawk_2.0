@@ -34,14 +34,14 @@ defmodule Shophawk.Shop do
       [%Runlist{}, ...]
 
   """
-  def list_runlists(department) do
+  def list_runlists(workcenter_list) do #takes in a list of workcenters to load runlist items for
     runlists =
       Repo.all(
         from r in Runlist,
-        where: r.wc_vendor in ^department,
+        where: r.wc_vendor in ^workcenter_list,
         where: r.status == "O",
         order_by: [asc: r.sched_start, asc: r.job],
-        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs}
+        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment}
       )
     if Enum.empty?(runlists) do
       []
@@ -120,11 +120,6 @@ defmodule Shophawk.Shop do
     Repo.update(changeset)
   end
 
-  def update_assignment(%Assignment{} = assignment, attrs) do
-    changeset = Assignment.changeset(assignment, attrs)
-    Repo.update(changeset)
-  end
-
   def toggle_mat_waiting(id) do
     op = Repo.get!(Runlist, id)
     new_matertial_waiting = !op.material_waiting
@@ -132,6 +127,11 @@ defmodule Shophawk.Shop do
       from(r in Runlist, where: r.job == ^op.job),
       set: [material_waiting: new_matertial_waiting]
     )
+  end
+
+  def update_assignment(%Assignment{} = assignment, attrs) do
+    changeset = Assignment.changeset(assignment, attrs)
+    Repo.update(changeset)
   end
 
   @doc """
@@ -203,7 +203,9 @@ defmodule Shophawk.Shop do
 
   """
   def get_department!(id) do
-    Repo.get!(Department, id) |> Repo.preload([workcenters: from(c in Workcenter, order_by: c.workcenter)])
+    Repo.get!(Department, id)
+    |> Repo.preload([workcenters: from(c in Workcenter, order_by: c.workcenter)])
+    |> Repo.preload([assignments: from(c in Assignment, order_by: c.assignment)])
   end
 
   defp subquery(query), do: (from wc in query, order_by: [wc.name])

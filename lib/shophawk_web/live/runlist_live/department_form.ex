@@ -63,6 +63,7 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
             phx-target={@myself}
             phx-click="delete_department"
             phx-value-id={@department_id}
+            type="button"
             class={[
               "phx-submit-loading:opacity-75 rounded-lg bg-neutral-600 hover:bg-red-700 py-1.5 px-3",
               "text-sm font-semibold leading-6 text-white active:text-white/80"]}>
@@ -70,7 +71,7 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
           </button>
           <% end %>
 </div>
-          <.button phx-disable-with="Saving..." class="justify-end">Save Department</.button>
+          <.button type="submit" phx-disable-with="Saving..." class="justify-end">Save Department</.button>
 
         </div>
         </:actions>
