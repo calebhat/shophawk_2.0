@@ -1,6 +1,6 @@
 <.header>
   <form> 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-4 gap-4">
        
       <%= if @department_id do %>
       <form>
@@ -10,6 +10,9 @@
         </.link>
         <.link patch={~p"/runlists/#{@department_id}/new_assignment"}>
           <.button>New Assignment</.button>
+        </.link>
+        <.link patch={~p"/runlists/#{@department_id}/assignments"} assignments={@assignments}>
+          <.button>view Assignments</.button>
         </.link>
         </form>
       <% else %>
@@ -88,6 +91,19 @@
     department_id={@department_id}
     department_name={@department_name}
     department={@department}
+    patch={~p"/runlists"}
+  />
+</.modal>
+
+<.modal :if={@live_action in [:assignments]} id="assignment-modal" show on_cancel={JS.patch(~p"/runlists")}>
+  <.live_component
+    module={ShophawkWeb.RunlistLive.ViewAssignments}
+    id={@department_id || :assignments}
+    title={@page_title}
+    action={@live_action}
+    assignments={@assignments}
+    department_id={@department_id}
+    department_name={@department_name}
     patch={~p"/runlists"}
   />
 </.modal>

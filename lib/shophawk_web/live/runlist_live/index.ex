@@ -75,6 +75,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
       |> load_runlist(id)
   end
 
+  defp apply_action(socket, :assignments, %{"id" => id}= params) do
+    IO.inspect(params)
+    socket =
+      socket
+      |> assign(:page_title, "View Assignments")
+      |> load_runlist(id)
+      #|>
+      #|> assigns(assignments: assignments)
+  end
+
   #@impl true
   #def handle_info({ShophawkWeb.RunlistLive.FormComponent, {:saved, runlist}}, socket) do
   #  {:noreply, stream_insert(socket, :runlists, runlist)}
@@ -154,6 +164,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_event("change_assignment", %{"id" => id, "selection" => selection } = params, socket) do
     Shop.update_runlist(Shop.get_runlist!(id), %{assignment: selection})
+    {:noreply, socket}
+  end
+
+  def handle_event("assignments_name_change", %{"target" => assignment}, socket) do
     {:noreply, socket}
   end
 

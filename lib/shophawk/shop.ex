@@ -129,9 +129,18 @@ defmodule Shophawk.Shop do
     )
   end
 
-  def update_assignment(%Assignment{} = assignment, attrs) do
-    changeset = Assignment.changeset(assignment, attrs)
-    Repo.update(changeset)
+  def get_assignment(assignment_name) do
+    Repo.get_by!(Assignment, assignment: assignment_name)
+  end
+
+  def update_assignment(id, new_assignment, old_assignment) do
+    Repo.get_by!(Assignment, id: id)
+    |> Assignment.changeset(%{assignment: new_assignment})
+    |> Repo.update()
+    #Repo.update_all(
+    #  from(r in Runist, where: r.assignment = ^old_assignment),
+    #  set: [assignment: new_assignment]
+    #)
   end
 
   @doc """
@@ -286,7 +295,12 @@ defmodule Shophawk.Shop do
 
   """
   def delete_department(%Department{} = department) do
-    Repo.delete(department)
+    Repo.get_assignment
+  end
+
+  def delete_assignment(id) do
+    Repo.get_by!(Assignment, id: id)
+    |> Repo.delete()
   end
 
   @doc """

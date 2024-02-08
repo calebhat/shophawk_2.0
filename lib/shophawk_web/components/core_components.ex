@@ -206,6 +206,29 @@ defmodule ShophawkWeb.CoreComponents do
     """
   end
 
+  attr :for, :any, required: true, doc: "the datastructure for the form"
+  attr :as, :any, default: nil, doc: "the server side parameter to collect all input under"
+
+  attr :rest, :global,
+    include: ~w(autocomplete name rel action enctype method novalidate target multipart),
+    doc: "the arbitrary HTML attributes to apply to the form tag"
+
+  slot :inner_block, required: true
+  slot :actions, doc: "the slot for form actions, such as a submit button"
+
+  def tight_simple_form(assigns) do
+    ~H"""
+    <.form :let={f} for={@for} as={@as} {@rest}>
+      <div class="bg-white">
+        <%= render_slot(@inner_block, f) %>
+        <div :for={action <- @actions} class=" items-center">
+          <%= render_slot(action, f) %>
+        </div>
+      </div>
+    </.form>
+    """
+  end
+
   @doc """
   Renders a button.
 
@@ -226,6 +249,28 @@ defmodule ShophawkWeb.CoreComponents do
       type={@type}
       class={[
         "phx-submit-loading:opacity-75 rounded-lg bg-lime-800 hover:bg-lime-700 py-1.5 px-3",
+        "text-sm font-semibold leading-6 text-white active:text-white/80",
+        @class
+      ]}
+      {@rest}
+    >
+      <%= render_slot(@inner_block) %>
+    </button>
+    """
+  end
+
+  attr :type, :string, default: nil
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(disabled form name value)
+
+  slot :inner_block, required: true
+
+  def delete_button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      class={[
+        "hx-submit-loading:opacity-75 rounded-lg bg-neutral-600 hover:bg-red-700 py-1.5 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
