@@ -19,7 +19,7 @@ defmodule ShophawkWeb.RunlistLive.AssignmentForm do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:assignment]} type="text" label="Assignment" />
+        <.input field={@form[:assignment]} type="text" label="Assignment" autofocus="true" />
         <:actions>
           <.button phx-disable-with="Saving...">Save Assignment</.button>
         </:actions>

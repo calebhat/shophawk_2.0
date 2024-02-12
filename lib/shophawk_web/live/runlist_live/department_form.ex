@@ -70,7 +70,7 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
             Destroy Department
           </button>
           <% end %>
-</div>
+    </div>
           <.button type="submit" phx-disable-with="Saving..." class="justify-end">Save Department</.button>
 
         </div>

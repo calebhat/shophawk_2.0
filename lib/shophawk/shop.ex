@@ -129,18 +129,18 @@ defmodule Shophawk.Shop do
     )
   end
 
-  def get_assignment(assignment_name) do
-    Repo.get_by!(Assignment, assignment: assignment_name)
+  def get_assignment(assignment_name, department_id) do
+    Repo.get_by!(Assignment, [assignment: assignment_name, department_id: department_id])
   end
 
   def update_assignment(id, new_assignment, old_assignment) do
     Repo.get_by!(Assignment, id: id)
     |> Assignment.changeset(%{assignment: new_assignment})
     |> Repo.update()
-    #Repo.update_all(
-    #  from(r in Runist, where: r.assignment = ^old_assignment),
-    #  set: [assignment: new_assignment]
-    #)
+    Repo.update_all(
+      from(r in Runlist, where: r.assignment == ^old_assignment),
+      set: [assignment: new_assignment]
+    )
   end
 
   @doc """

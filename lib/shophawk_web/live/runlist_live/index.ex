@@ -81,8 +81,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
       socket
       |> assign(:page_title, "View Assignments")
       |> load_runlist(id)
-      #|>
-      #|> assigns(assignments: assignments)
   end
 
   #@impl true
