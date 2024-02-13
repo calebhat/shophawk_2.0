@@ -22,23 +22,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
-        socket =
-          socket
-          |> assign(:page_title, "Listing Runlists")
-          |> assign(:runlist, nil)
-
-          socket =
-          if Map.has_key?(socket.assigns, :department_name) do
-            if is_nil(socket.assigns.department_name) do
-              load_runlist(socket, "Select Department")
-            else
-              load_runlist(socket, socket.assigns.department_id)
-            end
-          else
-            socket
-          end
-
-          socket
+    socket
+    |> assign(:page_title, "Listing Runlists")
+    |> assign(:runlist, nil)
+    |> load_runlist(socket.assigns.department_id)
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -47,40 +34,33 @@ defmodule ShophawkWeb.RunlistLive.Index do
     |> assign(:runlist, Shop.get_runlist!(id))
   end
 
-  defp apply_action(socket, :edit_department, %{"id" => id}) do
+  defp apply_action(socket, :edit_department, _) do
     Csvimport.update_workcenters()
     socket =
       socket
       |> assign(:page_title, "Edit Department")
-
-    load_runlist(socket, id)
   end
 
-  defp apply_action(socket, :new_department, params) do
+  defp apply_action(socket, :new_department, _) do
     Csvimport.update_workcenters()
-
     socket =
         socket
       |> assign(:page_title, "New Department")
       |> assign(:workcenters, Shop.list_workcenters())
-      |> load_runlist(socket.assigns.department_id)
       |> assign(:department, %Department{})
   end
 
-  defp apply_action(socket, :new_assignment, %{"id" => id}) do
+  defp apply_action(socket, :new_assignment, _) do
     socket =
       socket
       |> assign(:page_title, "New Assignment")
       |> assign(:assignment, %Assignment{})
-      |> load_runlist(id)
   end
 
-  defp apply_action(socket, :assignments, %{"id" => id}= params) do
-    IO.inspect(params)
+  defp apply_action(socket, :assignments, _) do
     socket =
       socket
       |> assign(:page_title, "View Assignments")
-      |> load_runlist(id)
   end
 
   #@impl true
@@ -107,25 +87,20 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("select_department", %{"selection" => department}, socket) do
-    {:noreply, load_runlist(socket, Shop.get_department_by_name(department).id)}
+    case department do
+      "Select Department" ->
+        {:noreply, socket
+        |> assign(department_id: nil)
+        |> stream(:runlists, [], reset: true)}
+      _ ->
+        {:noreply, load_runlist(socket, Shop.get_department_by_name(department).id)}
+    end
   end
 
   defp load_runlist(socket, department_id) do
     socket =
       case department_id do
-        "Select Department" ->
-          socket =
-            socket
-            |> assign(department_id: nil)
-            |> stream(:runlists, [], reset: true)
-
-        "" ->
-          socket =
-            socket
-            |> assign(department_id: nil)
-            |> stream(:runlists, [], reset: true)
         nil ->
-          socket =
             socket
             |> assign(department_id: nil)
             |> stream(:runlists, [], reset: true)
@@ -136,13 +111,12 @@ defmodule ShophawkWeb.RunlistLive.Index do
         assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
         runlists =
           Shop.list_runlists(workcenter_list)
-        socket =
-          socket
-          |> assign(department_name: department.department)
-          |> assign(department: department)
-          |> assign(department_id: department.id)
-          |> assign(assignments: [""] ++ assignment_list)
-          |> stream(:runlists, runlists, reset: true)
+        socket
+        |> assign(department_name: department.department)
+        |> assign(department: department)
+        |> assign(department_id: department.id)
+        |> assign(assignments: [""] ++ assignment_list)
+        |> stream(:runlists, runlists, reset: true)
       end
   end
 
