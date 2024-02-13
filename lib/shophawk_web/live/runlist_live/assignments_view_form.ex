@@ -18,7 +18,7 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
         <.tight_simple_form for={form.source} phx-change="assignments_name_change" phx-value-id={form.source["id"]} phx-value-old_assignment={form.source["assignment"]} phx-target={@myself}>
           <div class="grid grid-cols-2">
             <div class="flex justify-center">
-              <.input name="assignment" value={form.source["assignment"]} field={form.source["assignment"]}/>
+              <.input name="assignment" value={form.source["assignment"]} field={form.source["assignment"]} phx-debounce="500"/>
             </div>
             <div class="pl-8 pr-8 pt-3 pb-3 flex justify-center">
               <.delete_button phx-click="delete" phx-value-assignment={form.source["assignment"]} phx-value-id={form.source["id"]} phx-value-department_id={@department_id} phx-target={@myself} class="w-44">Delete</.delete_button>
