@@ -25,6 +25,15 @@ defmodule Shophawk.Shop do
       Repo.all(query)
     end
 
+    def toggle_mat_waiting(id) do
+      op = Repo.get!(Runlist, id)
+      new_matertial_waiting = !op.material_waiting
+      Repo.update_all(
+        from(r in Runlist, where: r.job == ^op.job),
+        set: [material_waiting: new_matertial_waiting]
+      )
+    end
+
   @doc """
   Returns the list of runlists.
 
@@ -120,29 +129,6 @@ defmodule Shophawk.Shop do
     Repo.update(changeset)
   end
 
-  def toggle_mat_waiting(id) do
-    op = Repo.get!(Runlist, id)
-    new_matertial_waiting = !op.material_waiting
-    Repo.update_all(
-      from(r in Runlist, where: r.job == ^op.job),
-      set: [material_waiting: new_matertial_waiting]
-    )
-  end
-
-  def get_assignment(assignment_name, department_id) do
-    Repo.get_by!(Assignment, [assignment: assignment_name, department_id: department_id])
-  end
-
-  def update_assignment(id, new_assignment, old_assignment) do
-    Repo.get_by!(Assignment, id: id)
-    |> Assignment.changeset(%{assignment: new_assignment})
-    |> Repo.update()
-    Repo.update_all(
-      from(r in Runlist, where: r.assignment == ^old_assignment),
-      set: [assignment: new_assignment]
-    )
-  end
-
   @doc """
   Deletes a runlist.
 
@@ -172,60 +158,50 @@ defmodule Shophawk.Shop do
     Runlist.changeset(runlist, attrs)
   end
 
-  def change_assignment(%Assignment{} = assignment, attrs \\ %{}) do
-    Assignment.changeset(assignment, attrs)
+  def create_assignment(department_id, attrs \\ %{}) do
+    get_department!(department_id)
+    |> Ecto.build_assoc(:assignments)
+    |> Ecto.Changeset.cast(attrs, [:assignment])
+    |> Repo.insert()
   end
 
+  def get_assignment(assignment_name, department_id) do
+    Repo.get_by!(Assignment, [assignment: assignment_name, department_id: department_id])
+  end
 
+  def update_assignment(id, new_assignment, old_assignment) do
+    Repo.get_by!(Assignment, id: id)
+    |> Assignment.changeset(%{assignment: new_assignment})
+    |> Repo.update()
+    Repo.update_all(
+      from(r in Runlist, where: r.assignment == ^old_assignment),
+      set: [assignment: new_assignment]
+    )
+  end
 
-  @doc """
-  Returns the list of departments.
-
-  ## Examples
-
-      iex> list_departments()
-      [%Department{}, ...]
-
-  """
-  def list_departments do
-   Repo.all(Department)
+  def change_assignment(%Assignment{} = assignment, attrs \\ %{}) do
+    Assignment.changeset(assignment, attrs)
   end
 
   def list_workcenters do
     Repo.all(Workcenter)
   end
 
-
-
-  @doc """
-  Gets a single department.
-
-  Raises `Ecto.NoResultsError` if the Department does not exist.
-
-  ## Examples
-
-      iex> get_department!(123)
-      %Department{}
-
-      iex> get_department!(456)
-      ** (Ecto.NoResultsError)
-
-  """
-  def get_department!(id) do
-    Repo.get!(Department, id)
-    |> Repo.preload([workcenters: from(c in Workcenter, order_by: c.workcenter)])
-    |> Repo.preload([assignments: from(c in Assignment, order_by: c.assignment)])
-  end
-
-  defp subquery(query), do: (from wc in query, order_by: [wc.name])
-
-  def get_department_by_name(department) do
-    Repo.get_by!(Department, department: department)  |> Repo.preload(:workcenters)
-  end
-
   def get_workcenter!(id), do: Repo.get!(Workcenter, id)
 
-  @doc """
+  def create_workcenter(attrs \\ %{}) do
+    changeset = Workcenter.changeset(%Workcenter{}, attrs)
+    Repo.insert(changeset)
+  end
+
+  defp extract_workcenters(attrs) do
+    workcenter_names = attrs["workcenters"] |> Enum.map(&Map.get(&1, "workcenter"))
+    Workcenter
+    |> where([w], w.workcenter in ^workcenter_names)
+    |> Repo.all()
+  end
+
+    @doc """
   Creates a department.
 
   ## Examples
@@ -244,16 +220,41 @@ defmodule Shophawk.Shop do
     |> Repo.insert()
   end
 
-  def create_workcenter(attrs \\ %{}) do
-    changeset = Workcenter.changeset(%Workcenter{}, attrs)
-    Repo.insert(changeset)
+    @doc """
+  Returns the list of departments.
+
+  ## Examples
+
+      iex> list_departments()
+      [%Department{}, ...]
+
+  """
+  def list_departments do
+    Repo.all(Department)
+   end
+
+  def get_department_by_name(department) do
+    Repo.get_by!(Department, department: department)  |> Repo.preload(:workcenters)
   end
 
-  def create_assignment(department_id, attrs \\ %{}) do
-    get_department!(department_id)
-    |> Ecto.build_assoc(:assignments)
-    |> Ecto.Changeset.cast(attrs, [:assignment])
-    |> Repo.insert()
+    @doc """
+  Gets a single department.
+
+  Raises `Ecto.NoResultsError` if the Department does not exist.
+
+  ## Examples
+
+      iex> get_department!(123)
+      %Department{}
+
+      iex> get_department!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_department!(id) do
+    Repo.get!(Department, id)
+    |> Repo.preload([workcenters: from(c in Workcenter, order_by: c.workcenter)])
+    |> Repo.preload([assignments: from(c in Assignment, order_by: c.assignment)])
   end
 
   @doc """
@@ -275,13 +276,6 @@ defmodule Shophawk.Shop do
     |> Repo.update()
   end
 
-  defp extract_workcenters(attrs) do
-    workcenter_names = attrs["workcenters"] |> Enum.map(&Map.get(&1, "workcenter"))
-    Workcenter
-    |> where([w], w.workcenter in ^workcenter_names)
-    |> Repo.all()
-  end
-
   @doc """
   Deletes a department.
 
@@ -295,7 +289,7 @@ defmodule Shophawk.Shop do
 
   """
   def delete_department(%Department{} = department) do
-    Repo.get_assignment
+    Repo.delete(department)
   end
 
   def delete_assignment(id) do

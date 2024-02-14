@@ -92,7 +92,7 @@
   />
 </.modal>
 
-<.modal :if={@live_action in [:assignments]} id="assignment-modal" show on_cancel={JS.patch(~p"/runlists")}>
+<.modal :if={@live_action in [:assignments]} id="assignments-modal" show on_cancel={JS.patch(~p"/runlists")}>
   <.live_component
     module={ShophawkWeb.RunlistLive.ViewAssignments}
     id={@department_id || :assignments}

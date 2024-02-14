@@ -65,6 +65,7 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
 
   @impl true
   def update(%{assignments: assignments} = assigns, socket) do
+    IO.inspect(assigns)
     {:ok,
      socket
      |> assign(assigns)
@@ -105,13 +106,7 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
 
   def handle_event("delete", %{"id" => id, "department_id" => department_id}, socket) do
     Shop.delete_assignment(id)
-    department = Shop.get_department!(department_id)
-    assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
-    {:noreply,
-            socket
-            |> assign(assignments: assignment_list)
-            |> assign(form: load_assignment_form(assignment_list, socket.assigns.department_id))
-  }
+    {:noreply, socket }
   end
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})

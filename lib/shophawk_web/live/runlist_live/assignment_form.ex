@@ -30,7 +30,6 @@ defmodule ShophawkWeb.RunlistLive.AssignmentForm do
 
   @impl true
   def update(%{assignment: assignment, department_name: department_name} = assigns, socket) do
-    IO.inspect(assigns)
     changeset = Shop.change_assignment(assignment)
     {:ok,
      socket
@@ -51,21 +50,6 @@ defmodule ShophawkWeb.RunlistLive.AssignmentForm do
 
   def handle_event("save", %{"assignment" => assignment_params}, socket) do
     save_assignment(socket, socket.assigns.action, assignment_params)
-  end
-
-  defp save_assignment(socket, :edit_assignment, assignment_params) do
-    case Shop.update_assignment(socket.assigns.assignment, assignment_params) do
-      {:ok, assignment} ->
-        notify_parent({:saved, assignment})
-
-        {:noreply,
-         socket
-         |> put_flash(:info, "assignment updated successfully")
-         |> push_patch(to: socket.assigns.patch)}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}
-    end
   end
 
   defp save_assignment(socket, :new_assignment, assignment_params) do
