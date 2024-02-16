@@ -10,7 +10,6 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
     <div class="text-2xl">
     <%= @department_name %> Assignments
     </div>
-    (Assignments save as changes are typed)
     <br><br><br>
       <body>
 
@@ -65,7 +64,6 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
 
   @impl true
   def update(%{assignments: assignments} = assigns, socket) do
-    IO.inspect(assigns)
     {:ok,
      socket
      |> assign(assigns)

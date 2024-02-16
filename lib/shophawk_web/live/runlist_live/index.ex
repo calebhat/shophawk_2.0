@@ -14,7 +14,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
-    #IO.inspect(params)
     socket =
       socket
       |> assign(:departments,  ["Select Department" | Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.sort] )
@@ -58,7 +57,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :assignments, %{"id" => id}) do
-    IO.inspect(id)
       socket
       |> assign(:page_title, "View Assignments")
       |> load_runlist(id)
@@ -93,14 +91,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_info({ShophawkWeb.RunlistLive.ViewAssignments, {:delete}}, socket) do
-    IO.inspect("from notify parent delete")
-    IO.inspect(socket.assigns.department_id)
-
-    #socket =
-    #  case socket.assigns.department_id do
-    #    nil -> socket
-    #    _ -> load_runlist(socket, socket.assigns.department_id)
-    #  end
     {:noreply, socket}
   end
 
@@ -116,8 +106,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp load_runlist(socket, department_id) do
-    IO.inspect("in load_runlist")
-    IO.inspect(department_id)
     socket =
       case department_id do
         nil ->
@@ -130,7 +118,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
         assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
         runlists =
-          Shop.list_runlists(workcenter_list)
+          Shop.list_runlists(workcenter_list, department)
         socket
         |> assign(department_name: department.department)
         |> assign(department: department)

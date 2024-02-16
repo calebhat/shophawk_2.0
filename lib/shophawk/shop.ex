@@ -43,7 +43,7 @@ defmodule Shophawk.Shop do
       [%Runlist{}, ...]
 
   """
-  def list_runlists(workcenter_list) do #takes in a list of workcenters to load runlist items for
+  def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist items for
     runlists =
       Repo.all(
         from r in Runlist,
@@ -52,11 +52,68 @@ defmodule Shophawk.Shop do
         order_by: [asc: r.sched_start, asc: r.job],
         select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment}
       )
+    [first_row | tail] = runlists
+    [second_row | _tail] = tail
+    last_row = List.last(runlists)
+    first_row_id = first_row.id
+    last_row_id = last_row.id
+
+    #Make list of date & hours map for matching to date rows
+    {hours_list, _, _, _} =
+      Enum.reduce_while(runlists, {[], nil, 0, 0}, fn row, {acc, prev_sched_start, daily_hours, carryover_hours} ->
+        sched_start = row.sched_start
+        if prev_sched_start == sched_start do #for 2nd row and beyond
+          {new_daily_hours, new_carryover_hours} =
+            if row.est_total_hrs < department.capacity do
+              {daily_hours + row.est_total_hrs, carryover_hours}
+            else #if the hours > capacity
+              {daily_hours + department.capacity, carryover_hours + (row.est_total_hrs - department.capacity)}
+            end
+          {:cont, {acc, sched_start, new_daily_hours, new_carryover_hours}}
+        else #if a new day
+          #Calculate next days values with carryover_hours
+          {new_daily_hours, new_carryover_hours} =
+            if row.est_total_hrs < department.capacity do
+              if carryover_hours < department.capacity do
+                {row.est_total_hrs + carryover_hours, 0}
+              else
+                {row.est_total_hrs + department.capacity, carryover_hours - department.capacity}
+              end
+            else #hours is more than capacity
+              if carryover_hours < department.capacity do
+                {department.capacity + carryover_hours, row.est_total_hrs - department.capacity} #good
+              else #carryover is more than capacity
+                {department.capacity + department.capacity, (row.est_total_hrs - department.capacity) + (carryover_hours - department.capacity)}
+              end
+            end
+          #put last days data into list
+          case row.id do
+            ^first_row_id ->
+              {:cont, {acc, sched_start, Float.round(new_daily_hours, 2), new_carryover_hours}}
+
+            ^last_row_id ->
+              new_acc = acc ++ [
+                %{daily_hours: Float.round(daily_hours, 2), sched_start: prev_sched_start}, #2nd to last day
+                %{daily_hours: Float.round(new_daily_hours, 2), sched_start: sched_start}] #last day
+              #IO.inspect(new_carryover_hours)
+              {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2), new_carryover_hours}}
+
+            _ ->
+              new_acc = acc ++ [%{daily_hours: Float.round(daily_hours, 2), sched_start: prev_sched_start}]
+              {:cont, {new_acc, sched_start, new_daily_hours, new_carryover_hours}}
+          end
+        end
+      end)
+    IO.inspect(hours_list)
+
+
+    #if carryover hours, move date forward one workday and add the value.
+    #use the hours_list as the template for the runlist stream.
     if Enum.empty?(runlists) do
       []
     else
-      {rows, _} =
-        Enum.reduce_while(runlists, {[], nil}, fn row, {acc, prev_sched_start} ->
+      {rows, _, _, _} =
+        Enum.reduce_while(runlists, {[], nil, 0, 0}, fn row, {acc, prev_sched_start, daily_hours, carryover_hours} ->
           sched_start = row.sched_start
           row = #combines workcenter and service if a service exists
             if row.operation_service != "NULL" do
@@ -67,10 +124,30 @@ defmodule Shophawk.Shop do
             end
 
           if prev_sched_start == sched_start do
-            {:cont, {acc ++ [row], sched_start}}
-          else
+            {daily_hours, carryover_hours} =
+              if row.est_total_hrs < department.capacity do
+                {daily_hours + row.est_total_hrs, carryover_hours}
+              else
+                {daily_hours + department.capacity, row.est_total_hrs - department.capacity}
+              end
+            {:cont, {acc ++ [row], sched_start, daily_hours, carryover_hours}}
+          else #if a new day
+            {daily_hours, carryover_hours} =
+              if row.est_total_hrs < department.capacity do
+                if carryover_hours < department.capacity do
+                  {0 + row.est_total_hrs + carryover_hours, 0}
+                else
+                  {0 + row.est_total_hrs + department.capacity, carryover_hours - department.capacity}
+                end
+              else #hours is more than capacity
+                if carryover_hours < department.capacity do
+                  {0 + department.capacity + carryover_hours, row.est_total_hrs - department.capacity}
+                else #carryover is more than capacity
+                  {0 + department.capacity + department.capacity, (row.est_total_hrs - department.capacity) + (carryover_hours - department.capacity) }
+                end
+              end
             date_row = [%Runlist{sched_start: sched_start, id: 0}]
-            {:cont, {acc ++ date_row ++ [row], sched_start}}
+            {:cont, {acc ++ date_row ++ [row], sched_start, daily_hours, carryover_hours}}
           end
         end)
       rows
