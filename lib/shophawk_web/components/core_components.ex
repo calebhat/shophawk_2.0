@@ -660,13 +660,22 @@ defmodule ShophawkWeb.CoreComponents do
             <%= if elem(row, 1).id == 0 do %>
 
               <td :for={{col, i} <- Enum.with_index(@col)}
-              class={["bg-stone-300"]}>
+              class={["bg-stone-300"]}
+              colspan="">
               <div class="h-6">
                 <%= case i do %>
                 <% 0 -> %>
                   <span class={["font-semibold text-zinc-900"]}>
                   <%= Calendar.strftime(elem(row, 1).sched_start, "%m-%d-%y") %>
                   </span>
+                <% 2 -> %>
+                  <span class={["font-semibold text-zinc-900"]}>
+                  ~<%= elem(row, 1).est_total_hrs %>
+                  </span>
+                 <% 3 -> %>
+                  <span class={["font-semibold text-zinc-900"]}>
+                   Hours of Work
+                </span>
                 <% _ -> %>
                   <div></div>
                 <% end %>
