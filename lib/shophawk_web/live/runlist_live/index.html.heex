@@ -2,7 +2,7 @@
   <form> 
     <div class="grid grid-cols-3 gap-4">
        
-      <%= if @department_id do %>
+      <%= if @department_id do %>      
       <form>
         <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@department_name}  />  
         <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
@@ -17,6 +17,7 @@
       <% end %>    
     </div> 
   </form>
+  
   <:actions>
     
     <.link patch={~p"/runlists/new_department"}>
@@ -26,6 +27,15 @@
     <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>    
   </:actions>    
 </.header>
+
+  <%= if @streams.runlists.inserts == [] do %>
+    <%= if @department_id do %> 
+    <br>
+    <div class="bg-stone-800 text-white rounded-lg text-center text-2xl py-6">
+      Nothing Scheduled
+    </div>
+    <% end  %>
+  <% end  %>
 
 <%= if @streams.runlists.inserts != [] do %>
   <div class="">
