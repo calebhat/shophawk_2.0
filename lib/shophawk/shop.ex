@@ -86,86 +86,58 @@ defmodule Shophawk.Shop do
             acc
           end
         end)
-        |> IO.inspect
+        #|> IO.inspect
         |> Enum.reduce([], fn %{date: date, hours: remaining_hours, id: id}, acc ->
           generate_daily_carryover_days(id, date, remaining_hours, department.capacity, acc, blackout_dates, 0)
         end)
-        |> IO.inspect
-#WORKING! see note directly below
-        #change rest of function to: if the date matches a date in this list, load the id, and set the est_total_hrs to the value in this list
 
-
-      #Make list of date & hours map for matching to date rows
-      {hours_list, _, _, _, carry_over_list} =
-        Enum.reduce_while(runlists, {[], nil, 0, 0, []}, fn row, {acc, prev_sched_start, daily_hours, _carryover_hours, carry_over_list} ->
+      {hours_list, _, _} = #Make list of date & hours map for matching to date rows
+        Enum.reduce_while(runlists, {[], nil, 0}, fn row, {acc, prev_sched_start, daily_hours} ->
           sched_start = row.sched_start
 
-          #carryover_hours will never be more than daily capacity, so erare that logic.
-          #always just add to daily hours
-          #runner_ids is list of ops to add to each day after date row, see note at that section of code
-          {carry_over_list, carryover_hours, runner_ids} = calculate_daily_carryover(carry_over_list, department.capacity, row) #|> IO.inspect
-          #IO.inspect(carryover_hours)
-          #add function to accumlate carry_over hours into float from list of maps
-
           if prev_sched_start == sched_start do #for 2nd row and beyond
-            {new_daily_hours, new_carryover_hours, carry_over_map} =
-              if row.est_total_hrs < department.capacity do
-                {daily_hours + row.est_total_hrs, carryover_hours, nil}
-              else #if the hours > capacity
-              #IO.inspect("same day")
-                {daily_hours + department.capacity, carryover_hours + (row.est_total_hrs - department.capacity), %{date: sched_start, id: row.id, hours: (row.est_total_hrs - department.capacity)}}
+            new_daily_hours =
+              case row.est_total_hrs do
+                hours when hours < department.capacity -> hours + daily_hours
+                _ -> daily_hours + row.est_total_hrs
               end
 
               if row.id == last_row_id do #checks for last row
-                carry_over_list = if carry_over_map != nil, do: carry_over_list ++ [carry_over_map], else: carry_over_list
                 new_acc = acc ++ [%{daily_hours: Float.round(new_daily_hours, 2), sched_start: sched_start}] #last day
-                {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2), new_carryover_hours, carry_over_list}}
+                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, sched_start, nil)
+                {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2)}}
               else
-                {:cont, {acc, sched_start, new_daily_hours, new_carryover_hours, carry_over_list}}
+                {:cont, {acc, sched_start, new_daily_hours}}
               end
           else #if a new day
-            #Calculate next days values with carryover_hours
-            {new_daily_hours, new_carryover_hours, carry_over_map} =
-              if row.est_total_hrs < department.capacity do
-                if carryover_hours < department.capacity do
-                  {row.est_total_hrs + carryover_hours, 0, nil}
-                else
-                  #IO.inspect("yo dog")
-                  {row.est_total_hrs + department.capacity, carryover_hours - department.capacity, nil}
-                end
-              else #hours is more than capacity
-                if carryover_hours < department.capacity do
-                  #IO.inspect("yo")
-                  {department.capacity + carryover_hours, row.est_total_hrs - department.capacity, %{date: sched_start, id: row.id, hours: (row.est_total_hrs - department.capacity)}} #good
-                else #carryover is more than capacity
-                  #IO.inspect("new day")
-                  {department.capacity + department.capacity, (row.est_total_hrs - department.capacity) + (carryover_hours - department.capacity), %{date: sched_start, id: row.id, hours: (row.est_total_hrs - department.capacity)}}
-                end
+            new_daily_hours =
+              case row.est_total_hrs do
+                hours when hours < department.capacity -> hours
+                _ -> department.capacity
               end
 
             case row.id do
               ^first_row_id ->
-                carry_over_list = if carry_over_map != nil, do: carry_over_list ++ [carry_over_map], else: carry_over_list
-                {:cont, {acc, sched_start, Float.round(new_daily_hours, 2), new_carryover_hours, carry_over_list}}
+                {:cont, {acc, sched_start, Float.round(new_daily_hours, 2)}}
 
               ^last_row_id ->
-                carry_over_list = if carry_over_map != nil, do: carry_over_list ++ [carry_over_map], else: carry_over_list
-                new_acc = acc ++ [
-                  %{daily_hours: Float.round(daily_hours, 2), sched_start: prev_sched_start}, #2nd to last day
-                  %{daily_hours: Float.round(new_daily_hours, 2), sched_start: sched_start}] #last day
-                {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2), new_carryover_hours, carry_over_list}}
+                new_acc = acc ++ [%{daily_hours: Float.round(daily_hours, 2), sched_start: prev_sched_start}] #2nd to last day
+                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, prev_sched_start, sched_start)
+                new_acc = new_acc ++ [%{daily_hours: Float.round(new_daily_hours, 2), sched_start: sched_start}] #last day
+                #IO.inspect(sched_start)
+                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, sched_start, nil)
+                {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2)}}
 
               _ ->
-                carry_over_list = if carry_over_map != nil, do: carry_over_list ++ [carry_over_map], else: carry_over_list
                 new_acc = acc ++ [%{daily_hours: Float.round(daily_hours, 2), sched_start: prev_sched_start}]
-                {:cont, {new_acc, sched_start, new_daily_hours, new_carryover_hours, carry_over_list}}
+                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, prev_sched_start, sched_start)
+                {:cont, {new_acc, sched_start, new_daily_hours}}
             end
           end
-          #last row check?  whether it's a new day or not?
         end)
-
-        #IO.inspect(carry_over_list)
-
+IO.inspect(carryover_list)
+IO.inspect(hours_list)
+#Swap this around to use hours_list as the main list, then match runlist items to the dates.
       {rows, _} =
         Enum.reduce_while(runlists, {[], nil}, fn row, {acc, prev_sched_start} ->
           sched_start = row.sched_start
@@ -179,12 +151,25 @@ defmodule Shophawk.Shop do
           if prev_sched_start == sched_start do
             {:cont, {acc ++ [row], sched_start}}
           else #if a new day
-            daily_hours = Map.get(Enum.find(hours_list, fn map -> map[:sched_start] == sched_start end), :daily_hours, 0.0)
+            daily_hours = Enum.find(hours_list, fn map -> map[:sched_start] == sched_start end) |> Map.get(:daily_hours, 0.0)
             date_row = [%Runlist{sched_start: sched_start, est_total_hrs: daily_hours, id: 0}]
             {:cont, {acc ++ date_row ++ [row], sched_start}} #add runner rows after [row] here
           end
         end)
       rows
+    end
+  end
+
+  defp add_carryover_dates(hours_list, carryover_list, start, stop) do
+    inbetween_dates =
+    case {start, stop} do
+      {nil, stop} -> []
+      {start, nil} ->
+        Enum.filter(carryover_list, fn map -> if Date.compare(map.date, start) == :gt, do: true  end)
+        |> Enum.map(fn %{date: date, hours: hours} -> %{sched_start: date, daily_hours: hours} end)
+      {start, stop} ->
+        Enum.filter(carryover_list, fn map -> map.date > start and map.date < stop end)
+        |> Enum.map(fn %{date: date, hours: hours} -> %{sched_start: date, daily_hours: hours} end)
     end
   end
 
@@ -202,7 +187,6 @@ defmodule Shophawk.Shop do
 
   defp advance_to_next_workday(date, blackout_dates) do
     new_date = Date.add(date, 1)
-
     if Date.day_of_week(new_date) in [6, 7] or Enum.member?(blackout_dates, new_date) do
       advance_to_next_workday(new_date, blackout_dates)
     else
@@ -216,24 +200,14 @@ defmodule Shophawk.Shop do
 
     {carry_over_list, carryover_hours, runner_ids} = #expected output from function
       Enum.reduce(carry_over_list, {carry_over_list, 0, []}, fn item, {carry_over_list, carryover_hours, runner_ids} ->
-        #  %{date: sched_start, id: row.id, hours: }
-#need to subtract hours from each day, only adding right now?
-      #if row.id do
         new_hours = item.hours - capacity
         new_hours = if new_hours < 0, do: 0
-        #IO.inspect(new_hours)
-        if row.est_total_hrs < capacity do #not going to re-add to list
-        #IO.inspect("here")
-
+        if row.est_total_hrs < capacity do
           {carry_over_list, item.hours, runner_ids}
         else #if more hours than the capacity
-        #IO.inspect("there")
           {carry_over_list ++ [%{date: row.sched_start, id: item.id, hours: item.hours - capacity}], capacity, runner_ids ++ [row.id]}
         end
-     # end
-
       end )
-      #{carry_over_list, carryover_hours, runner_ids} #need these at end
   end
 
   defp get_next_day(date) do
