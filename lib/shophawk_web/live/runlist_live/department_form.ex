@@ -21,9 +21,9 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:department]} type="text" label="Department" />
-        <.input field={@form[:capacity]} type="number" label="Capacity" step="any" />
-        <.input field={@form[:machine_count]} type="number" label="Machine count" step="any" />
+        <.input field={@form[:department]} type="text" label="Department Name" />
+        <.input field={@form[:capacity]} type="number" label="Daily Hour Capacity per Machine" step="any" />
+        <.input field={@form[:machine_count]} type="number" label="MachineS in department" step="any" />
         <.input field={@form[:show_jobs_started]} type="checkbox" label="Show jobs started" />
 
 

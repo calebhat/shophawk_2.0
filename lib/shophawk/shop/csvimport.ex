@@ -2,6 +2,54 @@ defmodule Shophawk.Shop.Csvimport do
   alias Shophawk.Shop.Runlist
   alias Shophawk.Shop
 
+  def rework_to_do do
+    #write a new sql command as needed
+    #new idea is it to create a new file that keeps track of the last time the runlist import function was ran
+    #and have the query export to csv from that point on so nothing is missed
+
+    #create custom string with variable defining new cmd
+    server = "GEARSERVER\\SQLEXPRESS"
+    query = "\"SELECT [HolidayName] ,[HolidayStart] ,[HolidayEnd] FROM [PRODUCTION].[dbo].[Holiday] WHERE Shift='668B4614-5E2B-418E-B156-2045FA0E8CDF'\""
+    path = "\"C:\phoenixapps\csv_files\blackoutdates.csv\""
+    seperator = "\"`\""
+    export = """
+    sqlcmd -S <%= server %> -d PRODUCTION -E -Q <%= query %> -o <%= path %> -W -w 1024 -s <%= seperator %> -f 65001
+    """
+    sql_command = EEx.eval_string(export, [server: server, query: query, path: path, seperator: seperator])
+    #IO.puts(command)
+    #read the file if needed, create a new file with just the time of last export
+    contents = File.read!("C:/phoenixapps/shophawk/batch_files/load_blackout_dates.bat")
+    |> IO.inspect
+
+    #write to batch file and run it with new adjusted time
+    File.write!("C:/phoenixapps/shophawk/batch_files/load_blackout_dates.bat", "hi")
+    System.cmd("cmd", ["/C", "C:/phoenixapps/shophawk/batch_files/load_blackout_dates.bat"])
+
+  end
+
+  def load_blackout_dates do
+    System.cmd("cmd", ["/C", "C:/phoenixapps/shophawk/batch_files/load_blackout_dates.bat"])
+
+    blackout_dates =
+      File.stream!("C:/phoenixapps/csv_files/blackoutdates.csv")
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.split(&1, "`"))
+      |> Stream.filter(fn
+        [_, "HolidayStart" | _] -> false #filter out header line
+        ["-----------" | _] -> false #filter out empty line
+        [_] -> false #lines with only one entry
+        [name | _] -> true
+      end)
+      |> Enum.map(fn [name, start_date, end_date] ->
+        {:ok, start_date} = NaiveDateTime.from_iso8601(start_date)
+        {:ok, end_date} = NaiveDateTime.from_iso8601(end_date)
+        for date <- Date.range(NaiveDateTime.to_date(start_date), NaiveDateTime.to_date(end_date)) do
+          date
+        end
+      end)
+      |> List.flatten()
+  end
+
   def update_workcenters do #check for new workcenters to be added for department workcenter selection
     workcenters =
       File.stream!("C:/phoenixapps/csv_files/yearlyRunlistOps.csv")
