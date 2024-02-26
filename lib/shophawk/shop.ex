@@ -48,23 +48,38 @@ defmodule Shophawk.Shop do
       from r in Runlist,
         where: r.wc_vendor in ^workcenter_list,
         where: not is_nil(r.job_sched_end),
+        where: r.status == "O" or r.status == "S",
         order_by: [asc: r.sched_start, asc: r.job],
         select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
-    query = #checks if "show jobs started is checked and load them.
-      if department.show_jobs_started do
-      query |> where([r], r.status == "O" or r.status == "S")
-      else
-        query |> where([r], r.status == "O")
-      end
+    #query = #checks if "show jobs started is checked and load them.
+    #  if department.show_jobs_started do
+    #  query |> where([r], r.status == "O" or r.status == "S")
+    #  else
+    #    query |> where([r], r.status == "O")
+    #  end
 
     runlists = Repo.all(query)
-    runlists_with_started =
-      if department.show_jobs_started do
-        runlists_with_started = runlists
-      else
-        runlists_with_started = Repo.all(query |> where([r], r.status == "O" or r.status == "S"))
+    |> Enum.map(fn row ->
+      case row.operation_service do
+        "NULL" -> row
+        _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
       end
+    end)
+
+    #runlists_with_started =
+    #  if department.show_jobs_started do
+    #    runlists_with_started = runlists
+    #  else
+    #    runlists_with_started =
+    #      Repo.all(query |> where([r], r.status == "O" or r.status == "S"))
+    #      |> Enum.map(fn row ->
+    #        case row.operation_service do
+    #          "NULL" -> row
+    #          _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
+    #        end
+    #      end)
+    #  end
 
     if Enum.empty?(runlists) do
       []
@@ -78,7 +93,7 @@ defmodule Shophawk.Shop do
 
       #generate list of maps with just days with extra hours %{date: date, hours: hours, id: id}
       carryover_list =
-        runlists_with_started
+        runlists
         |> Enum.reduce([], fn row, acc ->
           if row.est_total_hrs > department.capacity do
             [%{date: row.sched_start, hours: row.est_total_hrs, id: row.id} | acc]
@@ -86,90 +101,122 @@ defmodule Shophawk.Shop do
             acc
           end
         end)
-        #|> IO.inspect
         |> Enum.reduce([], fn %{date: date, hours: remaining_hours, id: id}, acc ->
           generate_daily_carryover_days(id, date, remaining_hours, department.capacity, acc, blackout_dates, 0)
         end)
 
-      {hours_list, _, _} = #Make list of date & hours map for matching to date rows
+      {date_rows_list, _, _} = #Make list of date & hours map for matching to date rows
         Enum.reduce_while(runlists, {[], nil, 0}, fn row, {acc, prev_sched_start, daily_hours} ->
           sched_start = row.sched_start
 
           if prev_sched_start == sched_start do #for 2nd row and beyond
             new_daily_hours =
               case row.est_total_hrs do
-                hours when hours < department.capacity -> hours + daily_hours
-                _ -> daily_hours + row.est_total_hrs
+                hours when hours < department.capacity -> Float.round(hours + daily_hours, 2)
+                _ -> Float.round(daily_hours + department.capacity, 2)
               end
 
               if row.id == last_row_id do #checks for last row
-                new_acc = acc ++ [%{daily_hours: Float.round(new_daily_hours, 2), sched_start: sched_start}] #last day
-                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, sched_start, nil)
+              date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil)
                 {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2)}}
               else
                 {:cont, {acc, sched_start, new_daily_hours}}
               end
           else #if a new day
-            new_daily_hours =
+            new_daily_hours = #only to pass on for next day accumulator
               case row.est_total_hrs do
-                hours when hours < department.capacity -> hours
-                _ -> department.capacity
+                hours when hours < department.capacity ->
+                  filtered_rows = Enum.filter(carryover_list, fn map ->
+                    if sched_start == map.date && map.index > 0, do: true end)
+                  Float.round(hours + get_date_sum(filtered_rows, sched_start), 2) #only add carryover hours at beginning of new day
+                _ ->
+                  filtered_rows = Enum.filter(carryover_list, fn map ->
+                    if sched_start == map.date && map.index > 0, do: true end)
+                  Float.round(department.capacity + get_date_sum(filtered_rows, sched_start), 2)
               end
 
             case row.id do
               ^first_row_id ->
-                {:cont, {acc, sched_start, Float.round(new_daily_hours, 2)}}
+                {:cont, {acc, sched_start, new_daily_hours}}
 
               ^last_row_id ->
-                new_acc = acc ++ [%{daily_hours: Float.round(daily_hours, 2), sched_start: prev_sched_start}] #2nd to last day
-                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, prev_sched_start, sched_start)
-                new_acc = new_acc ++ [%{daily_hours: Float.round(new_daily_hours, 2), sched_start: sched_start}] #last day
-                #IO.inspect(sched_start)
-                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, sched_start, nil)
-                {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2)}}
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}] #2nd to last day
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start)
+                date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0}] #last day
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil)
+                {:halt, {new_acc, sched_start, new_daily_hours}}
 
               _ ->
-                new_acc = acc ++ [%{daily_hours: Float.round(daily_hours, 2), sched_start: prev_sched_start}]
-                new_acc = new_acc ++ add_carryover_dates(new_acc, carryover_list, prev_sched_start, sched_start)
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}]
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start)
                 {:cont, {new_acc, sched_start, new_daily_hours}}
             end
           end
         end)
-IO.inspect(carryover_list)
-IO.inspect(hours_list)
-#Swap this around to use hours_list as the main list, then match runlist items to the dates.
-      {rows, _} =
-        Enum.reduce_while(runlists, {[], nil}, fn row, {acc, prev_sched_start} ->
-          sched_start = row.sched_start
-          row = #combines workcenter and service if a service exists
-            if row.operation_service != "NULL" do
-              combined = "#{row.wc_vendor} -#{row.operation_service}"
-              Map.put(row, :wc_vendor, combined)
-            else
-              row
+
+      #ha
+
+      {complete_runlist, _} =
+        Enum.reduce_while(date_rows_list, {[], nil}, fn date_row, {acc, prev_sched_start} ->
+          runners_list =
+            Enum.filter(carryover_list, fn %{date: date, index: index} -> date == date_row.sched_start and index > 0 end)
+            |> Enum.map(fn row -> row.id end)
+            |> Enum.uniq
+            |> Enum.sort
+
+          dot_sorter = fn map ->
+            case Map.get(map, :dots) do
+              4 -> 0
+              3 -> 1
+              2 -> 2
+              1 -> 3
+              _ -> 4
             end
-          if prev_sched_start == sched_start do
-            {:cont, {acc ++ [row], sched_start}}
-          else #if a new day
-            daily_hours = Enum.find(hours_list, fn map -> map[:sched_start] == sched_start end) |> Map.get(:daily_hours, 0.0)
-            date_row = [%Runlist{sched_start: sched_start, est_total_hrs: daily_hours, id: 0}]
-            {:cont, {acc ++ date_row ++ [row], sched_start}} #add runner rows after [row] here
           end
+
+          main_ops =
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
+            |> Enum.sort_by(dot_sorter)
+
+          started_ops =
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
+
+          runner_ops =
+            Enum.filter(runlists, fn %{id: id} -> id in runners_list end)
+            |> Enum.map(fn row -> Map.put(row, :runner, true) end)
+
+          {:cont, {acc ++ [date_row] ++ main_ops ++ runner_ops ++ started_ops, date_row.sched_start}} #add runner rows after [row] here
+
         end)
-      rows
+
+      complete_runlist
     end
   end
 
-  defp add_carryover_dates(hours_list, carryover_list, start, stop) do
+  defp add_missing_date_rows(carryover_list, start, stop) do #adds date rows for carryover hours if non exist
     inbetween_dates =
     case {start, stop} do
       {nil, stop} -> []
       {start, nil} ->
-        Enum.filter(carryover_list, fn map -> if Date.compare(map.date, start) == :gt, do: true  end)
-        |> Enum.map(fn %{date: date, hours: hours} -> %{sched_start: date, daily_hours: hours} end)
+        filtered_rows = Enum.filter(carryover_list, fn map -> if Date.compare(map.date, start) == :gt, do: true end)
+        Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
+          %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0} end)
       {start, stop} ->
-        Enum.filter(carryover_list, fn map -> map.date > start and map.date < stop end)
-        |> Enum.map(fn %{date: date, hours: hours} -> %{sched_start: date, daily_hours: hours} end)
+        filtered_rows = Enum.filter(carryover_list, fn map -> map.date > start and map.date < stop end)
+        Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
+          %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0} end)
+    end
+  end
+
+  defp get_date_sum(list, target_date) do
+    if list != [] do
+      list
+      |> Enum.filter(fn %{date: date} -> date == target_date end)
+      |> Enum.reduce(0, fn %{hours: hours}, acc -> acc + hours end)
+      |> Float.round(2)
+    else
+      0
     end
   end
 
@@ -196,7 +243,6 @@ IO.inspect(hours_list)
 
   #generating a list of only carryover days to render AFTER the initial op that has excess hours
   defp calculate_daily_carryover(carry_over_list, capacity, row) do
-    get_next_day(row.job_sched_start)# |> IO.inspect
 
     {carry_over_list, carryover_hours, runner_ids} = #expected output from function
       Enum.reduce(carry_over_list, {carry_over_list, 0, []}, fn item, {carry_over_list, carryover_hours, runner_ids} ->
@@ -210,9 +256,6 @@ IO.inspect(hours_list)
       end )
   end
 
-  defp get_next_day(date) do
-    Csvimport.load_blackout_dates
-  end
 
 
   @doc """

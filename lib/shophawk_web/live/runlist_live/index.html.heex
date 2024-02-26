@@ -47,7 +47,7 @@
     assignments={@assignments}
     row_click={fn {_id, runlist} -> JS.navigate(~p"/runlists/#{runlist}") end}
   >
-    <:col :let={{_id, runlist}} label="Job" headerstyle="w-20 text-center" cellstyle="text-center"><%= runlist.job %></:col>
+    <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
     <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14 text-center" cellstyle=""><%= runlist.order_quantity %></:col>
     <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-14 text-center" cellstyle=""><%= runlist.est_total_hrs %></:col>
     <:col :let={{_id, runlist}} label="Material" headerstyle="hidden w-40 lg:table-cell" cellstyle="hidden lg:table-cell"><%= runlist.material %></:col>

@@ -45,6 +45,8 @@ defmodule Shophawk.Shop.Runlist do
     field :act_scrap_qty, :float
     field :data_collection_note_text, :string
 
+    field :runner, :boolean, virtual: true, default: false
+
     timestamps()
   end
 

@@ -686,7 +686,7 @@ defmodule ShophawkWeb.CoreComponents do
             <div :for={{col, i} <- Enum.with_index(@col)}>
                 <%= case i do %>
                 <% 8 -> %>
-                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={[ "h-12 block" ]} >
                     <form phx-change="change_assignment" phx-value-id={elem(row, 1).id}>
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
@@ -696,7 +696,7 @@ defmodule ShophawkWeb.CoreComponents do
                   </div>
                 </td>
                 <% 9 -> %>
-                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={[ "h-12 text-center block" ]}>
                     <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
                       <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
@@ -704,7 +704,7 @@ defmodule ShophawkWeb.CoreComponents do
                   </div>
                 </td>
                 <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
-                  <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                  <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                     <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
                       <span class={["relative", i == 0 && "font-semibold"]}>
@@ -719,7 +719,7 @@ defmodule ShophawkWeb.CoreComponents do
                     </div>
                   </td>
                 <% _ -> %>
-                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                     <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
                       <span class={["relative", i == 0 && "font-semibold"]}>
@@ -741,13 +741,15 @@ defmodule ShophawkWeb.CoreComponents do
     prev_sched_start != current_sched_start
   end
 
-  defp date_color(date, dots) do
+  defp date_color(date, dots, runner, status) do
     color =
       case Date.compare(date, Date.utc_today()) do
         :lt -> "bg-rose-200 text-stone-950"
         :eq -> "bg-sky-200 text-stone-950"
         :gt -> "bg-cyan-800"
       end
+    color =  if runner == true, do: "bg-purple-400 text-stone-950", else: color
+    color =  if status == "S", do: "bg-emerald-500 text-stone-950", else: color
     case dots do
       1 -> "bg-cyan-500 text-stone-950"
       2 -> "bg-amber-500 text-stone-950"
