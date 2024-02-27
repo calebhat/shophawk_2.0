@@ -194,7 +194,7 @@ defmodule Shophawk.Shop do
 
   defp calc_weekly_load(date_rows, department) do
     today = Date.utc_today()
-    weekly_load =
+    weekly_hours =
       Enum.reduce(date_rows, %{weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}, fn row, acc ->
         start = row.sched_start
         acc =
@@ -206,43 +206,49 @@ defmodule Shophawk.Shop do
             true -> acc
           end
       end)
-    weekly_load =
-      weekly_load
-      |> calculate_color(1, weekly_load.weekone, department.capacity * department.machine_count)
-      |> calculate_color(2, weekly_load.weektwo, department.capacity * department.machine_count)
-      |> calculate_color(3, weekly_load.weekthree, department.capacity * department.machine_count)
-      |> calculate_color(4, weekly_load.weekfour, department.capacity * department.machine_count)
+    weekly_hours =
+      weekly_hours
+      |> Map.update!(:weekone, &(&1 / department.capacity * department.machine_count * 10 ))
+      |> Map.update!(:weektwo, &(&1 / department.capacity * department.machine_count * 10 ))
+      |> Map.update!(:weekthree, &(&1 / department.capacity * department.machine_count * 10 ))
+      |> Map.update!(:weekfour, &(&1 / department.capacity * department.machine_count * 10 ))
+    weekly_hours =
+      weekly_hours
+      |> calculate_color(1, weekly_hours.weekone, department.capacity * department.machine_count)
+      |> calculate_color(2, weekly_hours.weektwo, department.capacity * department.machine_count)
+      |> calculate_color(3, weekly_hours.weekthree, department.capacity * department.machine_count)
+      |> calculate_color(4, weekly_hours.weekfour, department.capacity * department.machine_count)
       |> Map.put_new(:department, department.department)
       |> Map.put_new(:department_id, department.id)
   end
 
-  defp calculate_color(weekly_load, week, load, capacity) do
+  defp calculate_color(weekly_hours, week, load, capacity) do
     case week do
       1 ->
         cond do
-          load < capacity * 0.9 -> Map.put_new(weekly_load, :weekone_color, "white")
-          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weekone_color, "yellow")
-          load >= capacity -> Map.put_new(weekly_load, :weekone_color, "red")
+          load < 90 -> Map.put_new(weekly_hours, :weekone_color, "bg-stone-300")
+          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weekone_color, "bg-amber-300")
+          load >= 100 -> Map.put_new(weekly_hours, :weekone_color, "bg-red-500")
         end
       2 ->
         cond do
-          load < capacity * 0.9 -> Map.put_new(weekly_load, :weektwo_color, "white")
-          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weektwo_color, "yellow")
-          load >= capacity -> Map.put_new(weekly_load, :weektwo_color, "red")
+          load < 90 * 0.9 -> Map.put_new(weekly_hours, :weektwo_color, "bg-stone-300")
+          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weektwo_color, "bg-amber-300")
+          load >= 100 -> Map.put_new(weekly_hours, :weektwo_color, "bg-red-500")
         end
       3 ->
         cond do
-          load < capacity * 0.9 -> Map.put_new(weekly_load, :weekthree_color, "white")
-          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weekthree_color, "yellow")
-          load >= capacity -> Map.put_new(weekly_load, :weekthree_color, "red")
+          load < 90 -> Map.put_new(weekly_hours, :weekthree_color, "bg-stone-300")
+          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weekthree_color, "bg-amber-300")
+          load >= 100 -> Map.put_new(weekly_hours, :weekthree_color, "bg-red-500")
         end
       4 ->
         cond do
-          load < capacity * 0.9 -> Map.put_new(weekly_load, :weekfour_color, "white")
-          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weekfour_color, "yellow")
-          load >= capacity -> Map.put_new(weekly_load, :weekfour_color, "red")
+          load < 90 -> Map.put_new(weekly_hours, :weekfour_color, "bg-stone-300")
+          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weekfour_color, "bg-amber-300")
+          load >= 100 -> Map.put_new(weekly_hours, :weekfour_color, "bg-red-500")
         end
-      _ -> weekly_load
+      _ -> weekly_hours
     end
   end
 
@@ -461,7 +467,7 @@ defmodule Shophawk.Shop do
 
   """
   def list_departments do
-    Repo.all(Department)
+    Repo.all(Department) |> Repo.preload(:workcenters)
    end
 
   def get_department_by_name(department) do

@@ -9,7 +9,26 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "")}
+    if connected?(socket) do
+
+      departments = Shop.list_departments
+      department_loads =
+        Enum.reduce(departments, %{}, fn department, acc ->
+          workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
+          Map.put(acc, department.department, workcenter_list)
+        end)
+        |> Enum.reduce([], fn {department_name, workcenters}, acc ->
+          {_runlist, weekly_load} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
+          acc ++ [weekly_load]
+        end)
+
+        #IO.inspect(department_loads)
+
+      #socket = apply_action(socket, socket.assigns.live_action, %{})
+      {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, department_loads)}
+    else
+     {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil)}
+    end
   end
 
   @impl true
@@ -21,6 +40,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
+
+
+
+
+    #{_runlist, weekly_load} =
+    #  Shop.list_runlists(workcenter_list, department)
+    #socket
+    #|> assign(weekly_load: weekly_load)
+
+
     socket
     |> assign(:page_title, "Listing Runlists")
     |> assign(:runlist, nil)
@@ -159,7 +188,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
         assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
         {runlist, weekly_load} =
           Shop.list_runlists(workcenter_list, department)
-          IO.inspect(weekly_load)
         socket
         |> assign(department_name: department.department)
         |> assign(department: department)

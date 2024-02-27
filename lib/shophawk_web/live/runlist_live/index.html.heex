@@ -28,6 +28,24 @@
   </:actions>    
 </.header>
 
+  <% IO.inspect(@department_loads) %>
+  <%= if @department_loads do  %>
+  <br>
+<div>
+    <%= for department <- @department_loads do %>
+      <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
+        <div class="grid grid-cols-5 gap-3 pt-3 px-3 rounded-md text-center">
+          <div class={ ["bg-stone-200 p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= department.department %> </div>
+          <div class={ [department.weektwo_color, "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= Float.round(department.weektwo, 1) %>% </div>
+          <div class={ [department.weekone_color, "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= Float.round(department.weekone, 1) %>% </div>
+          <div class={ [department.weekthree_color, "p-1 rounded-t-md border-2 border-black"]}> Week Three Load: <%= Float.round(department.weekthree, 1) %>% </div>
+          <div class={ [department.weekfour_color, "p-1 rounded-t-md border-2 border-black"]}> Week Four Load: <%= Float.round(department.weekfour, 1) %>% </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+  <% end %>
+
   <%= if @streams.runlists.inserts == [] do %>
     <%= if @department_id do %> 
     <br>
@@ -38,13 +56,13 @@
   <% end  %>
 
 <%= if @streams.runlists.inserts != [] do %>
-  <div class="">
-  </div>
+
 
   <.runlist_table
     id="runlists"
     rows={@streams.runlists}
     assignments={@assignments}
+    weekly_load={@weekly_load}
     row_click={fn {_id, runlist} -> JS.navigate(~p"/runlists/#{runlist}") end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
