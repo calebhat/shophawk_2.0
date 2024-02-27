@@ -23,7 +23,7 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
       >
         <.input field={@form[:department]} type="text" label="Department Name" />
         <.input field={@form[:capacity]} type="number" label="Daily Hour Capacity per Machine" step="any" />
-        <.input field={@form[:machine_count]} type="number" label="MachineS in department" step="any" />
+        <.input field={@form[:machine_count]} type="number" label="Machines in department" step="any" />
         <.input field={@form[:show_jobs_started]} type="checkbox" label="Show jobs started" />
 
 

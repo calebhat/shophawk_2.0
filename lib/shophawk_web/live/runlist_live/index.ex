@@ -105,29 +105,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     end
   end
 
-  defp load_runlist(socket, department_id) do
-    socket =
-      case department_id do
-        nil ->
-            socket
-            |> assign(department_id: nil)
-            |> stream(:runlists, [], reset: true)
-
-        _ ->
-        department = Shop.get_department!(department_id)
-        workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-        assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
-        runlists =
-          Shop.list_runlists(workcenter_list, department)
-        socket
-        |> assign(department_name: department.department)
-        |> assign(department: department)
-        |> assign(department_id: department.id)
-        |> assign(assignments: [""] ++ assignment_list)
-        |> stream(:runlists, runlists, reset: true)
-      end
-  end
-
   defp operation_alteration(operation) do
     new_value =
       if operation == "NULL" do
@@ -157,7 +134,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     socket
 
     {:noreply, stream(socket, :runlists, [])}
-    #{:noreply, stream(socket, :runlists, Shop.list_runlists())}
   end
 
 
@@ -167,7 +143,31 @@ defmodule ShophawkWeb.RunlistLive.Index do
     socket
 
     {:noreply, stream(socket, :runlists, [])}
-    #{:noreply, stream(socket, :runlists, Shop.list_runlists())}
+  end
+
+  defp load_runlist(socket, department_id) do
+    socket =
+      case department_id do
+        nil ->
+            socket
+            |> assign(department_id: nil)
+            |> stream(:runlists, [], reset: true)
+
+        _ ->
+        department = Shop.get_department!(department_id)
+        workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
+        assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
+        {runlist, weekly_load} =
+          Shop.list_runlists(workcenter_list, department)
+          IO.inspect(weekly_load)
+        socket
+        |> assign(department_name: department.department)
+        |> assign(department: department)
+        |> assign(department_id: department.id)
+        |> assign(assignments: [""] ++ assignment_list)
+        |> assign(weekly_load: weekly_load)
+        |> stream(:runlists, runlist, reset: true)
+      end
   end
 
 end

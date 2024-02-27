@@ -189,9 +189,25 @@ defmodule Shophawk.Shop do
           {:cont, {acc ++ [date_row] ++ main_ops ++ runner_ops ++ started_ops, date_row.sched_start}} #add runner rows after [row] here
 
         end)
-
-      complete_runlist
+      {complete_runlist, calc_weekly_load(date_rows_list)}
     end
+  end
+
+  defp calc_weekly_load(date_rows) do
+    today = Date.utc_today()
+    max_weeks = 4
+
+    Enum.reduce(date_rows, %{weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}, fn row, acc ->
+      start = row.sched_start
+      acc =
+        cond do
+          Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours + row.est_total_hrs) end)
+          Date.after?(start, Date.add(today, 6)) and Date.before?(start, Date.add(today, 14)) -> Map.update(acc, :weektwo, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
+          Date.after?(start, Date.add(today, 13)) and Date.before?(start, Date.add(today, 21)) -> Map.update(acc, :weekthree, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
+          Date.after?(start, Date.add(today, 20)) and Date.before?(start, Date.add(today, 28)) -> Map.update(acc, :weekfour, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
+          true -> acc
+        end
+    end)
   end
 
   defp add_missing_date_rows(carryover_list, start, stop) do #adds date rows for carryover hours if non exist
