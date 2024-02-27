@@ -156,7 +156,6 @@ defmodule Shophawk.Shop do
         end)
 
       #ha
-
       {complete_runlist, _} =
         Enum.reduce_while(date_rows_list, {[], nil}, fn date_row, {acc, prev_sched_start} ->
           runners_list =
@@ -189,25 +188,62 @@ defmodule Shophawk.Shop do
           {:cont, {acc ++ [date_row] ++ main_ops ++ runner_ops ++ started_ops, date_row.sched_start}} #add runner rows after [row] here
 
         end)
-      {complete_runlist, calc_weekly_load(date_rows_list)}
+      {complete_runlist, calc_weekly_load(date_rows_list, department)}
     end
   end
 
-  defp calc_weekly_load(date_rows) do
+  defp calc_weekly_load(date_rows, department) do
     today = Date.utc_today()
-    max_weeks = 4
+    weekly_load =
+      Enum.reduce(date_rows, %{weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}, fn row, acc ->
+        start = row.sched_start
+        acc =
+          cond do
+            Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours + row.est_total_hrs) end)
+            Date.after?(start, Date.add(today, 6)) and Date.before?(start, Date.add(today, 14)) -> Map.update(acc, :weektwo, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
+            Date.after?(start, Date.add(today, 13)) and Date.before?(start, Date.add(today, 21)) -> Map.update(acc, :weekthree, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
+            Date.after?(start, Date.add(today, 20)) and Date.before?(start, Date.add(today, 28)) -> Map.update(acc, :weekfour, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
+            true -> acc
+          end
+      end)
+    weekly_load =
+      weekly_load
+      |> calculate_color(1, weekly_load.weekone, department.capacity * department.machine_count)
+      |> calculate_color(2, weekly_load.weektwo, department.capacity * department.machine_count)
+      |> calculate_color(3, weekly_load.weekthree, department.capacity * department.machine_count)
+      |> calculate_color(4, weekly_load.weekfour, department.capacity * department.machine_count)
+      |> Map.put_new(:department, department.department)
+      |> Map.put_new(:department_id, department.id)
+  end
 
-    Enum.reduce(date_rows, %{weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}, fn row, acc ->
-      start = row.sched_start
-      acc =
+  defp calculate_color(weekly_load, week, load, capacity) do
+    case week do
+      1 ->
         cond do
-          Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours + row.est_total_hrs) end)
-          Date.after?(start, Date.add(today, 6)) and Date.before?(start, Date.add(today, 14)) -> Map.update(acc, :weektwo, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
-          Date.after?(start, Date.add(today, 13)) and Date.before?(start, Date.add(today, 21)) -> Map.update(acc, :weekthree, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
-          Date.after?(start, Date.add(today, 20)) and Date.before?(start, Date.add(today, 28)) -> Map.update(acc, :weekfour, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
-          true -> acc
+          load < capacity * 0.9 -> Map.put_new(weekly_load, :weekone_color, "white")
+          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weekone_color, "yellow")
+          load >= capacity -> Map.put_new(weekly_load, :weekone_color, "red")
         end
-    end)
+      2 ->
+        cond do
+          load < capacity * 0.9 -> Map.put_new(weekly_load, :weektwo_color, "white")
+          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weektwo_color, "yellow")
+          load >= capacity -> Map.put_new(weekly_load, :weektwo_color, "red")
+        end
+      3 ->
+        cond do
+          load < capacity * 0.9 -> Map.put_new(weekly_load, :weekthree_color, "white")
+          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weekthree_color, "yellow")
+          load >= capacity -> Map.put_new(weekly_load, :weekthree_color, "red")
+        end
+      4 ->
+        cond do
+          load < capacity * 0.9 -> Map.put_new(weekly_load, :weekfour_color, "white")
+          load > capacity * 0.9 and load < capacity -> Map.put_new(weekly_load, :weekfour_color, "yellow")
+          load >= capacity -> Map.put_new(weekly_load, :weekfour_color, "red")
+        end
+      _ -> weekly_load
+    end
   end
 
   defp add_missing_date_rows(carryover_list, start, stop) do #adds date rows for carryover hours if non exist
