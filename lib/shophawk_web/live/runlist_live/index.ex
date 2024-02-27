@@ -139,12 +139,12 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_event("mat_waiting_toggle", %{"id" => id}, socket) do
     Shop.toggle_mat_waiting(id)
-    {:noreply, socket}
+    {:noreply, load_runlist(socket, socket.assigns.department_id)}
   end
 
   def handle_event("change_assignment", %{"id" => id, "selection" => selection } = params, socket) do
     Shop.update_runlist(Shop.get_runlist!(id), %{assignment: selection})
-    {:noreply, socket}
+    {:noreply, load_runlist(socket, socket.assigns.department_id)}
   end
 
   def handle_event("assignments_name_change", %{"target" => assignment}, socket) do
