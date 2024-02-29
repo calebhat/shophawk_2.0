@@ -1,16 +1,16 @@
 <.header>
   <form> 
-    <div class="grid grid-cols-3 gap-4">
-       
+    <div class="flex flex-none gap-4">       
       <%= if @department_id do %>      
       <form>
         <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@department_name}  />  
         <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
-          <.button>Edit department</.button>
+          <.button>Edit Department</.button>
         </.link>        
         <.link patch={~p"/runlists/#{@department_id}/assignments"} assignments={@assignments}>
-          <.button>view Assignments</.button>
+          <.button>Assignments</.button>
         </.link>
+        <.button phx-click="select_department" phx-value-selection="Select Department" class="ml-2">Show all Departments</.button>
         </form>
       <% else %>
         <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />  
@@ -18,31 +18,32 @@
     </div> 
   </form>
   
-  <:actions>
-    
+  <:actions>    
     <.link patch={~p"/runlists/new_department"}>
       <.button>New Department</.button>
     </.link>
+    <.button phx-click="test_import" class="ml-2">test import</.button>
     <.button phx-click="importall" class="ml-2">Import All Test</.button>
     <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>    
   </:actions>    
 </.header>
 
-  <% IO.inspect(@department_loads) %>
   <%= if @department_loads do  %>
   <br>
-<div>
-    <%= for department <- @department_loads do %>
-      <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
-        <div class="grid grid-cols-5 gap-3 pt-3 px-3 rounded-md text-center">
-          <div class={ ["bg-stone-200 p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= department.department %> </div>
-          <div class={ [department.weektwo_color, "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= Float.round(department.weektwo, 1) %>% </div>
-          <div class={ [department.weekone_color, "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= Float.round(department.weekone, 1) %>% </div>
-          <div class={ [department.weekthree_color, "p-1 rounded-t-md border-2 border-black"]}> Week Three Load: <%= Float.round(department.weekthree, 1) %>% </div>
-          <div class={ [department.weekfour_color, "p-1 rounded-t-md border-2 border-black"]}> Week Four Load: <%= Float.round(department.weekfour, 1) %>% </div>
-        </div>
-      </div>
+  <div>
+    <div class="bg-cyan-800 pt-4 rounded-t-lg">
+    <%= for department <- @department_loads do %>      
+        <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
+            <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
+            <div class={ ["bg-stone-200 p-1 rounded-md border-2 border-black"]}> <%= department.department %> </div>
+            <div class={ [department.weekone_color, "p-1 rounded-md border-2 border-black"]}> Load for coming week: <%= Float.round(department.weekone, 1) %>% </div>
+            <div class={ [department.weektwo_color, "p-1 rounded-md border-2 border-black"]}> Week Two Load: <%= Float.round(department.weektwo, 1) %>% </div>
+            <div class={ [department.weekthree_color, "p-1 rounded-md border-2 border-black"]}> Week Three Load: <%= Float.round(department.weekthree, 1) %>% </div>
+            <div class={ [department.weekfour_color, "p-1 rounded-md border-2 border-black"]}> Week Four Load: <%= Float.round(department.weekfour, 1) %>% </div>
+          </div>    
+        </div>  
     <% end %>
+    </div>
   </div>
   <% end %>
 

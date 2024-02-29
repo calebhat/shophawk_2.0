@@ -10,22 +10,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-
-      departments = Shop.list_departments
-      department_loads =
-        Enum.reduce(departments, %{}, fn department, acc ->
-          workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-          Map.put(acc, department.department, workcenter_list)
-        end)
-        |> Enum.reduce([], fn {department_name, workcenters}, acc ->
-          {_runlist, weekly_load} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
-          acc ++ [weekly_load]
-        end)
-
-        #IO.inspect(department_loads)
-
-      #socket = apply_action(socket, socket.assigns.live_action, %{})
-      {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, department_loads)}
+      {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, load_all_runlist_loads())}
     else
      {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil)}
     end
@@ -40,16 +25,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
-
-
-
-
-    #{_runlist, weekly_load} =
-    #  Shop.list_runlists(workcenter_list, department)
-    #socket
-    #|> assign(weekly_load: weekly_load)
-
-
     socket
     |> assign(:page_title, "Listing Runlists")
     |> assign(:runlist, nil)
@@ -128,9 +103,13 @@ defmodule ShophawkWeb.RunlistLive.Index do
       "Select Department" ->
         {:noreply, socket
         |> assign(department_id: nil)
+        |> assign(department_loads: load_all_runlist_loads())
         |> stream(:runlists, [], reset: true)}
       _ ->
-        {:noreply, load_runlist(socket, Shop.get_department_by_name(department).id)}
+        {:noreply,
+        socket
+        |> assign(department_loads: nil)
+        |> load_runlist(Shop.get_department_by_name(department).id)}
     end
   end
 
@@ -158,8 +137,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("importall", _, socket) do
-    tempjobs = Csvimport.import_operations()
-    count = Enum.count(tempjobs)
+    #tempjobs = Csvimport.import_operations()
+    #count = Enum.count(tempjobs)
     socket
 
     {:noreply, stream(socket, :runlists, [])}
@@ -172,6 +151,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
     socket
 
     {:noreply, stream(socket, :runlists, [])}
+  end
+
+  def handle_event("test_import", _, socket) do
+    Csvimport.rework_to_do()
+  {:noreply, socket}
   end
 
   defp load_runlist(socket, department_id) do
@@ -196,6 +180,19 @@ defmodule ShophawkWeb.RunlistLive.Index do
         |> assign(weekly_load: weekly_load)
         |> stream(:runlists, runlist, reset: true)
       end
+  end
+
+  def load_all_runlist_loads() do
+    departments = Shop.list_departments |> Enum.sort_by(&(&1).department)
+    department_loads =
+      Enum.reduce(departments, %{}, fn department, acc ->
+        workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
+        Map.put(acc, department.department, workcenter_list)
+      end)
+      |> Enum.reduce([], fn {department_name, workcenters}, acc ->
+        {_runlist, weekly_load} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
+        acc ++ [weekly_load]
+      end)
   end
 
 end

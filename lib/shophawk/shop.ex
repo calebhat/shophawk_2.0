@@ -155,7 +155,6 @@ defmodule Shophawk.Shop do
           end
         end)
 
-      #ha
       {complete_runlist, _} =
         Enum.reduce_while(date_rows_list, {[], nil}, fn date_row, {acc, prev_sched_start} ->
           runners_list =
@@ -199,7 +198,7 @@ defmodule Shophawk.Shop do
         start = row.sched_start
         acc =
           cond do
-            Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours + row.est_total_hrs) end)
+            Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
             Date.after?(start, Date.add(today, 6)) and Date.before?(start, Date.add(today, 14)) -> Map.update(acc, :weektwo, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
             Date.after?(start, Date.add(today, 13)) and Date.before?(start, Date.add(today, 21)) -> Map.update(acc, :weekthree, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
             Date.after?(start, Date.add(today, 20)) and Date.before?(start, Date.add(today, 28)) -> Map.update(acc, :weekfour, 0, fn hours -> Float.round(hours + row.est_total_hrs, 2) end)
@@ -261,8 +260,8 @@ defmodule Shophawk.Shop do
         Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
           %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0} end)
       {start, stop} ->
-        filtered_rows = Enum.filter(carryover_list, fn map -> map.date > start and map.date < stop end)
-        Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
+        filtered_rows = Enum.filter(carryover_list, fn map -> Date.compare(map.date, start) == :gt and Date.compare(map.date, stop) == :lt end)
+          Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
           %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0} end)
     end
   end
