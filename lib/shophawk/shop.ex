@@ -331,6 +331,10 @@ defmodule Shophawk.Shop do
   """
   def get_runlist!(id), do: Repo.get!(Runlist, id)
 
+  def get_runlist_by_op_id(job_operation) do
+    Repo.get_by(Runlist, job_operation: job_operation)
+  end
+
   @doc """
   Creates a runlist.
 
