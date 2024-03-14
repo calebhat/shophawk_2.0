@@ -17,9 +17,12 @@ defmodule Shophawk.Application do
       # Start Finch
       {Finch, name: Shophawk.Finch},
       # Start the Endpoint (http/https)
-      ShophawkWeb.Endpoint
+      ShophawkWeb.Endpoint,
       # Start a worker by calling: Shophawk.Worker.start_link(arg)
       # {Shophawk.Worker, arg}
+
+      #runs CsvImport function for continuous imports every 5 seconds.
+      ScheduledTasks
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

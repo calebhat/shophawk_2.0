@@ -48,16 +48,15 @@ defmodule Shophawk.Shop do
       from r in Runlist,
         where: r.wc_vendor in ^workcenter_list,
         where: not is_nil(r.job_sched_end),
-        where: r.status == "O" or r.status == "S",
         order_by: [asc: r.sched_start, asc: r.job],
         select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
-    #query = #checks if "show jobs started is checked and load them.
-    #  if department.show_jobs_started do
-    #  query |> where([r], r.status == "O" or r.status == "S")
-    #  else
-    #    query |> where([r], r.status == "O")
-    #  end
+    query = #checks if "show jobs started is checked and load them.
+      if department.show_jobs_started do
+      query |> where([r], r.status == "O" or r.status == "S")
+      else
+        query |> where([r], r.status == "O")
+    end
 
     runlists = Repo.all(query)
     |> Enum.map(fn row ->
@@ -82,7 +81,7 @@ defmodule Shophawk.Shop do
     #  end
 
     if Enum.empty?(runlists) do
-      []
+      {[], []}
     else
       [first_row | tail] = runlists
       [second_row | _tail] = tail
@@ -207,48 +206,13 @@ defmodule Shophawk.Shop do
       end)
     weekly_hours =
       weekly_hours
-      |> Map.update!(:weekone, &(&1 / department.capacity * department.machine_count * 10 ))
-      |> Map.update!(:weektwo, &(&1 / department.capacity * department.machine_count * 10 ))
-      |> Map.update!(:weekthree, &(&1 / department.capacity * department.machine_count * 10 ))
-      |> Map.update!(:weekfour, &(&1 / department.capacity * department.machine_count * 10 ))
-    weekly_hours =
-      weekly_hours
-      |> calculate_color(1, weekly_hours.weekone, department.capacity * department.machine_count)
-      |> calculate_color(2, weekly_hours.weektwo, department.capacity * department.machine_count)
-      |> calculate_color(3, weekly_hours.weekthree, department.capacity * department.machine_count)
-      |> calculate_color(4, weekly_hours.weekfour, department.capacity * department.machine_count)
+      |> Map.update!(:weekone, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
+      |> Map.update!(:weektwo, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
+      |> Map.update!(:weekthree, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
+      |> Map.update!(:weekfour, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
       |> Map.put_new(:department, department.department)
       |> Map.put_new(:department_id, department.id)
-  end
 
-  defp calculate_color(weekly_hours, week, load, capacity) do
-    case week do
-      1 ->
-        cond do
-          load < 90 -> Map.put_new(weekly_hours, :weekone_color, "bg-stone-300")
-          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weekone_color, "bg-amber-300")
-          load >= 100 -> Map.put_new(weekly_hours, :weekone_color, "bg-red-500")
-        end
-      2 ->
-        cond do
-          load < 90 * 0.9 -> Map.put_new(weekly_hours, :weektwo_color, "bg-stone-300")
-          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weektwo_color, "bg-amber-300")
-          load >= 100 -> Map.put_new(weekly_hours, :weektwo_color, "bg-red-500")
-        end
-      3 ->
-        cond do
-          load < 90 -> Map.put_new(weekly_hours, :weekthree_color, "bg-stone-300")
-          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weekthree_color, "bg-amber-300")
-          load >= 100 -> Map.put_new(weekly_hours, :weekthree_color, "bg-red-500")
-        end
-      4 ->
-        cond do
-          load < 90 -> Map.put_new(weekly_hours, :weekfour_color, "bg-stone-300")
-          load >= 90 and load < 100 -> Map.put_new(weekly_hours, :weekfour_color, "bg-amber-300")
-          load >= 100 -> Map.put_new(weekly_hours, :weekfour_color, "bg-red-500")
-        end
-      _ -> weekly_hours
-    end
   end
 
   defp add_missing_date_rows(carryover_list, start, stop) do #adds date rows for carryover hours if non exist
@@ -331,7 +295,7 @@ defmodule Shophawk.Shop do
   """
   def get_runlist!(id), do: Repo.get!(Runlist, id)
 
-  def get_runlist_by_op_id(job_operation) do
+  def get_runlist_by_job_operation(job_operation) do
     Repo.get_by(Runlist, job_operation: job_operation)
   end
 

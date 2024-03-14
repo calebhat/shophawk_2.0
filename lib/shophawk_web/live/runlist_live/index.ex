@@ -137,7 +137,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("importall", _, socket) do
-    #tempjobs = Csvimport.import_operations()
+    Csvimport.import_last_year()
     #count = Enum.count(tempjobs)
     socket
 
@@ -193,6 +193,14 @@ defmodule ShophawkWeb.RunlistLive.Index do
         {_runlist, weekly_load} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
         acc ++ [weekly_load]
       end)
+  end
+
+  def calculate_color(load) do
+    cond do
+      load < 90 -> "bg-stone-300"
+      load >= 90 and load < 100 -> "bg-amber-300"
+      load >= 100 -> "bg-red-500"
+    end
   end
 
 end

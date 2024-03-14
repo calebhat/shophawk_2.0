@@ -646,10 +646,10 @@ defmodule ShophawkWeb.CoreComponents do
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4">
       <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
         <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
-          <div class={ [@weekly_load.weektwo_color, "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= Float.round(@weekly_load.weektwo, 1) %>% </div>
-          <div class={ [@weekly_load.weekone_color, "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= Float.round(@weekly_load.weekone, 1) %>% </div>
-          <div class={ [@weekly_load.weekthree_color, "p-1 rounded-t-md border-2 border-black"]}> Week Three Load: <%= Float.round(@weekly_load.weekthree, 1) %>% </div>
-          <div class={ [@weekly_load.weekfour_color, "p-1 rounded-t-md border-2 border-black"]}> Week Four Load: <%= Float.round(@weekly_load.weekfour, 1) %>% </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= @weekly_load.weekone %>% </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= @weekly_load.weektwo %>% </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}> Week Three Load: <%= @weekly_load.weekthree %>% </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}> Week Four Load: <%= @weekly_load.weekfour %>% </div>
         </div>
       </div>
       <table class="w-[40rem] sm:w-full table-fixed">
