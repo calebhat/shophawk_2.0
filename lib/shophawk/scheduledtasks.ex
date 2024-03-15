@@ -15,12 +15,15 @@ defmodule ScheduledTasks do
 
   def handle_info(:run_task, _state) do
     # 1. Execute your function here
-    Csvimport.update_operations()
-    IO.puts("import done")
-
-
-    Process.send_after(self(), :run_task, 5000)
+    Csvimport.update_operations(self())
+    #IO.puts("import Started")
     {:noreply, nil}
+  end
+
+  def handle_info(:import_done, state) do
+    #IO.puts("import done")
+    Process.send_after(self(), :run_task, 5000)
+    {:noreply, state}
   end
 
 end

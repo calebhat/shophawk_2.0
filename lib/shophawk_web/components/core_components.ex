@@ -645,6 +645,16 @@ defmodule ShophawkWeb.CoreComponents do
     ~H"""
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4">
       <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
+        <%= if @dots != %{} do %>
+
+        <% #move grid size into "select_operation" function and pass to this component. %>
+        <%= grid_size = if Map.size(@dots) == 1, do:  "grid-cols-1" %>
+        <%= grid_size = if Map.size(@dots) == 2, do: "grid-cols-2" %>
+        <%= grid_size = if Map.size(@dots) == 3, do: "grid-cols-3" %>
+        <%= IO.inspect(grid_size) %>
+
+        <div> HELLO </div>
+        <% end %>
         <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
           <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= @weekly_load.weekone %>% </div>
           <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= @weekly_load.weektwo %>% </div>
@@ -697,7 +707,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={[ "h-12 block" ]} >
                     <form phx-change="change_assignment" phx-value-id={elem(row, 1).id}>
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
                         <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" selected_assignment={elem(row, 1).assignment}  />
                       </span>
                     </form>
@@ -706,7 +716,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <% 9 -> %>
                 <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={[ "h-12 text-center block" ]}>
-                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                       <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                     </span>
                   </div>
@@ -714,7 +724,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
                   <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                     <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
                       <span class={["relative", i == 0 && "font-semibold"]}>
                         <div class={[ ]}>
                           <%= if i== 10 do %>
@@ -729,7 +739,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <% _ -> %>
                   <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                     <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots) ]} />
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
                       <span class={["relative", i == 0 && "font-semibold"]}>
                         <%= render_slot(col, @row_item.(row)) %>
                       </span>
@@ -756,7 +766,7 @@ defmodule ShophawkWeb.CoreComponents do
         :eq -> "bg-sky-200 text-stone-950"
         :gt -> "bg-cyan-800"
       end
-    color =  if runner == true, do: "bg-purple-400 text-stone-950", else: color
+    color =  if runner == true, do: "bg-cyan-950", else: color
     color =  if status == "S", do: "bg-emerald-500 text-stone-950", else: color
     case dots do
       1 -> "bg-cyan-500 text-stone-950"
@@ -766,13 +776,15 @@ defmodule ShophawkWeb.CoreComponents do
     end
   end
 
-  defp hover_color(date, dots) do
+  defp hover_color(date, dots, runner, status) do
     color =
       case Date.compare(date, Date.utc_today()) do
         :lt -> "group-hover:bg-rose-100"
         :eq -> "group-hover:bg-sky-100"
         :gt -> "group-hover:bg-cyan-700"
       end
+    color =  if runner == true, do: "group-hover:bg-cyan-900", else: color
+    color =  if status == "S", do: "group-hover:bg-emerald-400 text-stone-950", else: color
     case dots do
       1 -> "group-hover:bg-cyan-400"
       2 -> "group-hover:bg-amber-400"

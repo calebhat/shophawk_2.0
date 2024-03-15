@@ -1,4 +1,6 @@
-<.header>
+
+<div class="bg-cyan-800 text-white">
+<.header >
   Runlist <%= @runlist.id %>
   <:subtitle>This is a runlist record from your database.</:subtitle>
   <:actions>
@@ -45,6 +47,7 @@
 </.list>
 
 <.back navigate={~p"/runlists"}>Back to runlists</.back>
+</div>
 
 <.modal :if={@live_action == :edit} id="runlist-modal" show on_cancel={JS.patch(~p"/runlists/#{@runlist}")}>
   <.live_component

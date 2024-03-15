@@ -4,13 +4,18 @@ defmodule Shophawk.Shop.Csvimport do
 
   def rework_to_do do #for testing
 
+
+
+    #File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+    #File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
+    #System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
     #data_collection_merge(Path.join([File.cwd!(), "csv_files/operationtime.csv"]))
 
   end
 
-  def update_operations do #quick import of most recent changes, updates currentop too.
-
-    export_last_updated()
+  def update_operations(caller_pid) do #quick import of most recent changes, updates currentop too.
+    start_time = DateTime.utc_now()
+    export_last_updated() #runs sql queries to only export jobs updated since last time it ran
     jobs_to_update = jobs_to_update() #creates list of all jobs #'s that have a change somewhere
 
     if jobs_to_update != [] do
@@ -21,9 +26,7 @@ defmodule Shophawk.Shop.Csvimport do
       |> runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations with a job listed in above function
       |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
       |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
-
       |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
-
       |> Enum.map(fn map ->
         list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
           %Runlist{}
@@ -74,7 +77,7 @@ defmodule Shophawk.Shop.Csvimport do
         Enum.map(operations, &(&1.job_operation))
         |> Enum.uniq #makes list of operation ID's to check for
         |> Shop.find_matching_operations #create list of structs that already exist in DB
-        |> job_finder()
+        #|> job_finder()
 
       Enum.each(updated_list, fn op ->
         case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
@@ -86,23 +89,35 @@ defmodule Shophawk.Shop.Csvimport do
       end)
       data_collection_merge(Path.join([File.cwd!(), "csv_files/operationtime.csv"])) #merge data collection
     end
+    #IO.puts(DateTime.diff(DateTime.utc_now(), start_time, :milliseconds))
+
+    send(caller_pid, :import_done)
   end
 
   def jobs_to_update() do #creates list of all jobs to update
     job_list = #make a list of jobs that changed
       File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
-      |> initial_mapping()
-      |> Enum.reduce( [], fn [job | _], acc -> [job | acc]  end)
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+      |> Stream.reject(&String.contains?(&1, "("))
+      |> Stream.reject(&(&1 == ""))
+      |> Enum.to_list()
 
     material_job_list = #make a list of jobs that material changed
       File.stream!(Path.join([File.cwd!(), "csv_files/material.csv"]))
-      |> initial_mapping()
-      |> Enum.reduce( [], fn [job | _], acc -> [job | acc]  end)
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+      |> Stream.reject(&String.contains?(&1, "("))
+      |> Stream.reject(&(&1 == ""))
+      |> Enum.to_list()
 
     operations_job_list = #Get list of jobs that have at least one operation updated
       File.stream!(Path.join([File.cwd!(), "csv_files/runlistops.csv"]))
-      |> initial_mapping()
-      |> Enum.reduce( [], fn [job | _], acc -> [job | acc]  end)
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+      |> Stream.reject(&String.contains?(&1, "("))
+      |> Stream.reject(&(&1 == ""))
+      |> Enum.to_list()
 
       combined_list =
         job_list ++ material_job_list ++ operations_job_list
@@ -171,7 +186,7 @@ defmodule Shophawk.Shop.Csvimport do
       end)
   end
 
-  def job_finder(operations) do
+  def job_finder(operations) do #used for testing purposes.
     Enum.each(operations, fn op ->
       case op.job_operation do
       770743 -> IO.inspect(op.job_operation)
@@ -442,7 +457,7 @@ defmodule Shophawk.Shop.Csvimport do
       |> initial_mapping()
       |> Enum.reduce( [],
         fn [user_value, dots | _], acc ->
-          new_map = %{user_value: user_value, dots: dots}
+          new_map = %{user_value: user_value, dots: dots_calc(dots)}
           [new_map | acc]  end)
           Enum.map(operations, fn %{user_value: user_value} = map1 ->
             map2 = Enum.find(new_list, &(&1.user_value == user_value))
@@ -454,35 +469,84 @@ defmodule Shophawk.Shop.Csvimport do
         end)
   end
 
+  defp dots_calc(dots) do
+    case dots do
+      "0" -> 1
+      "O" -> 1
+      "o" -> 1
+      1 -> 1
+      "00" -> 2
+      "OO" -> 2
+      "oo" -> 2
+      2 -> 2
+      "000" -> 3
+      "OOO" -> 3
+      "ooo" -> 3
+      3 -> 3
+      _-> nil
+    end
+  end
+
   defp export_last_updated() do #changes short term batch files to export from database based on last export time.
-
-    {:ok, prev_date, _} =
-      File.read!(Path.join([File.cwd!(), "csv_files/last_export.text"]))
-      |> DateTime.from_iso8601()
-
-      time = DateTime.diff(prev_date, DateTime.utc_now(), :millisecond)
-      if time == 0, do: time = -1
+    {:ok, prev_date, _} = File.read!(Path.join([File.cwd!(), "csv_files/last_export.text"])) |> DateTime.from_iso8601()
+    time = DateTime.diff(prev_date, DateTime.utc_now(), :millisecond)
+    if time == 0, do: time = -1
+    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
 
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE()) ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
     """
     sql_export = EEx.eval_string(export, [time: time, path: path])
 
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE()) ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     #material
     path = Path.join([File.cwd!(), "csv_files/material.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE()) ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
+
+    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+  end
+
+  defp export_all_jobs_needed_to_update_data(job_list) do
+    {:ok, prev_date, _} = File.read!(Path.join([File.cwd!(), "csv_files/last_import.text"])) |> DateTime.from_iso8601()
+    time = DateTime.diff(prev_date, DateTime.utc_now(), :millisecond)
+    if time == 0, do: time = -1
+    File.write!(Path.join([File.cwd!(), "csv_files/last_import.text"]), DateTime.to_string(DateTime.utc_now()))
+
+    #create string that is readable for sql command
+    jobs_to_export = "(" <> Enum.join(Enum.map(job_list, &("'" <> &1 <> "'")), ", ") <> ")"
+
+    #RunlistOps
+    path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+    """
+    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path])
+
+    #Jobs
+    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
+
+    #material
+    path = Path.join([File.cwd!(), "csv_files/material.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
 
     #UserValues
     path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
@@ -499,67 +563,31 @@ defmodule Shophawk.Shop.Csvimport do
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
     System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
   end
 
-  defp export_all_jobs_needed_to_update_data(job_list) do
-    #create string that is readable for sql command
-    jobs_to_export = "(" <> Enum.join(Enum.map(job_list, &("'" <> &1 <> "'")), ", ") <> ")"
+  def import_last_year() do #imports ALL operations from the past 13 months into the database, !will make duplicates!
+    export_last_year()
+    operations = #Takes 25 seconds to merge 43K operations
+      runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
+      |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
+      |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
+      |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
+      |> Enum.map(fn map ->
+        list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
+          %Runlist{}
+          |> Runlist.changeset(map)
+        #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
+          list.changes #The changeset results in a list of data, extracts needed map from changeset.
+          |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+          |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+          |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(hrs, 2) end)
+        end)
 
-    {:ok, prev_date, _} =
-      File.read!(Path.join([File.cwd!(), "csv_files/last_export.text"]))
-      |> DateTime.from_iso8601()
+    Shop.import_all(operations) #imports all findings to the database at one time.
+  end
 
-      #RunlistOps
-      path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
-      export = """
-      sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
-      """
-      sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path])
-
-      #Jobs
-      path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
-      export = """
-      sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-      """
-      sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
-
-      #material
-      path = Path.join([File.cwd!(), "csv_files/material.csv"])
-      export = """
-      sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-      """
-      sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
-
-
-      File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-      File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
-      System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-    end
-
-    def import_last_year() do #imports ALL operations from the past 13 months into the database, !will make duplicates!
-      export_last_year()
-      operations = #Takes 25 seconds to merge 43K operations
-        runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
-        |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
-        |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
-        |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
-        |> Enum.map(fn map ->
-          list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
-            %Runlist{}
-            |> Runlist.changeset(map)
-          #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
-            list.changes #The changeset results in a list of data, extracts needed map from changeset.
-            |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-            |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-            |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(hrs, 2) end)
-          end)
-
-      Shop.import_all(operations) #imports all findings to the database at one time.
-    end
-
-    defp export_last_year() do #changes short term batch files to export from database based on last export time.
+  defp export_last_year() do #changes short term batch files to export from database based on last export time.
 
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])

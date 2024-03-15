@@ -71,6 +71,7 @@
     rows={@streams.runlists}
     assignments={@assignments}
     weekly_load={@weekly_load}
+    dots={@dots}
     row_click={fn {_id, runlist} -> JS.navigate(~p"/runlists/#{runlist}") end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>

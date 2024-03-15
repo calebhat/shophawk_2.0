@@ -172,7 +172,22 @@ defmodule ShophawkWeb.RunlistLive.Index do
         assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
         {runlist, weekly_load} =
           Shop.list_runlists(workcenter_list, department)
+
+        dots =
+          runlist
+          |> Enum.reject(fn %{id: id} -> id == 0 end)
+          |> Enum.reduce(%{}, fn row, acc ->
+            case row.dots do
+              1 -> Map.put_new(acc, :one, true)
+              2 -> Map.put_new(acc, :two, true)
+              3 -> Map.put_new(acc, :three, true)
+              _ -> acc
+            end
+          end)
+          |> IO.inspect
+
         socket
+        |> assign(dots: dots)
         |> assign(department_name: department.department)
         |> assign(department: department)
         |> assign(department_id: department.id)
