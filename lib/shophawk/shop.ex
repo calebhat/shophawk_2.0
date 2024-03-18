@@ -66,20 +66,6 @@ defmodule Shophawk.Shop do
       end
     end)
 
-    #runlists_with_started =
-    #  if department.show_jobs_started do
-    #    runlists_with_started = runlists
-    #  else
-    #    runlists_with_started =
-    #      Repo.all(query |> where([r], r.status == "O" or r.status == "S"))
-    #      |> Enum.map(fn row ->
-    #        case row.operation_service do
-    #          "NULL" -> row
-    #          _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
-    #        end
-    #      end)
-    #  end
-
     if Enum.empty?(runlists) do
       {[], []}
     else
@@ -135,7 +121,7 @@ defmodule Shophawk.Shop do
                   Float.round(department.capacity + get_date_sum(filtered_rows, sched_start), 2)
               end
 
-            case row.id do
+            case row.id do #adds in date rows between operations
               ^first_row_id ->
                 {:cont, {acc, sched_start, new_daily_hours}}
 

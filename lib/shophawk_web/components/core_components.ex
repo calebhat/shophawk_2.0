@@ -646,14 +646,38 @@ defmodule ShophawkWeb.CoreComponents do
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4">
       <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
         <%= if @dots != %{} do %>
-
-        <% #move grid size into "select_operation" function and pass to this component. %>
-        <%= grid_size = if Map.size(@dots) == 1, do:  "grid-cols-1" %>
-        <%= grid_size = if Map.size(@dots) == 2, do: "grid-cols-2" %>
-        <%= grid_size = if Map.size(@dots) == 3, do: "grid-cols-3" %>
-        <%= IO.inspect(grid_size) %>
-
-        <div> HELLO </div>
+          <div class={[@dots.dot_columns, "grid text-center pt-3 px-3"]}>
+            <%= if Map.has_key?(@dots, :one) do %>
+              <div class={[@dots.one, "m-1 rounded"]}>
+                <div class="text-lg font-semibold underline">
+                Single Dots
+                </div>
+                <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 1))}>
+                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %></div>
+                </div>
+              </div>
+            <% end %>
+            <%= if Map.has_key?(@dots, :two) do %>
+              <div class={[@dots.two, "m-1 rounded"]}>
+                <div class="text-lg font-semibold underline">
+                Double Dots
+                </div>
+                <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 2))}>
+                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %></div>
+                </div>
+              </div>
+            <% end %>
+            <%= if Map.has_key?(@dots, :three) do %>
+              <div class={[@dots.three, "m-1 rounded"]}>
+                <div class="text-lg font-semibold underline">
+                Triple Dots
+                </div>
+                <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 3))}>
+                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
         <% end %>
         <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
           <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= @weekly_load.weekone %>% </div>

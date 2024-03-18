@@ -147,7 +147,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
 
   def handle_event("5_minute_import", _, socket) do
-    Csvimport.update_operations()
+    Csvimport.update_operations("")
     socket
 
     {:noreply, stream(socket, :runlists, [])}
@@ -177,14 +177,23 @@ defmodule ShophawkWeb.RunlistLive.Index do
           runlist
           |> Enum.reject(fn %{id: id} -> id == 0 end)
           |> Enum.reduce(%{}, fn row, acc ->
+            #Map.put_new(acc, :ops, [])
             case row.dots do
-              1 -> Map.put_new(acc, :one, true)
-              2 -> Map.put_new(acc, :two, true)
-              3 -> Map.put_new(acc, :three, true)
+              1 -> IO.inspect(row)
+                Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)
+              2 -> Map.put_new(acc, :two, "bg-amber-500 text-stone-950") |> Map.update(:ops, [row], fn list -> list ++ [row] end)
+              3 -> Map.put_new(acc, :three, "bg-red-600 text-stone-950") |> Map.update(:ops, [row], fn list -> list ++ [row] end)
               _ -> acc
             end
           end)
-          |> IO.inspect
+
+        dots = case Map.size(dots) do
+          2 -> Map.put_new(dots, :dot_columns, "grid-cols-1")
+          3 -> Map.put_new(dots, :dot_columns, "grid-cols-2")
+          4 -> Map.put_new(dots, :dot_columns, "grid-cols-3")
+          _ -> dots
+        end
+        |> IO.inspect
 
         socket
         |> assign(dots: dots)
