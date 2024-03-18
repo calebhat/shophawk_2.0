@@ -35,3 +35,6 @@ shophawk-*.tar
 npm-debug.log
 /assets/node_modules/
 
+#csv data for imports
+/csv_files
+

@@ -72,7 +72,7 @@
     assignments={@assignments}
     weekly_load={@weekly_load}
     dots={@dots}
-    row_click={fn {_id, runlist} -> JS.navigate(~p"/runlists/#{runlist}") end}
+    row_click={fn {_id, runlist} -> "show_job" end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
     <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14 text-center" cellstyle=""><%= runlist.order_quantity %></:col>
@@ -139,5 +139,14 @@
     department_id={@department_id}
     department_name={@department_name}
     patch={~p"/runlists"}
+  />
+</.modal>
+
+<.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/runlists")}>
+  <.live_component
+    module={ShophawkWeb.RunlistLive.ShowJob}
+    id={@id || :show_job}
+    title={@page_title}
+    action={@live_action}
   />
 </.modal>

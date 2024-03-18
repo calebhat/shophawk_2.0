@@ -136,6 +136,20 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
+  def handle_event("show_job", %{"job" => job}, socket) do
+
+    socket =
+      socket
+      |> assign(id: job)
+      |> assign(page_title: "Job #{job}")
+      |> assign(:live_action, :show_job)
+      |> assign(:job_ops, []) #Load job data here and send as a list of ops in order
+
+      #IO.inspect(socket)
+
+    {:noreply, socket}
+  end
+
   def handle_event("importall", _, socket) do
     Csvimport.import_last_year()
     #count = Enum.count(tempjobs)
@@ -143,8 +157,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
     {:noreply, stream(socket, :runlists, [])}
   end
-
-
 
   def handle_event("5_minute_import", _, socket) do
     Csvimport.update_operations("")
@@ -179,8 +191,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
           |> Enum.reduce(%{}, fn row, acc ->
             #Map.put_new(acc, :ops, [])
             case row.dots do
-              1 -> IO.inspect(row)
-                Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)
+              1 -> Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)
               2 -> Map.put_new(acc, :two, "bg-amber-500 text-stone-950") |> Map.update(:ops, [row], fn list -> list ++ [row] end)
               3 -> Map.put_new(acc, :three, "bg-red-600 text-stone-950") |> Map.update(:ops, [row], fn list -> list ++ [row] end)
               _ -> acc
@@ -193,7 +204,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
           4 -> Map.put_new(dots, :dot_columns, "grid-cols-3")
           _ -> dots
         end
-        |> IO.inspect
 
         socket
         |> assign(dots: dots)

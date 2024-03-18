@@ -747,7 +747,7 @@ defmodule ShophawkWeb.CoreComponents do
                 </td>
                 <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
                   <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
+                    <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
                       <span class={["relative", i == 0 && "font-semibold"]}>
                         <div class={[ ]}>
@@ -762,7 +762,7 @@ defmodule ShophawkWeb.CoreComponents do
                   </td>
                 <% _ -> %>
                   <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} >
+                    <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
                       <span class={["relative", i == 0 && "font-semibold"]}>
                         <%= render_slot(col, @row_item.(row)) %>
