@@ -291,7 +291,7 @@ defmodule Shophawk.Shop.Csvimport do
             order_date: order_date,
             part_number: part_number,
             job_status: job_status,
-            rev: rev,
+            rev: check_if_null(rev),
             description: description,
             order_quantity: order_quantity,
             extra_quantity: extra_quantity,
@@ -319,6 +319,10 @@ defmodule Shophawk.Shop.Csvimport do
             Map.merge(map1, empty_map)
           end
         end)
+  end
+
+  def check_if_null(value) do
+    if value = "NULL", do: nil, else: value
   end
 
   def mat_merge(operations, file) do
@@ -431,12 +435,12 @@ defmodule Shophawk.Shop.Csvimport do
               |> Map.put(:data_collection_note_text,
                 case runlist.data_collection_note_text do
                   nil -> row.data_collection_note_text
-                  _ -> runlist.data_collection_note_text <> "|" <> row.data_collection_note_text
+                  _ -> runlist.data_collection_note_text <> " | " <> row.data_collection_note_text
                 end)
               |> Map.put(:employee,
                 case runlist.employee do
                   nil -> row.employee
-                  _ -> runlist.employee <> "|" <> row.employee
+                  _ -> runlist.employee <> " | " <> row.employee <> "-" <> Calendar.strftime(row.work_date, "%m-%d-%y")
                 end)
               #need to change work_date to string type instead of date type for this to work.
               #|> Map.update(:work_date, "", fn value ->

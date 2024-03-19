@@ -12,6 +12,46 @@ defmodule Shophawk.Shop do
  alias Shophawk.Shop.Assignment
  alias Shophawk.Shop.Csvimport
 
+  def list_job(job) do
+    query =
+      from r in Runlist,
+      where: r.job == ^job,
+      order_by: [asc: r.sequence]
+
+    jobs =
+    Repo.all(query)
+    |> Enum.map(fn map ->
+      map = case map do
+        %{operation_service: "NULL"} -> Map.put(map, :operation_service, nil)
+        %{operation_service: value} -> Map.put(map, :operation_service, " -" <> value)
+        _other_map -> _other_map
+      end
+      |> Map.put(:status, status_change(map.status))
+    end)
+
+    {jobs, sort_job_info(jobs)}
+  end
+
+  def sort_job_info([job | _rest]) do
+    %{}
+    |> Map.put(:part_number, job.part_number <> " Rev: " <> job.rev)
+    |> Map.put(:order_quantity, job.order_quantity)
+    |> Map.put(:customer, job.customer)
+    |> Map.put(:customer_po, job.customer_po)
+    |> Map.put(:customer_po_line, Integer.to_string(job.customer_po_line))
+    |> Map.put(:description, job.description)
+    |> Map.put(:material, job.material)
+  end
+
+  defp status_change(status) do
+    case status do
+      "C" -> "Closed"
+      "S" -> "Started"
+      "O" -> "Open"
+      _ -> status
+    end
+  end
+
   def import_all(operations) do #WARNING, THIS TAKES A MINUTE AND WILL OVERLOAD CHROME IF ALL DATA IS LOADED.
     operations
     |> Enum.chunk_every(1500)
@@ -25,14 +65,14 @@ defmodule Shophawk.Shop do
       Repo.all(query)
     end
 
-    def toggle_mat_waiting(id) do
-      op = Repo.get!(Runlist, id)
-      new_matertial_waiting = !op.material_waiting
-      Repo.update_all(
-        from(r in Runlist, where: r.job == ^op.job),
-        set: [material_waiting: new_matertial_waiting]
-      )
-    end
+  def toggle_mat_waiting(id) do
+    op = Repo.get!(Runlist, id)
+    new_matertial_waiting = !op.material_waiting
+    Repo.update_all(
+      from(r in Runlist, where: r.job == ^op.job),
+      set: [material_waiting: new_matertial_waiting]
+    )
+  end
 
   @doc """
   Returns the list of runlists.
