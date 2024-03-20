@@ -153,8 +153,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("importall", _, socket) do
-    Csvimport.import_last_year()
-    #count = Enum.count(tempjobs)
+    #Csvimport.import_last_year()
+    Csvimport.import_all_history
     socket
 
     {:noreply, stream(socket, :runlists, [])}

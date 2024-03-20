@@ -725,6 +725,10 @@ defmodule ShophawkWeb.CoreComponents do
               </td>
 
             <% else %>
+
+
+            <% exact_wc_vendor = if elem(row, 1).operation_service != nil, do: String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", ""), else: elem(row, 1).wc_vendor  %>
+
             <div :for={{col, i} <- Enum.with_index(@col)}>
                 <%= case i do %>
                 <% 8 -> %>
@@ -745,14 +749,14 @@ defmodule ShophawkWeb.CoreComponents do
                     </span>
                   </div>
                 </td>
-                <% _ when elem(row, 1).currentop == elem(row, 1).wc_vendor -> %>
+                <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
                   <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                     <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
                       <span class={["relative", i == 0 && "font-semibold"]}>
                         <div class={[ ]}>
-                          <%= if i== 10 do %>
-                            &#x2705 Job at <%= render_slot(col, @row_item.(row)) %>
+                          <%= if i == 10 do %>
+                            &#x2705 Job at <%= elem(row, 1).wc_vendor %>
                           <% else %>
                             <%= render_slot(col, @row_item.(row)) %>
                           <% end %>

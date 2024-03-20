@@ -22,7 +22,7 @@ defmodule Shophawk.Shop do
     Repo.all(query)
     |> Enum.map(fn map ->
       map = case map do
-        %{operation_service: "NULL"} -> Map.put(map, :operation_service, nil)
+        %{operation_service: nil} -> Map.put(map, :operation_service, nil)
         %{operation_service: value} -> Map.put(map, :operation_service, " -" <> value)
         _other_map -> _other_map
       end
@@ -101,7 +101,7 @@ defmodule Shophawk.Shop do
     runlists = Repo.all(query)
     |> Enum.map(fn row ->
       case row.operation_service do
-        "NULL" -> row
+        nil -> row
         _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
       end
     end)

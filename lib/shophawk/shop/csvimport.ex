@@ -3,13 +3,19 @@ defmodule Shophawk.Shop.Csvimport do
   alias Shophawk.Shop
 
   def rework_to_do do #for testing
-
-
-
-    #File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-    #File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
-    #System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-    #data_collection_merge(Path.join([File.cwd!(), "csv_files/operationtime.csv"]))
+  start_date = Date.add(Date.utc_today(), -10)
+  end_date = Date.utc_today()
+  export_time_frame_jobs(start_date, end_date)
+  jobs_to_update =
+  File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
+  |> Stream.map(&String.trim(&1))
+  |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+  |> Stream.reject(&String.contains?(&1, "("))
+  |> Stream.reject(&(&1 == ""))
+  |> Enum.to_list()
+  |> Enum.uniq()
+  #IO.inspect(Enum.count(jobs_to_update))
+  export_time_frame_jobs_to_import(jobs_to_update)
 
   end
 
@@ -127,7 +133,7 @@ defmodule Shophawk.Shop.Csvimport do
   defp initial_mapping(list) do
     list
     |> Stream.map(&String.trim(&1))
-    |> Stream.map(&String.split(&1, "`"))
+    |> Stream.map(&String.split(&1, "^"))
     |> Stream.map(fn list ->
       case list do
         [first | rest] -> [String.replace(first, "\uFEFF", "") | rest]
@@ -135,7 +141,6 @@ defmodule Shophawk.Shop.Csvimport do
       end
     end)
     |> Stream.filter(fn
-      [_, "NULL" | _] -> false
       [_] -> false #lines with only one entry
       [job | _] -> true end)
   end
@@ -146,7 +151,7 @@ defmodule Shophawk.Shop.Csvimport do
     blackout_dates =
       File.stream!(Path.join([File.cwd!(), "csv_files/blackoutdates.csv"]))
       |> Stream.map(&String.trim(&1))
-      |> Stream.map(&String.split(&1, "`"))
+      |> Stream.map(&String.split(&1, "^"))
       |> Stream.filter(fn
         [_, "HolidayStart" | _] -> false #filter out header line
         ["-----------" | _] -> false #filter out empty line
@@ -167,7 +172,7 @@ defmodule Shophawk.Shop.Csvimport do
     workcenters =
       File.stream!(Path.join([File.cwd!(), "csv_files/workcenters.csv"]))
       |> Stream.map(&String.trim(&1))
-      |> Stream.map(&String.split(&1, "`"))
+      |> Stream.map(&String.split(&1, "^"))
       |> Stream.map(fn list ->
         case list do
           [first | rest] -> [String.replace(first, "\uFEFF", "") | rest]
@@ -201,9 +206,8 @@ defmodule Shophawk.Shop.Csvimport do
     operations =
     File.stream!(file)
     |> Stream.map(&String.trim(&1))
-    |> Stream.map(&String.split(&1, "`"))
+    |> Stream.map(&String.split(&1, "^"))
     |> Stream.filter(fn
-      [_, "NULL" | _] -> false
       [_] -> false #lines with only one entry
       [job | _] -> jobs_to_update |> Enum.empty?() || Enum.member?(jobs_to_update, job) #if the "jobs_to_update" list is empty, it allows any job to pass, if it's not empty, it checks if each job is on the list before passing it through
     end)
@@ -291,7 +295,7 @@ defmodule Shophawk.Shop.Csvimport do
             order_date: order_date,
             part_number: part_number,
             job_status: job_status,
-            rev: check_if_null(rev),
+            rev: rev,
             description: description,
             order_quantity: order_quantity,
             extra_quantity: extra_quantity,
@@ -322,7 +326,7 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   def check_if_null(value) do
-    if value = "NULL", do: nil, else: value
+    if value = "NULL", do: "", else: value
   end
 
   def mat_merge(operations, file) do
@@ -500,21 +504,21 @@ defmodule Shophawk.Shop.Csvimport do
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1\n
     """
     sql_export = EEx.eval_string(export, [time: time, path: path])
 
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     #material
     path = Path.join([File.cwd!(), "csv_files/material.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
@@ -534,44 +538,213 @@ defmodule Shophawk.Shop.Csvimport do
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1\n
     """
     sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path])
 
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
 
     #material
     path = Path.join([File.cwd!(), "csv_files/material.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
 
     #UserValues
     path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     #operation time - Data collection
     path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE()) ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE()) ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
     System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
+    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
+    process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
+    process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
+    process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
   end
 
+
+
+
+
+
+
+  def import_all_history() do
+    File.write!(Path.join([File.cwd!(), "csv_files/last_import.text"]), DateTime.to_string(DateTime.utc_now())) #sets time for auto import function to start from
+
+    start_date = Date.add(Date.utc_today(), -10)
+    end_date = Date.utc_today()
+
+    time_frame_import_loop(start_date, end_date) #starts a recursive loop to import 3 months of data at a time for efficienty.
+
+  end
+
+  defp time_frame_import_loop(start_date, end_date) do
+    export_time_frame_jobs(start_date, end_date) #runs sql queries to only export jobs updated since last time it ran
+    jobs_to_update =
+      File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+      |> Stream.reject(&String.contains?(&1, "("))
+      |> Stream.reject(&(&1 == ""))
+      |> Enum.to_list()
+      |> Enum.uniq()
+
+    if jobs_to_update != [] do
+      export_time_frame_jobs_to_import(jobs_to_update)
+      operations = #Takes 25 seconds to merge 43K operations
+        runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
+        |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
+        |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
+        |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
+        |> Enum.map(fn map ->
+          list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
+            %Runlist{}
+            |> Runlist.changeset(map)
+          #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
+            list.changes #The changeset results in a list of data, extracts needed map from changeset.
+            |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+            |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+            |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(hrs, 2) end)
+            |> Map.put_new(:currentop, nil)
+          end)
+
+      {updated_list, _, _, _} = #set current op
+        Enum.reduce(Enum.reverse(operations), {[], nil, nil, false}, fn op, {acc, last_wc_vendor, last_job, hold} ->
+          case {op.status, op.job, hold} do
+            {"O", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+            {"O", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+            {"O", job, true} when job == last_job -> #continues setting the previous wc_vendor
+              {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
+
+            {"O", job, true} -> #if found a new job
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+            {"S", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
+            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+            {"S", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+            {"S", job, true} when job == last_job -> #continues setting the previous wc_vendor
+              {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
+
+            {"S", job, _} -> #if found a new job
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+            {"C", job, _}  ->
+              {[%{op | currentop: nil} | acc], nil, op.job, false}
+
+            {_, _, _} ->
+              {[%{op | currentop: nil} | acc], nil, op.job, false}
+          end
+        end)
+      Shop.import_all(operations) #imports all findings to the database at one time.
+
+      start_date = Date.add(start_date, -10)
+      end_date = Date.add(end_date, -10)
+      #time_frame_import_loop(start_date, end_date) #starts a recursive loop to import 3 months of data at a time for efficienty.
+
+      #existing_records = #get structs of all operations needed for update
+      #  Enum.map(operations, &(&1.job_operation))
+      #  |> Enum.uniq #makes list of operation ID's to check for
+      #  |> Shop.find_matching_operations #create list of structs that already exist in DB
+
+    end
+  end
+
+  defp export_time_frame_jobs(start_date, end_date) do #changes short term batch files to export from database based on last export time.
+
+    #Jobs
+    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > '<%= start_date %>' AND Last_Updated <= '<%= end_date %>'" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1
+    """
+    sql_export = EEx.eval_string(export, [start_date: start_date, end_date: end_date, path: path])
+
+
+    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+  end
+
+  defp export_time_frame_jobs_to_import(job_list) do
+    #create string that is readable for sql command
+    jobs_to_export = "(" <> Enum.join(Enum.map(job_list, &("'" <> &1 <> "'")), ", ") <> ")"
+
+    #RunlistOps
+    path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1\n\n
+    """
+    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path])
+
+    #Jobs
+    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n\n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
+
+    #material
+    path = Path.join([File.cwd!(), "csv_files/material.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n\n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
+
+    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
+    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
+    process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
+  end
+
+
+  defp export_data_after_everything_else(start_date, end_date) do
+
+    #operation time - Data collection
+    path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > '<%= start_date %>' AND Last_Updated <= '<%= end_date %>' ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1
+    """
+    sql_export = EEx.eval_string(export, [start_date: start_date, end_date: end_date, path: path])
+    process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
+
+
+    #UserValues
+    path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND Last_Updated > '<%= start_date %>' AND Last_Updated <= '<%= end_date %>'" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [start_date: start_date, end_date: end_date, path: path, prev_command: sql_export])
+    process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
+
+  end
+
+
   def import_last_year() do #imports ALL operations from the past 13 months into the database, !will make duplicates!
-    export_last_year()
+    export_all_history()
+    #export_last_year()
     operations = #Takes 25 seconds to merge 43K operations
       runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
       |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
@@ -591,38 +764,128 @@ defmodule Shophawk.Shop.Csvimport do
     Shop.import_all(operations) #imports all findings to the database at one time.
   end
 
-  defp export_last_year() do #changes short term batch files to export from database based on last export time.
 
+
+  defp export_last_year() do #changes short term batch files to export from database based on last export time.
+    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(MONTH,-13,GETDATE()) ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(MONTH,-13,GETDATE()) ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1\n
     """
     sql_export = EEx.eval_string(export, [path: path])
 
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(MONTH,-13,GETDATE()) ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(MONTH,-13,GETDATE()) ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
 
     #material
     path = Path.join([File.cwd!(), "csv_files/material.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(MONTH,-13,GETDATE()) ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(MONTH,-13,GETDATE()) ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
 
     #UserValues
     path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND Last_Updated > DATEADD(MONTH,-13,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND Last_Updated > DATEADD(MONTH,-13,GETDATE())" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
 
     File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
     System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
+    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
+    process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
+    process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
+  end
+
+  defp export_all_history() do #changes short term batch files to export from database based on last export time.
+    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
+    #RunlistOps
+    path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,[Operation_Service] ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1\n
+    """
+    sql_export = EEx.eval_string(export, [path: path])
+
+    #Jobs
+    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+
+    #material
+    path = Path.join([File.cwd!(), "csv_files/material.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Material] ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+
+    #UserValues
+    path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+
+    #operation time - Data collection
+    path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "^" -f 65001 -h -1 \n<%= prev_command %>
+    """
+    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+
+    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
+    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
+    process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
+    process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
+    process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
+  end
+
+  def process_csv(file_path, columns) do #Checks for any rows that have the wrong # of columns and kicks them out.
+    expected_columns = columns
+
+    new_data =
+    File.stream!(file_path)
+    |> Stream.map(&normalize_row(&1, expected_columns))
+    |> Stream.filter(&is_list/1) # Filter out results that are not lists
+    |> Stream.map(&Enum.join(&1, "^"))
+    |> Enum.join("")
+
+    File.write!(file_path, new_data)
+  end
+
+  defp normalize_row(row, expected_columns) do
+    try do
+      row
+      |> String.split("^")
+      |> Enum.map(&replace_null/1)
+      |> validate_length(expected_columns)
+    rescue
+      _ ->
+        IO.puts("Skipping invalid row: #{row}")
+        nil # Return nil to signal that the row should be skipped
+    end
+  end
+
+  defp replace_null(value) do
+    if value == "NULL", do: "", else: value
+  end
+
+  defp validate_length(values, expected_columns) do
+    if Enum.count(values) == expected_columns do
+      values
+    else
+      raise "oops"
+    end
   end
 
 end
