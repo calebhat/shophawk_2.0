@@ -45,6 +45,8 @@ defmodule Shophawk.Shop.Csvimport do
     send(caller_pid, :import_done)
   end
 
+
+  #FIRST JOB IMPORTED IS STILL KEEPING ""\uFEFF134023"," THE BAD PART AT BEGINNING, TROUBLESHOOT.
   def update_operations() do #for single use testing purposes
     start_time = DateTime.utc_now()
     export_last_updated() #runs sql queries to only export jobs updated since last time it ran
@@ -172,6 +174,12 @@ defmodule Shophawk.Shop.Csvimport do
     File.stream!(file)
     |> Stream.map(&String.trim(&1))
     |> Stream.map(&String.split(&1, "`"))
+    |> Stream.map(fn list ->
+      case list do
+        [first | rest] -> [String.replace(first, "\uFEFF", "") | rest]
+        _ -> list
+      end
+    end)
     |> Stream.filter(fn
       [_] -> false #lines with only one entry
       [job | _] -> jobs_to_update |> Enum.empty?() || Enum.member?(jobs_to_update, job) #if the "jobs_to_update" list is empty, it allows any job to pass, if it's not empty, it checks if each job is on the list before passing it through
