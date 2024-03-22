@@ -22,7 +22,7 @@ defmodule Shophawk.Application do
       # {Shophawk.Worker, arg}
 
       #runs CsvImport function for continuous imports every 5 seconds.
-      #ScheduledTasks
+      ScheduledTasks
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

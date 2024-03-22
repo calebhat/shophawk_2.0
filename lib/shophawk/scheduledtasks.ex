@@ -21,7 +21,7 @@ defmodule ScheduledTasks do
   end
 
   def handle_info(:import_done, state) do
-    #IO.puts("import done")
+    IO.puts("import done")
     Process.send_after(self(), :run_task, 5000)
     {:noreply, state}
   end

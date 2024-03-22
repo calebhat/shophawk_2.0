@@ -4,28 +4,13 @@ defmodule Shophawk.Shop.Csvimport do
 
   def rework_to_do do #for testing
 
-  #Jobs - temp with limited time frame
-  path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
-  export = """
-  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT TOP (50) [Job] FROM [PRODUCTION].[dbo].[Job] WHERE status != 'Template' ORDER BY Last_Updated DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
-  """
-  sql_export = EEx.eval_string(export, [path: path])
+  update_operations()
 
+  end
 
-  File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-  System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-  File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
-    |> Stream.map(&String.trim(&1))
-    |> Stream.map(&String.replace(&1, "\uFEFF", ""))
-    |> Stream.reject(&String.contains?(&1, "("))
-    |> Stream.reject(&(&1 == ""))
-    |> Enum.to_list()
-    |> Enum.chunk_every(50)
-    |> Enum.each(fn jobs_chunk -> import_job_chunk(jobs_chunk) end)
-
-  #IO.inspect(Enum.count(jobs_to_update))
-
-
+  def save_enum_to_text(data) do
+    file_content = Enum.reduce(data, "", fn map, acc -> acc <> inspect(map) <> "\n" end)
+    File.write!(Path.join([File.cwd!(), "csv_files/see_data.text"]), file_content)
   end
 
   def update_operations(caller_pid) do #quick import of most recent changes, updates currentop too.
@@ -34,67 +19,21 @@ defmodule Shophawk.Shop.Csvimport do
     jobs_to_update = jobs_to_update() #creates list of all jobs #'s that have a change somewhere
 
     if jobs_to_update != [] do
-      export_all_jobs_needed_to_update_data(jobs_to_update)
-
-      operations = #Takes 25 seconds to merge 43K operations
-      jobs_to_update
-      |> runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations with a job listed in above function
-      |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
-      |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
-      |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
-      |> Enum.map(fn map ->
-        list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
-          %Runlist{}
-          |> Runlist.changeset(map)
-        #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
-          list.changes #The changeset results in a list of data, extracts needed map from changeset.
-          |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-          |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-          |> Map.put_new(:currentop, nil)
+      operations =
+        Enum.chunk_every(jobs_to_update, 500) #breaks the list up into chunks
+        |> Enum.map(fn jobs_chunk ->
+          load_and_merge_job_chunk(jobs_chunk)
         end)
-
-      {updated_list, _, _, _} = #set current op
-        Enum.reduce(Enum.reverse(operations), {[], nil, nil, false}, fn op, {acc, last_wc_vendor, last_job, hold} ->
-          case {op.status, op.job, hold} do
-            {"O", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"O", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"O", job, true} when job == last_job -> #continues setting the previous wc_vendor
-              {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
-
-            {"O", job, true} -> #if found a new job
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"S", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
-            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"S", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"S", job, true} when job == last_job -> #continues setting the previous wc_vendor
-              {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
-
-            {"S", job, _} -> #if found a new job
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"C", job, _}  ->
-              {[%{op | currentop: nil} | acc], nil, op.job, false}
-
-            {_, _, _} ->
-              {[%{op | currentop: nil} | acc], nil, op.job, false}
-          end
+        |> Enum.reduce([], fn result, acc ->
+          acc ++ result
         end)
 
       existing_records = #get structs of all operations needed for update
         Enum.map(operations, &(&1.job_operation))
         |> Enum.uniq #makes list of operation ID's to check for
         |> Shop.find_matching_operations #create list of structs that already exist in DB
-        #|> job_finder()
 
-      Enum.each(updated_list, fn op ->
+      Enum.each(operations, fn op ->
         case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
@@ -102,11 +41,39 @@ defmodule Shophawk.Shop.Csvimport do
             Shop.update_runlist(record, op)
           end
       end)
-      data_collection_merge(Path.join([File.cwd!(), "csv_files/operationtime.csv"])) #merge data collection
     end
-    #IO.puts(DateTime.diff(DateTime.utc_now(), start_time, :milliseconds))
-
     send(caller_pid, :import_done)
+  end
+
+  def update_operations() do #for single use testing purposes
+    start_time = DateTime.utc_now()
+    export_last_updated() #runs sql queries to only export jobs updated since last time it ran
+    jobs_to_update = jobs_to_update() #creates list of all jobs #'s that have a change somewhere
+
+    if jobs_to_update != [] do
+      operations =
+        Enum.chunk_every(jobs_to_update, 500) #breaks the list up into chunks
+        |> Enum.map(fn jobs_chunk ->
+          load_and_merge_job_chunk(jobs_chunk)
+        end)
+        |> Enum.reduce([], fn result, acc ->
+          acc ++ result
+        end)
+
+      existing_records = #get structs of all operations needed for update
+        Enum.map(operations, &(&1.job_operation))
+        |> Enum.uniq #makes list of operation ID's to check for
+        |> Shop.find_matching_operations #create list of structs that already exist in DB
+
+      Enum.each(operations, fn op ->
+        case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
+          nil -> #if the record does not exist, create a new one for it
+            Shop.create_runlist(op)
+          record ->   #if the record exists, update it with the new values
+            Shop.update_runlist(record, op)
+          end
+      end)
+    end
   end
 
   def jobs_to_update() do #creates list of all jobs to update
@@ -198,17 +165,6 @@ defmodule Shophawk.Shop.Csvimport do
       |> Enum.reduce(%{}, fn workcenter, acc ->
         Shop.create_workcenter(%{"workcenter" => workcenter})
       end)
-  end
-
-  def job_finder(operations) do #used for testing purposes.
-    Enum.each(operations, fn op ->
-      case op.job_operation do
-      770743 -> IO.inspect(op.job_operation)
-      IO.inspect(op.wc_vendor)
-      _ ->
-      end
-    end)
-    operations
   end
 
   def runlist_ops(jobs_to_update \\ [], file) do
@@ -388,17 +344,8 @@ defmodule Shophawk.Shop.Csvimport do
         end)
   end
 
-  def data_collection_merge(file) do
-     empty_map = #used in case no match is found in material csv
-      %{employee: nil,
-        work_date: nil,
-        act_setup_hrs: nil,
-        act_run_hrs: nil,
-        act_run_qty: nil,
-        act_scrap_qty: nil,
-        data_collection_note_text: nil
-    }
-    new_list =
+  def data_collection_merge(operations, file) do
+    new_data_collection_map_list =
       File.stream!(file)
       |> initial_mapping()
       |> Enum.reduce( [],
@@ -423,47 +370,45 @@ defmodule Shophawk.Shop.Csvimport do
             }
         [new_map | acc]  end)
 
-      |> Enum.each(fn row ->
-        runlist = Shop.get_runlist_by_job_operation(row.job_operation)
-        changes =
-          case runlist do
-            nil -> %{}
-            _ ->
-              %{}
-              |> Map.put(:act_run_hrs,
-                case runlist.act_run_hrs do
-                  nil -> String.to_float(row.act_run_hrs)
-                  _ -> runlist.act_run_hrs + String.to_float(row.act_run_hrs)
-                end)
-              |> Map.put(:act_run_qty,
-                case runlist.act_run_qty do
-                  nil -> String.to_integer(row.act_run_qty)
-                  _ -> runlist.act_run_qty + String.to_integer(row.act_run_qty)
-                end)
-              |> Map.put(:act_scrap_qty,
-                case runlist.act_scrap_qty do
-                  nil -> String.to_integer(row.act_scrap_qty)
-                  _ -> runlist.act_scrap_qty + String.to_integer(row.act_scrap_qty)
-                end)
-              |> Map.put(:data_collection_note_text,
-                case runlist.data_collection_note_text do
-                  nil -> row.data_collection_note_text
-                  _ -> runlist.data_collection_note_text <> " | " <> row.data_collection_note_text
-                end)
-              |> Map.put(:employee,
-                case runlist.employee do
-                  nil -> row.employee
-                  _ -> runlist.employee <> " | " <> row.employee <> "-" <> Calendar.strftime(row.work_date, "%m-%d-%y")
-                end)
-              #need to change work_date to string type instead of date type for this to work.
-              #|> Map.update(:work_date, "", fn value ->
-              #  case value do
-              #    nil -> row.work_date
-              #    _ -> value <> "|" <> row.work_date
-              #  end
-              #end)
-          end
-        Shop.update_runlist(runlist, changes)
+      Enum.map(operations, fn %{job_operation: job_operation} = op ->
+        new_runlist_data = Enum.find(new_data_collection_map_list, &(String.to_integer(&1.job_operation) == job_operation))
+
+        if new_runlist_data do
+          {:ok, work_date, _} = DateTime.from_iso8601(String.replace(new_runlist_data.work_date, " ", "T") <> "Z")
+          work_date = Calendar.strftime(work_date, "%m-%d-%y")
+
+          new_runlist_data =
+          %{}
+          |> Map.put(:act_run_hrs,
+            case op.act_run_hrs do
+              nil -> String.to_float(op.act_run_hrs)
+              _ -> op.act_run_hrs + String.to_float(new_runlist_data.act_run_hrs)
+            end)
+          |> Map.put(:act_run_qty,
+            case op.act_run_qty do
+              nil -> String.to_integer(new_runlist_data.act_run_qty)
+              _ -> op.act_run_qty + String.to_integer(new_runlist_data.act_run_qty)
+            end)
+          |> Map.put(:act_scrap_qty,
+            case op.act_scrap_qty do
+              nil -> String.to_integer(new_runlist_data.act_scrap_qty)
+              _ -> op.act_scrap_qty + String.to_integer(new_runlist_data.act_scrap_qty)
+            end)
+          |> Map.put(:data_collection_note_text,
+            case op.data_collection_note_text do
+              nil -> op.data_collection_note_text
+              _ -> op.data_collection_note_text <> " | " <> new_runlist_data.data_collection_note_text
+            end)
+          |> Map.put(:employee,
+            case op.employee do
+              nil -> new_runlist_data.employee <> ": " <> work_date
+              _ -> op.employee <> " | " <> new_runlist_data.employee <> ": " <> work_date
+            end)
+
+          Map.merge(op, new_runlist_data)
+        else
+          op
+        end
       end)
   end
 
@@ -476,14 +421,18 @@ defmodule Shophawk.Shop.Csvimport do
         fn [user_value, dots | _], acc ->
           new_map = %{user_value: user_value, dots: dots_calc(dots)}
           [new_map | acc]  end)
-          Enum.map(operations, fn %{user_value: user_value} = map1 ->
-            map2 = Enum.find(new_list, &(&1.user_value == user_value))
-            if map2 do
-              Map.merge(map1, map2)
-            else
-              Map.merge(map1, empty_map)
-            end
-        end)
+    if new_list != [] do #csv could be empty if no matching user values found
+      Enum.map(operations, fn %{user_value: user_value} = op ->
+        new_runlist_data = Enum.find(new_list, &(&1.user_value == user_value))
+        if new_runlist_data do
+          Map.merge(op, new_runlist_data)
+        else
+          op
+        end
+      end)
+    else
+      operations
+    end
   end
 
   defp dots_calc(dots) do
@@ -535,59 +484,6 @@ defmodule Shophawk.Shop.Csvimport do
     System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
   end
 
-  defp export_all_jobs_needed_to_update_data(job_list) do
-    {:ok, prev_date, _} = File.read!(Path.join([File.cwd!(), "csv_files/last_import.text"])) |> DateTime.from_iso8601()
-    time = DateTime.diff(prev_date, DateTime.utc_now(), :millisecond)
-    if time == 0, do: time = -1
-    File.write!(Path.join([File.cwd!(), "csv_files/last_import.text"]), DateTime.to_string(DateTime.utc_now()))
-
-    #create string that is readable for sql command
-    jobs_to_export = "(" <> Enum.join(Enum.map(job_list, &("'" <> &1 <> "'")), ", ") <> ")"
-
-    #RunlistOps
-    path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] , REPLACE (CONVERT(VARCHAR(MAX), Operation_Service),'`','') ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job, COALESCE(Sched_Start, '9999-12-31') ASC, Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
-    """
-    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path])
-
-    #Jobs
-    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
-
-    #material
-    path = Path.join([File.cwd!(), "csv_files/material.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,REPLACE (CONVERT(VARCHAR(MAX), Material),'`','') ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
-
-    #UserValues
-    path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
-
-    #operation time - Data collection
-    path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE()) ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
-
-    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
-    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
-    process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
-    process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
-    process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
-  end
-
 
 
 
@@ -595,87 +491,163 @@ defmodule Shophawk.Shop.Csvimport do
 
 
   def import_all_history() do
-    File.write!(Path.join([File.cwd!(), "csv_files/last_import.text"]), DateTime.to_string(DateTime.utc_now())) #sets time for auto import function to start from
+    #sets time for auto import function to start from
+    File.write!(Path.join([File.cwd!(), "csv_files/last_import.text"]), DateTime.to_string(DateTime.utc_now()))
 
-    export_all_jobs() #creates list of every job made so far
-    |> Enum.chunk_every(1500) #breaks the list up into chunks
-    |> Enum.each(fn jobs_chunk -> import_job_chunk(jobs_chunk) end)
+    all_jobs = export_all_jobs() #creates list of every job made so far
+    all_jobs_count = Enum.count(all_jobs)
+    IO.inspect(all_jobs_count)
 
-  end
-
-  defp import_job_chunk(jobs_chunk) do
-
-      export_job_chunk(jobs_chunk) #export csv files for each chunk. took 1.35 minutes 3-21-24
-      operations = #Takes 25 seconds to merge 43K operations
-        runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
-        |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
-        |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
+    Stream.chunk_every(all_jobs, 500) #breaks the list up into chunks
+    |> Enum.map(fn jobs_chunk ->
+      start = DateTime.utc_now()
+      operations =
+        load_and_merge_job_chunk(jobs_chunk)
         |> Enum.map(fn map ->
+          new_map =
+            Enum.map(map, fn {key, value} -> #shortens values to fit max character length
+              if is_binary(value) and String.length(value) > 255, do: {key, String.slice(value, 0, 255)}, else: {key, value}
+            end)
+            |> Enum.into(%{}) # Convert back into a map
           list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
             %Runlist{}
-            |> Runlist.changeset(map)
-          #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
+            |> Runlist.changeset(new_map)
+            #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
             list.changes #The changeset results in a list of data, extracts needed map from changeset.
             |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
             |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-            |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(hrs, 2) end)
-            |> Map.put_new(:currentop, nil)
-          end)
-
-      {updated_list, _, _, _} = #set current op NOT WORKING FOR WHOLE IMPORT. NEED TO FIGURE OUT
-        Enum.reduce(Enum.reverse(operations), {[], nil, nil, false}, fn op, {acc, last_wc_vendor, last_job, hold} ->
-          case {op.status, op.job, hold} do
-            {"O", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"O", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"O", job, true} when job == last_job -> #continues setting the previous wc_vendor
-              {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
-
-            {"O", job, true} -> #if found a new job
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"S", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
-            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"S", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"S", job, true} when job == last_job -> #continues setting the previous wc_vendor
-              {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
-
-            {"S", job, _} -> #if found a new job
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-            {"C", job, _}  ->
-              {[%{op | currentop: nil} | acc], nil, op.job, false}
-
-            {_, _, _} ->
-              {[%{op | currentop: nil} | acc], nil, op.job, false}
-          end
         end)
-      Shop.import_all(Enum.reverse(updated_list)) #imports all findings to the database at one time.
-
+      Shop.import_all(operations)
+      IO.puts("milliseconds: #{DateTime.diff(DateTime.utc_now(), start, :millisecond)}")
+    end)
   end
 
-  defp export_all_jobs() do #changes short term batch files to export from database based on last export time.
+  defp load_and_merge_job_chunk(jobs_chunk) do
+    export_job_chunk(jobs_chunk) #export csv files for each chunk.
+    runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
+    |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
+    |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
+    |> export_and_merge_job_operations_and_user_value()
+    |> set_current_ops()
+  end
 
-    #Jobs
-    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE status != 'Template'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
-    """
-    sql_export = EEx.eval_string(export, [path: path])
-    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-    File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
-      |> Stream.map(&String.trim(&1))
-      |> Stream.map(&String.replace(&1, "\uFEFF", ""))
-      |> Stream.reject(&String.contains?(&1, "("))
-      |> Stream.reject(&(&1 == ""))
-      |> Enum.to_list()
+  defp set_current_ops(operations) do
+    {operations, _, _, _} = #set current op
+      Enum.reduce(Enum.reverse(operations), {[], nil, nil, false}, fn op, {acc, last_wc_vendor, last_job, hold} ->
+        case {op.status, op.job, hold} do
+          {"O", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
+            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+          {"O", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
+            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+          {"O", job, true} when job == last_job -> #continues setting the previous wc_vendor
+            {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
+
+          {"O", job, true} -> #if found a new job
+            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+          {"S", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
+          {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+          {"S", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
+            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+          {"S", job, true} when job == last_job -> #continues setting the previous wc_vendor
+            {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
+
+          {"S", job, _} -> #if found a new job
+            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+
+          {"C", job, _}  ->
+            {[%{op | currentop: nil} | acc], nil, op.job, false}
+
+          {_, _, _} ->
+            {[%{op | currentop: nil} | acc], nil, op.job, false}
+        end
+      end)
+    Enum.reverse(operations)
+  end
+
+  defp export_and_merge_job_operations_and_user_value(operations) do
+
+    #format lists for sql command to read properaly
+    job_operations_to_export =
+      operations
+      |> Enum.map(&Map.get(&1, :job_operation))
+      |> case do
+        [] -> false
+        job_operations -> "(" <> Enum.join(job_operations, ", ") <> ")"
+      end
+
+    user_values_to_export =
+      operations
+      |> Enum.map(&Map.get(&1, :user_value))
+      |> Enum.reject(&(&1 == nil or &1 == "")) # Filter out nil values
+      |> case do
+        [] -> false  # Handle the case where all user values are nil
+        user_values -> "(" <> Enum.join(user_values, ", ") <> ")"
+      end
+
+    sql_export =
+      if job_operations_to_export do
+        #Job_operation_time
+        path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
+        export = """
+        sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Job_Operation in <%= job_operations_to_export %> ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
+        """
+        EEx.eval_string(export, [job_operations_to_export: job_operations_to_export, path: path])
+      else
+        ""
+      end
+
+    sql_export =
+      if user_values_to_export do
+        #user values
+        path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
+        export = """
+        sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND User_Values in <%= user_values_to_export %>" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+        """
+        EEx.eval_string(export, [user_values_to_export: user_values_to_export, path: path, prev_command: sql_export])
+      else
+        sql_export
+      end
+
+    if sql_export != "" do
+      #IO.inspect(sql_export)
+      File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+      System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+
+      operations =
+        if user_values_to_export do
+          process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
+          uservalues_merge(operations, Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
+        else
+          operations
+        end
+
+      operations =
+        if job_operations_to_export do
+          process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
+          Enum.map(operations, fn map ->
+            map
+            |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(String.to_float(hrs), 2) end)
+            |> Map.put_new(:currentop, nil) #add keys for data_collection_merge after the changeset
+            |> Map.put_new(:employee, nil) #add needed keys for data-collection merge
+            |> Map.put_new(:work_date, nil)
+            |> Map.put_new(:act_setup_hrs, 0.0)
+            |> Map.put_new(:act_run_hrs, 0.0)
+            |> Map.put_new(:act_run_qty, 0.0)
+            |> Map.put_new(:act_scrap_qty, 0.0)
+            |> Map.put_new(:data_collection_note_text, nil)
+          end)
+          |> data_collection_merge(Path.join([File.cwd!(), "csv_files/operationtime.csv"]))
+        else
+          operations
+        end
+    else
+      operations
+    end
   end
 
   defp export_job_chunk(job_list) do
@@ -710,56 +682,65 @@ defmodule Shophawk.Shop.Csvimport do
     process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
   end
 
+  defp export_all_jobs() do #changes short term batch files to export from database based on last export time.
+  #Jobs
+  path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+  export = """
+  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE status != 'Template'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
+  """
+  sql_export = EEx.eval_string(export, [path: path])
+  File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+  System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+  File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
+    |> Stream.map(&String.trim(&1))
+    |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+    |> Stream.reject(&String.contains?(&1, "("))
+    |> Stream.reject(&(&1 == ""))
+    |> Enum.to_list()
+end
 
-  defp export_data_after_everything_else(start_date, end_date) do
+  def process_csv(file_path, columns) do #Checks for any rows that have the wrong # of columns and kicks them out.
+    expected_columns = columns
 
-    #operation time - Data collection
-    path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > '<%= start_date %>' AND Last_Updated <= '<%= end_date %>' ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
-    """
-    sql_export = EEx.eval_string(export, [start_date: start_date, end_date: end_date, path: path])
-    process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
+    new_data =
+    File.stream!(file_path)
+    |> Stream.map(&normalize_row(&1, expected_columns))
+    |> Stream.filter(&is_list/1) # Filter out results that are not lists
+    |> Stream.map(&Enum.join(&1, "`"))
+    |> Enum.join("")
 
+    File.write!(file_path, new_data)
+  end
 
-    #UserValues
-    path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND Last_Updated > '<%= start_date %>' AND Last_Updated <= '<%= end_date %>'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [start_date: start_date, end_date: end_date, path: path, prev_command: sql_export])
-    process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
+  defp normalize_row(row, expected_columns) do
+    try do
+      row
+      |> String.split("`")
+      |> Enum.map(&replace_null/1)
+      |> validate_length(expected_columns)
+    rescue
+      _ ->
+        #IO.puts("Skipping invalid row: #{row}")
+        nil # Return nil to signal that the row should be skipped
+    end
+  end
 
+  defp replace_null(value) do
+    Regex.replace(~r/\bNULL\b/, value, "") #replaces exact matches of NULL with nothing. this leave /n (new lines) if null is the last value in the row.
+  end
 
-    |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
-
+  defp validate_length(values, expected_columns) do
+    if Enum.count(values) == expected_columns do
+      values
+    else
+      raise "csv row is incorrect length"
+    end
   end
 
 
-  def import_last_year() do #imports ALL operations from the past 13 months into the database, !will make duplicates!
-    export_all_history()
-    #export_last_year()
-    operations = #Takes 25 seconds to merge 43K operations
-      runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
-      |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
-      |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
-      |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
-      |> Enum.map(fn map ->
-        list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
-          %Runlist{}
-          |> Runlist.changeset(map)
-        #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
-          list.changes #The changeset results in a list of data, extracts needed map from changeset.
-          |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-          |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-          |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(hrs, 2) end)
-        end)
-
-    Shop.import_all(operations) #imports all findings to the database at one time.
-  end
 
 
-
+#maybe don't need below
   defp export_last_year() do #changes short term batch files to export from database based on last export time.
     File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
     #RunlistOps
@@ -799,87 +780,162 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   defp export_all_history() do #changes short term batch files to export from database based on last export time.
-    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
-    #RunlistOps
-    path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,REPLACE (CONVERT(VARCHAR(MAX), Operation_Service),'`','') ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
-    """
-    sql_export = EEx.eval_string(export, [path: path])
+  File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
+  #RunlistOps
+  path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
+  export = """
+  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,REPLACE (CONVERT(VARCHAR(MAX), Operation_Service),'`','') ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] ORDER BY Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+  """
+  sql_export = EEx.eval_string(export, [path: path])
 
-    #Jobs
-    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+  #Jobs
+  path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+  export = """
+  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+  """
+  sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
 
-    #material
-    path = Path.join([File.cwd!(), "csv_files/material.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,REPLACE (CONVERT(VARCHAR(MAX), Material),'`','') ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+  #material
+  path = Path.join([File.cwd!(), "csv_files/material.csv"])
+  export = """
+  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,REPLACE (CONVERT(VARCHAR(MAX), Material),'`','') ,[Vendor] ,[Description] ,[Pick_Buy_Indicator] ,[Status] FROM [PRODUCTION].[dbo].[Material_Req] ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+  """
+  sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
 
-    #UserValues
-    path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+  #UserValues
+  path = Path.join([File.cwd!(), "csv_files/uservalues.csv"])
+  export = """
+  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+  """
+  sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
 
-    #operation time - Data collection
-    path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
-    export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
-    """
-    sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
+  #operation time - Data collection
+  path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
+  export = """
+  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+  """
+  sql_export = EEx.eval_string(export, [path: path, prev_command: sql_export])
 
-    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
-    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
-    process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
-    process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
-    process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
+  File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+  System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+  process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
+  process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
+  process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
+  process_csv(Path.join([File.cwd!(), "csv_files/uservalues.csv"]), 2)
+  process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
+end
+
+  def import_last_year() do #imports ALL operations from the past 13 months into the database, !will make duplicates!
+    export_all_history()
+    #export_last_year()
+    operations = #Takes 25 seconds to merge 43K operations
+      runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
+      |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
+      |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
+      |> uservalues_merge(Path.join([File.cwd!(), "csv_files/uservalues.csv"])) #Merge dots data with each operation
+      |> Enum.map(fn map ->
+        list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
+          %Runlist{}
+          |> Runlist.changeset(map)
+        #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
+          list.changes #The changeset results in a list of data, extracts needed map from changeset.
+          |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+          |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+          |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(hrs, 2) end)
+        end)
+
+    Shop.import_all(operations) #imports all findings to the database at one time.
   end
 
-  def process_csv(file_path, columns) do #Checks for any rows that have the wrong # of columns and kicks them out.
-    expected_columns = columns
-
-    new_data =
-    File.stream!(file_path)
-    |> Stream.map(&normalize_row(&1, expected_columns))
-    |> Stream.filter(&is_list/1) # Filter out results that are not lists
-    |> Stream.map(&Enum.join(&1, "`"))
-    |> Enum.join("")
-
-    File.write!(file_path, new_data)
+  def old_uservalues_merge(operations, file) do
+    empty_map = %{user_value: nil, dots: nil} #used in case no match is found in material csv
+    new_list =
+      File.stream!(file)
+      |> initial_mapping()
+      |> Enum.reduce( [],
+        fn [user_value, dots | _], acc ->
+          new_map = %{user_value: user_value, dots: dots_calc(dots)}
+          [new_map | acc]  end)
+      Enum.map(operations, fn %{user_value: user_value} = map1 ->
+        map2 = Enum.find(new_list, &(&1.user_value == user_value))
+        if map2 do
+          Map.merge(map1, map2)
+        else
+          Map.merge(map1, empty_map)
+        end
+      end)
   end
 
-  defp normalize_row(row, expected_columns) do
-    try do
-      row
-      |> String.split("`")
-      |> Enum.map(&replace_null/1)
-      |> validate_length(expected_columns)
-    rescue
-      _ ->
-        IO.puts("Skipping invalid row: #{row}")
-        nil # Return nil to signal that the row should be skipped
-    end
-  end
+  def old_data_collection_merge(file) do
+    empty_map = #used in case no match is found in material csv
+     %{employee: nil,
+       work_date: nil,
+       act_setup_hrs: nil,
+       act_run_hrs: nil,
+       act_run_qty: nil,
+       act_scrap_qty: nil,
+       data_collection_note_text: nil
+   }
+   new_list =
+     File.stream!(file)
+     |> initial_mapping()
+     |> Enum.reduce( [],
+     fn
+     [ job_operation,
+       employee,
+       work_date,
+       act_setup_hrs,
+       act_run_hrs,
+       act_run_qty,
+       act_scrap_qty,
+       data_collection_note_text | _], acc ->
+         new_map =
+           %{job_operation: job_operation,
+           employee: employee,
+           work_date: work_date,
+           act_setup_hrs: act_setup_hrs,
+           act_run_hrs: act_run_hrs,
+           act_run_qty: act_run_qty,
+           act_scrap_qty: act_scrap_qty,
+           data_collection_note_text: data_collection_note_text
+           }
+       [new_map | acc]  end)
 
-  defp replace_null(value) do
-    if value == "NULL", do: "", else: value
-  end
-
-  defp validate_length(values, expected_columns) do
-    if Enum.count(values) == expected_columns do
-      values
-    else
-      raise "oops"
-    end
-  end
+     |> Enum.each(fn row ->
+       runlist = Shop.get_runlist_by_job_operation(row.job_operation)
+       changes =
+         case runlist do
+           nil -> %{}
+           _ ->
+             %{}
+             |> Map.put(:act_run_hrs,
+               case runlist.act_run_hrs do
+                 nil -> String.to_float(row.act_run_hrs)
+                 _ -> runlist.act_run_hrs + String.to_float(row.act_run_hrs)
+               end)
+             |> Map.put(:act_run_qty,
+               case runlist.act_run_qty do
+                 nil -> String.to_integer(row.act_run_qty)
+                 _ -> runlist.act_run_qty + String.to_integer(row.act_run_qty)
+               end)
+             |> Map.put(:act_scrap_qty,
+               case runlist.act_scrap_qty do
+                 nil -> String.to_integer(row.act_scrap_qty)
+                 _ -> runlist.act_scrap_qty + String.to_integer(row.act_scrap_qty)
+               end)
+             |> Map.put(:data_collection_note_text,
+               case runlist.data_collection_note_text do
+                 nil -> row.data_collection_note_text
+                 _ -> runlist.data_collection_note_text <> " | " <> row.data_collection_note_text
+               end)
+             |> Map.put(:employee,
+               case runlist.employee do
+                 nil -> row.employee
+                 _ -> runlist.employee <> " | " <> row.employee <> "-" <> Calendar.strftime(row.work_date, "%m-%d-%y")
+               end)
+         end
+       Shop.update_runlist(runlist, changes)
+     end)
+ end
 
 end
