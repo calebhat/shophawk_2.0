@@ -281,6 +281,28 @@ defmodule ShophawkWeb.CoreComponents do
     """
   end
 
+  attr :type, :string, default: nil
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(disabled form name value)
+
+  slot :inner_block, required: true
+
+  def info_button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      class={[
+        "hx-submit-loading:opacity-75 rounded-lg bg-cyan-800 hover:bg-cyan-700 py-1.5 px-3",
+        "text-sm font-semibold leading-6 text-white active:text-white/80",
+        @class
+      ]}
+      {@rest}
+    >
+      <%= render_slot(@inner_block) %>
+    </button>
+    """
+  end
+
   @doc """
   Renders an input with label and error messages.
 
@@ -726,7 +748,6 @@ defmodule ShophawkWeb.CoreComponents do
 
             <% else %>
 
-
             <% exact_wc_vendor = if elem(row, 1).operation_service != nil, do: String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", ""), else: elem(row, 1).wc_vendor  %>
 
             <div :for={{col, i} <- Enum.with_index(@col)}>
@@ -794,14 +815,15 @@ defmodule ShophawkWeb.CoreComponents do
         :eq -> "bg-sky-200 text-stone-950"
         :gt -> "bg-cyan-800"
       end
-    color =  if runner == true, do: "bg-cyan-950", else: color
+
     color =  if status == "S", do: "bg-emerald-500 text-stone-950", else: color
-    case dots do
+    color = case dots do
       1 -> "bg-cyan-500 text-stone-950"
       2 -> "bg-amber-500 text-stone-950"
       3 -> "bg-red-600 text-stone-950"
       _ -> color
     end
+    color = if runner == true, do: "bg-cyan-950", else: color
   end
 
   defp hover_color(date, dots, runner, status) do
@@ -811,14 +833,15 @@ defmodule ShophawkWeb.CoreComponents do
         :eq -> "group-hover:bg-sky-100"
         :gt -> "group-hover:bg-cyan-700"
       end
-    color =  if runner == true, do: "group-hover:bg-cyan-900", else: color
+
     color =  if status == "S", do: "group-hover:bg-emerald-400 text-stone-950", else: color
-    case dots do
+    color = case dots do
       1 -> "group-hover:bg-cyan-400"
       2 -> "group-hover:bg-amber-400"
       3 -> "group-hover:bg-red-500"
       _ -> color
     end
+    color = if runner == true, do: "group-hover:bg-cyan-900", else: color
   end
 
   @doc """

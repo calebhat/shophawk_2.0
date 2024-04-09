@@ -87,7 +87,7 @@ defmodule Shophawk.Shop do
     query =
       from r in Runlist,
         where: r.wc_vendor in ^workcenter_list,
-        where: not is_nil(r.job_sched_end),
+        where: not is_nil(r.sched_start),
         order_by: [asc: r.sched_start, asc: r.job],
         select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
@@ -142,7 +142,7 @@ defmodule Shophawk.Shop do
               end
 
               if row.id == last_row_id do #checks for last row
-              date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
+                date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
                 new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil)
                 {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2)}}
               else

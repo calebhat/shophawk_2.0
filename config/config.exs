@@ -12,7 +12,7 @@ config :shophawk,
 
 # Configures the endpoint
 config :shophawk, ShophawkWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "192.168.2.73"],
   render_errors: [
     formats: [html: ShophawkWeb.ErrorHTML, json: ShophawkWeb.ErrorJSON],
     layout: false

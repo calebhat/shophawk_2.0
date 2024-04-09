@@ -3,28 +3,41 @@
     <div class="flex flex-none gap-4">       
       <%= if @department_id do %>      
       <form>
-        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@department_name}  />  
-        <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
-          <.button>Edit Department</.button>
-        </.link>        
-        <.link patch={~p"/runlists/#{@department_id}/assignments"} assignments={@assignments}>
-          <.button>Assignments</.button>
+        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@department_name}/>
+        <.link phx-click="refresh_department">
+          <.info_button class="ml-2">Refresh</.info_button>
         </.link>
+
+        <!--
         <.button phx-click="select_department" phx-value-selection="Select Department" class="ml-2">Show all Departments</.button>
+        -->
         </form>
       <% else %>
-        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />  
+        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" /> 
       <% end %>    
     </div> 
   </form>
   
   <:actions>    
-    <.link patch={~p"/runlists/new_department"}>
-      <.button>New Department</.button>
-    </.link>
-    <.button phx-click="test_import" class="ml-2">test import</.button>
+    <%= if @department_id do %>     
+      <.link patch={~p"/runlists/#{@department_id}/assignments"} assignments={@assignments}>
+        <.info_button>Assignments</.info_button>
+      </.link>   
+      <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
+        <.info_button>Edit Department</.info_button>
+      </.link>   
+    <% else %>
+      <.link patch={~p"/runlists/new_department"}>
+        <.button>New Department</.button>
+      </.link>
+    <% end %>
+
+    <!-- Testing purposes -->
+    <.button phx-click="test_import" class="ml-2">test function</.button>
     <.button phx-click="importall" class="ml-2">Import All Test</.button>
     <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>    
+    
+    
   </:actions>    
 </.header>
 

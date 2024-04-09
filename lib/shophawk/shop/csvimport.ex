@@ -32,7 +32,8 @@ defmodule Shophawk.Shop.Csvimport do
         |> Shop.find_matching_operations #create list of structs that already exist in DB
 
       Enum.each(operations, fn op ->
-        case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
+        IO.inspect(op.job_operation)
+        case Enum.find(existing_records, &(&1.job_operation == String.to_integer(op.job_operation))) do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
           record ->   #if the record exists, update it with the new values
@@ -43,7 +44,6 @@ defmodule Shophawk.Shop.Csvimport do
     send(caller_pid, :import_done)
   end
 
-  #FIRST JOB IMPORTED IS STILL KEEPING ""\uFEFF134023"," THE BAD PART AT BEGINNING, TROUBLESHOOT.
   def update_operations() do #for single use testing purposes
     start_time = DateTime.utc_now()
     export_last_updated() #runs sql queries to only export jobs updated since last time it ran
@@ -65,7 +65,7 @@ defmodule Shophawk.Shop.Csvimport do
         |> Shop.find_matching_operations #create list of structs that already exist in DB
 
       Enum.each(operations, fn op ->
-        case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
+        case Enum.find(existing_records, &(&1.job_operation == String.to_integer(op.job_operation))) do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
           record ->   #if the record exists, update it with the new values
@@ -79,7 +79,10 @@ defmodule Shophawk.Shop.Csvimport do
     #sets time for auto import function to start from
     File.write!(Path.join([File.cwd!(), "csv_files/last_import.text"]), DateTime.to_string(DateTime.utc_now()))
 
-    all_jobs = export_all_jobs() #creates list of every job made so far
+    #all_jobs = export_all_jobs() #creates list of every job made so far
+
+    all_jobs = export_some_jobs() #testing
+
     all_jobs_count = Enum.count(all_jobs)
     IO.inspect(all_jobs_count)
 
@@ -114,6 +117,7 @@ defmodule Shophawk.Shop.Csvimport do
     |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
     |> export_and_merge_job_operations_and_user_value()
     |> set_current_ops()
+    |> set_material_waiting()
   end
 
   def jobs_to_update() do #creates list of all jobs to update
@@ -374,6 +378,19 @@ defmodule Shophawk.Shop.Csvimport do
     Enum.reverse(operations)
   end
 
+  defp set_material_waiting(operations) do
+    IO.inspect(List.first(operations))
+    operations = Enum.map(operations, fn op ->
+      if op.currentop == "IN" do
+        Map.put_new(op, :material_waiting, true)
+      else
+        op
+      end
+    end)
+    IO.inspect(List.first(operations))
+    operations
+  end
+
   def check_if_null(value) do
     if value = "NULL", do: "", else: value
   end
@@ -454,46 +471,51 @@ defmodule Shophawk.Shop.Csvimport do
             }
         [new_map | acc]  end)
 
-      Enum.map(operations, fn %{job_operation: job_operation} = op ->
-        new_runlist_data = Enum.find(new_data_collection_map_list, &(String.to_integer(&1.job_operation) == job_operation))
+    Enum.map(operations, fn %{job_operation: job_operation} = op ->
+      new_runlist_data = Enum.find(new_data_collection_map_list, &((&1.job_operation) == job_operation))
 
-        if new_runlist_data do
-          {:ok, work_date, _} = DateTime.from_iso8601(String.replace(new_runlist_data.work_date, " ", "T") <> "Z")
-          work_date = Calendar.strftime(work_date, "%m-%d-%y")
+      if new_runlist_data do
 
-          new_runlist_data =
-          %{}
-          |> Map.put(:act_run_hrs,
-            case op.act_run_hrs do
-              nil -> String.to_float(op.act_run_hrs)
-              _ -> op.act_run_hrs + String.to_float(new_runlist_data.act_run_hrs)
-            end)
-          |> Map.put(:act_run_qty,
-            case op.act_run_qty do
-              nil -> String.to_integer(new_runlist_data.act_run_qty)
-              _ -> op.act_run_qty + String.to_integer(new_runlist_data.act_run_qty)
-            end)
-          |> Map.put(:act_scrap_qty,
-            case op.act_scrap_qty do
-              nil -> String.to_integer(new_runlist_data.act_scrap_qty)
-              _ -> op.act_scrap_qty + String.to_integer(new_runlist_data.act_scrap_qty)
-            end)
-          |> Map.put(:data_collection_note_text,
-            case op.data_collection_note_text do
-              nil -> op.data_collection_note_text
-              _ -> op.data_collection_note_text <> " | " <> new_runlist_data.data_collection_note_text
-            end)
-          |> Map.put(:employee,
-            case op.employee do
-              nil -> new_runlist_data.employee <> ": " <> work_date
-              _ -> op.employee <> " | " <> new_runlist_data.employee <> ": " <> work_date
-            end)
+        {:ok, work_date, _} = DateTime.from_iso8601(String.replace(new_runlist_data.work_date, " ", "T") <> "Z")
+        work_date = Calendar.strftime(work_date, "%m-%d-%y")
 
-          Map.merge(op, new_runlist_data)
-        else
-          op
-        end
-      end)
+        new_runlist_data =
+        %{}
+        |> Map.put(:act_run_hrs,
+          case op.act_run_hrs do
+            nil -> String.to_float(op.act_run_hrs)
+            _ -> op.act_run_hrs + String.to_float(new_runlist_data.act_run_hrs)
+          end)
+        |> Map.put(:act_run_qty,
+          case op.act_run_qty do
+            nil -> String.to_integer(new_runlist_data.act_run_qty)
+            _ -> op.act_run_qty + String.to_integer(new_runlist_data.act_run_qty)
+          end)
+        |> Map.put(:act_scrap_qty,
+          case op.act_scrap_qty do
+            nil -> String.to_integer(new_runlist_data.act_scrap_qty)
+            _ -> op.act_scrap_qty + String.to_integer(new_runlist_data.act_scrap_qty)
+          end)
+        |> Map.put(:data_collection_note_text,
+          case op.data_collection_note_text do
+            nil -> op.data_collection_note_text
+            _ -> op.data_collection_note_text <> " | " <> new_runlist_data.data_collection_note_text
+          end)
+        |> Map.put(:employee,
+          case op.employee do
+            nil -> new_runlist_data.employee <> ": " <> work_date
+            _ -> op.employee <> " | " <> new_runlist_data.employee <> ": " <> work_date
+          end)
+
+        map = Map.merge(op, new_runlist_data)
+        #if op.job == "133992" do
+        #  IO.inspect(op)
+        #end
+        #map
+      else
+        op
+      end
+    end)
   end
 
   def uservalues_merge(operations, file) do
@@ -651,7 +673,6 @@ defmodule Shophawk.Shop.Csvimport do
       end
 
     if sql_export != "" do
-      #IO.inspect(sql_export)
       File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
       System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
 
@@ -724,6 +745,23 @@ defmodule Shophawk.Shop.Csvimport do
   path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
   export = """
   sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE status != 'Template'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
+  """
+  sql_export = EEx.eval_string(export, [path: path])
+  File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+  System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+  File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
+    |> Stream.map(&String.trim(&1))
+    |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+    |> Stream.reject(&String.contains?(&1, "("))
+    |> Stream.reject(&(&1 == ""))
+    |> Enum.to_list()
+  end
+
+  defp export_some_jobs() do #FOR TESTING SMALL DATASETS
+  #Jobs
+  path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+  export = """
+  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE status != 'Template' AND Status='Active'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
   """
   sql_export = EEx.eval_string(export, [path: path])
   File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)

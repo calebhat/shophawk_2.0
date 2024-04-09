@@ -75,6 +75,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
     socket =
       assign(socket,
+      department_loads: nil,
         department_id: department.id,
         deparment_name: department.department)
 
@@ -96,6 +97,12 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_info({ShophawkWeb.RunlistLive.ViewAssignments, {:delete}}, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("refresh_department", _, socket) do
+    {:noreply, socket
+      |> assign(department_loads: nil)
+      |> load_runlist(socket.assigns.department_id)}
   end
 
   def handle_event("select_department", %{"selection" => department}, socket) do
@@ -176,6 +183,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     socket =
       case department_id do
         nil ->
+            IO.inspect("here")
             socket
             |> assign(department_id: nil)
             |> stream(:runlists, [], reset: true)
@@ -184,14 +192,12 @@ defmodule ShophawkWeb.RunlistLive.Index do
         department = Shop.get_department!(department_id)
         workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
         assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
-        {runlist, weekly_load} =
-          Shop.list_runlists(workcenter_list, department)
+        {runlist, weekly_load} = Shop.list_runlists(workcenter_list, department)
 
         dots =
           runlist
           |> Enum.reject(fn %{id: id} -> id == 0 end)
           |> Enum.reduce(%{}, fn row, acc ->
-            #Map.put_new(acc, :ops, [])
             case row.dots do
               1 -> Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)
               2 -> Map.put_new(acc, :two, "bg-amber-500 text-stone-950") |> Map.update(:ops, [row], fn list -> list ++ [row] end)
@@ -200,12 +206,26 @@ defmodule ShophawkWeb.RunlistLive.Index do
             end
           end)
 
+        unique_ops_list =
+          Enum.reduce(dots[:ops], %{}, fn runlist, acc ->
+            if Map.has_key?(acc, runlist.job) do
+              acc
+            else
+              Map.put(acc, runlist.job, runlist)
+            end
+          end)
+          |> Map.values
+          |> Enum.reverse
+        dots = Map.put(dots, :ops, unique_ops_list)
+
         dots = case Map.size(dots) do
           2 -> Map.put_new(dots, :dot_columns, "grid-cols-1")
           3 -> Map.put_new(dots, :dot_columns, "grid-cols-2")
           4 -> Map.put_new(dots, :dot_columns, "grid-cols-3")
           _ -> dots
         end
+
+
 
         socket
         |> assign(dots: dots)
