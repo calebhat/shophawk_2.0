@@ -23,7 +23,7 @@ defmodule Shophawk.Repo.Migrations.CreateRunlists do
       add :open_operations, :integer
       add :shipped_quantity, :integer
       add :customer_po, :string
-      add :customer_po_line, :integer
+      add :customer_po_line, :string
       add :job_sched_end, :date
       add :job_sched_start, :date
       add :note_text, :string

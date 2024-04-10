@@ -32,7 +32,6 @@ defmodule Shophawk.Shop.Csvimport do
         |> Shop.find_matching_operations #create list of structs that already exist in DB
 
       Enum.each(operations, fn op ->
-        IO.inspect(op.job_operation)
         case Enum.find(existing_records, &(&1.job_operation == String.to_integer(op.job_operation))) do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
@@ -79,14 +78,14 @@ defmodule Shophawk.Shop.Csvimport do
     #sets time for auto import function to start from
     File.write!(Path.join([File.cwd!(), "csv_files/last_import.text"]), DateTime.to_string(DateTime.utc_now()))
 
-    #all_jobs = export_all_jobs() #creates list of every job made so far
+    all_jobs = export_all_jobs() #creates list of every job made so far
 
-    all_jobs = export_some_jobs() #testing
+    #all_jobs = export_some_jobs() #testing
 
     all_jobs_count = Enum.count(all_jobs)
-    IO.inspect(all_jobs_count)
+    #IO.inspect(all_jobs_count)
 
-    Stream.chunk_every(all_jobs, 500) #breaks the list up into chunks
+    Stream.chunk_every(all_jobs, 400) #breaks the list up into chunks
     |> Enum.map(fn jobs_chunk ->
       start = DateTime.utc_now()
       operations =
@@ -379,7 +378,6 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   defp set_material_waiting(operations) do
-    IO.inspect(List.first(operations))
     operations = Enum.map(operations, fn op ->
       if op.currentop == "IN" do
         Map.put_new(op, :material_waiting, true)
@@ -387,7 +385,6 @@ defmodule Shophawk.Shop.Csvimport do
         op
       end
     end)
-    IO.inspect(List.first(operations))
     operations
   end
 

@@ -40,7 +40,7 @@ defmodule ShophawkWeb.RunlistLive.FormComponent do
         <.input field={@form[:complete_operations]} type="number" label="Complete operations" />
         <.input field={@form[:shipped_quantity]} type="number" label="Shipped quantity" />
         <.input field={@form[:customer_po]} type="text" label="Customer po" />
-        <.input field={@form[:customer_po_line]} type="number" label="Customer po line" />
+        <.input field={@form[:customer_po_line]} type="text" label="Customer po line" />
         <.input field={@form[:job_sched_end]} type="date" label="Job sched end" />
         <.input field={@form[:job_sched_start]} type="date" label="Job sched start" />
         <.input field={@form[:note_text]} type="text" label="Note text" />

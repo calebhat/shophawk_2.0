@@ -1,5 +1,5 @@
 <.header>
-  <form> 
+  <form>
     <div class="flex flex-none gap-4">       
       <%= if @department_id do %>      
       <form>
@@ -17,6 +17,7 @@
       <% end %>    
     </div> 
   </form>
+
   
   <:actions>    
     <%= if @department_id do %>     
@@ -32,35 +33,35 @@
       </.link>
     <% end %>
 
-    <!-- Testing purposes -->
+    <!-- Testing purposes 
     <.button phx-click="test_import" class="ml-2">test function</.button>
     <.button phx-click="importall" class="ml-2">Import All Test</.button>
     <.button phx-click="5_minute_import" class="ml-2">5_minute_import Test</.button>    
-    
+    -->
     
   </:actions>    
 </.header>
 
   <%= if @department_loads do  %>
-  <br>
-  <div>
-    <div class="bg-cyan-800 pt-4 rounded-t-lg">
-    <%= for department <- @department_loads do %>      
-        <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
-            <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
-            <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
-            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
-            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
-            <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
-            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
-          </div>    
-        </div>  
-    <% end %>
+    <br>
+    <div>
+      <div class="bg-cyan-800 pt-4 rounded-t-lg">
+      <%= for department <- @department_loads do %>      
+          <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
+              <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
+              <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
+              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
+              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
+              <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
+              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
+            </div>    
+          </div>  
+      <% end %>
+      </div>
     </div>
-  </div>
   <% else %>
-  <%= if @streams.runlists.inserts == [] do %>
-  <br>
+    <%= if @streams.runlists.inserts == [] do %>
+    <br>
     <div class="bg-cyan-800 rounded-lg p-4 text-center text-white text-2xl">    
       <div class="loader"/>
     </div>

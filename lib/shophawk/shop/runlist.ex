@@ -34,7 +34,7 @@ defmodule Shophawk.Shop.Runlist do
     field :sched_end, :date
     field :est_total_hrs, :float
     field :extra_quantity, :integer
-    field :customer_po_line, :integer
+    field :customer_po_line, :string
     field :released_date, :date
     field :material, :string
     field :employee, :string

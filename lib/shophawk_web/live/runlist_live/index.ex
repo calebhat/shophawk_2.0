@@ -183,7 +183,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     socket =
       case department_id do
         nil ->
-            IO.inspect("here")
             socket
             |> assign(department_id: nil)
             |> stream(:runlists, [], reset: true)
@@ -205,27 +204,28 @@ defmodule ShophawkWeb.RunlistLive.Index do
               _ -> acc
             end
           end)
-
-        unique_ops_list =
-          Enum.reduce(dots[:ops], %{}, fn runlist, acc ->
-            if Map.has_key?(acc, runlist.job) do
-              acc
+          dots = case Map.size(dots) do
+            2 -> Map.put_new(dots, :dot_columns, "grid-cols-1")
+            3 -> Map.put_new(dots, :dot_columns, "grid-cols-2")
+            4 -> Map.put_new(dots, :dot_columns, "grid-cols-3")
+            _ -> dots
+          end
+          dots =
+            if dots[:ops] != nil do
+              unique_ops_list =
+                Enum.reduce(dots[:ops], %{}, fn runlist, acc ->
+                  if Map.has_key?(acc, runlist.job) do
+                    acc
+                  else
+                    Map.put(acc, runlist.job, runlist)
+                  end
+                end)
+                |> Map.values
+                |> Enum.reverse
+              dots = Map.put(dots, :ops, unique_ops_list)
             else
-              Map.put(acc, runlist.job, runlist)
+              dots
             end
-          end)
-          |> Map.values
-          |> Enum.reverse
-        dots = Map.put(dots, :ops, unique_ops_list)
-
-        dots = case Map.size(dots) do
-          2 -> Map.put_new(dots, :dot_columns, "grid-cols-1")
-          3 -> Map.put_new(dots, :dot_columns, "grid-cols-2")
-          4 -> Map.put_new(dots, :dot_columns, "grid-cols-3")
-          _ -> dots
-        end
-
-
 
         socket
         |> assign(dots: dots)

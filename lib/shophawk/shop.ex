@@ -23,22 +23,25 @@ defmodule Shophawk.Shop do
     |> Enum.map(fn map ->
       map = case map do
         %{operation_service: nil} -> Map.put(map, :operation_service, nil)
+        %{operation_service: ""} -> Map.put(map, :operation_service, nil)
         %{operation_service: value} -> Map.put(map, :operation_service, " -" <> value)
         _other_map -> _other_map
       end
       |> Map.put(:status, status_change(map.status))
+      map = if map.rev == nil, do: Map.put(map, :rev, ""), else: Map.put(map, :rev, ", Rev: " <> map.rev)
+      map = if map.customer_po_line == nil, do: Map.put(map, :customer_po_line, ""), else: map
     end)
-
-    {jobs, sort_job_info(jobs)}
+    [job | tail] = jobs
+    {jobs, sort_job_info(job)}
   end
 
-  def sort_job_info([job | _rest]) do
+  def sort_job_info(job) do
     %{}
-    |> Map.put(:part_number, job.part_number <> " Rev: " <> job.rev)
+    |> Map.put(:part_number, job.part_number <> job.rev)
     |> Map.put(:order_quantity, job.order_quantity)
     |> Map.put(:customer, job.customer)
     |> Map.put(:customer_po, job.customer_po)
-    |> Map.put(:customer_po_line, Integer.to_string(job.customer_po_line))
+    |> Map.put(:customer_po_line, job.customer_po_line)
     |> Map.put(:description, job.description)
     |> Map.put(:material, job.material)
   end
@@ -88,6 +91,7 @@ defmodule Shophawk.Shop do
       from r in Runlist,
         where: r.wc_vendor in ^workcenter_list,
         where: not is_nil(r.sched_start),
+        where: not is_nil(r.job_sched_end),
         order_by: [asc: r.sched_start, asc: r.job],
         select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
@@ -100,8 +104,9 @@ defmodule Shophawk.Shop do
 
     runlists = Repo.all(query)
     |> Enum.map(fn row ->
-      case row.operation_service do
+      case row.operation_service do #combines wc_vendor and operation_service if needed
         nil -> row
+        "" -> row
         _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
       end
     end)

@@ -753,7 +753,7 @@ defmodule ShophawkWeb.CoreComponents do
             <div :for={{col, i} <- Enum.with_index(@col)}>
                 <%= case i do %>
                 <% 8 -> %>
-                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={[ "h-12 block" ]} >
                     <form phx-change="change_assignment" phx-value-id={elem(row, 1).id}>
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
