@@ -203,9 +203,19 @@ defmodule Shophawk.Shop do
             end
           end
 
+          at_location_sorter = fn map ->
+            exact_wc_vendor = String.replace(Map.get(map, :wc_vendor), " -#{map.operation_service}", "")
+            currentop = Map.get(map, :currentop)
+            case exact_wc_vendor do
+              ^currentop -> 0
+              _ -> 2
+            end
+          end
+
           main_ops =
             Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
             |> Enum.sort_by(dot_sorter)
+            |> Enum.sort_by(at_location_sorter)
 
           started_ops =
             Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)

@@ -748,7 +748,7 @@ defmodule ShophawkWeb.CoreComponents do
 
             <% else %>
 
-            <% exact_wc_vendor = if elem(row, 1).operation_service != nil, do: String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", ""), else: elem(row, 1).wc_vendor  %>
+            <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
 
             <div :for={{col, i} <- Enum.with_index(@col)}>
                 <%= case i do %>
