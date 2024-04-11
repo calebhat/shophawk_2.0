@@ -2,8 +2,36 @@ defmodule Shophawk.Shop.Csvimport do
   alias Shophawk.Shop.Runlist
   alias Shophawk.Shop
 
-  def rework_to_do do #for testing
-    update_operations()
+  def rework_to_do do #imports/syncs last ~2 hours of updated jobs
+    start_time = DateTime.utc_now()
+    export_last_updated(10000000) #runs sql queries to only export jobs updated since last time it ran
+    jobs_to_update = jobs_to_update() #creates list of all jobs #'s that have a change somewhere
+  IO.inspect(Enum.count(jobs_to_update))
+    if jobs_to_update != [] do
+      operations =
+        Enum.chunk_every(jobs_to_update, 500) #breaks the list up into chunks
+        |> Enum.map(fn jobs_chunk ->
+          load_and_merge_job_chunk(jobs_chunk)
+        end)
+        |> Enum.reduce([], fn result, acc ->
+          acc ++ result
+        end)
+
+      existing_records = #get structs of all operations needed for update
+        Enum.map(operations, &(&1.job_operation))
+        |> Enum.uniq #makes list of operation ID's to check for
+        |> Shop.find_matching_operations #create list of structs that already exist in DB
+
+      Enum.each(operations, fn op ->
+        case Enum.find(existing_records, &(&1.job_operation == String.to_integer(op.job_operation))) do
+          nil -> #if the record does not exist, create a new one for it
+            Shop.create_runlist(op)
+          record ->   #if the record exists, update it with the new values
+            Shop.update_runlist(record, op)
+          end
+      end)
+    end
+    IO.puts("Import Complete - " <> Integer.to_string(Enum.count(jobs_to_update)) <> " Jobs Updated")
   end
 
   def save_enum_to_text(data) do
@@ -13,7 +41,7 @@ defmodule Shophawk.Shop.Csvimport do
 
   def update_operations(caller_pid) do #quick import of most recent changes, updates currentop too.
     start_time = DateTime.utc_now()
-    export_last_updated() #runs sql queries to only export jobs updated since last time it ran
+    export_last_updated(0) #runs sql queries to only export jobs updated since last time it ran
     jobs_to_update = jobs_to_update() #creates list of all jobs #'s that have a change somewhere
 
     if jobs_to_update != [] do
@@ -40,12 +68,13 @@ defmodule Shophawk.Shop.Csvimport do
           end
       end)
     end
+    IO.puts("Import Complete - " <> Integer.to_string(Enum.count(jobs_to_update)) <> " Jobs Updated")
     send(caller_pid, :import_done)
   end
 
   def update_operations() do #for single use testing purposes
     start_time = DateTime.utc_now()
-    export_last_updated() #runs sql queries to only export jobs updated since last time it ran
+    export_last_updated(0) #runs sql queries to only export jobs updated since last time it ran
     jobs_to_update = jobs_to_update() #creates list of all jobs #'s that have a change somewhere
 
     if jobs_to_update != [] do
@@ -472,7 +501,6 @@ defmodule Shophawk.Shop.Csvimport do
       new_runlist_data = Enum.find(new_data_collection_map_list, &((&1.job_operation) == job_operation))
 
       if new_runlist_data do
-
         {:ok, work_date, _} = DateTime.from_iso8601(String.replace(new_runlist_data.work_date, " ", "T") <> "Z")
         work_date = Calendar.strftime(work_date, "%m-%d-%y")
 
@@ -594,30 +622,30 @@ defmodule Shophawk.Shop.Csvimport do
     end
   end
 
-  defp export_last_updated() do #changes short term batch files to export from database based on last export time.
+  defp export_last_updated(additional_seconds) do #changes short term batch files to export from database based on last export time.
     {:ok, prev_date, _} = File.read!(Path.join([File.cwd!(), "csv_files/last_export.text"])) |> DateTime.from_iso8601()
-    time = DateTime.diff(prev_date, DateTime.utc_now(), :millisecond)
-    if time == 0, do: time = -1
-    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.utc_now()))
+    time = DateTime.diff(prev_date, DateTime.truncate(DateTime.utc_now(), :second))
+    time = time - additional_seconds
+    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.truncate(DateTime.utc_now(), :second)))
 
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(SECOND,<%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(SECOND,<%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
     """
     sql_export = EEx.eval_string(export, [time: time, path: path])
 
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(SECOND, <%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     #material
     path = Path.join([File.cwd!(), "csv_files/material.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(SECOND, <%= time %> / 1000,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(SECOND, <%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
