@@ -4,7 +4,7 @@ defmodule Shophawk.Shop.Csvimport do
 
   def rework_to_do do #imports/syncs last ~2 hours of updated jobs
     start_time = DateTime.utc_now()
-    export_last_updated(10000000) #runs sql queries to only export jobs updated since last time it ran
+    export_last_updated(60000) #runs sql queries to only export jobs updated since last time it ran
     jobs_to_update = jobs_to_update() #creates list of all jobs #'s that have a change somewhere
   IO.inspect(Enum.count(jobs_to_update))
     if jobs_to_update != [] do
@@ -27,6 +27,7 @@ defmodule Shophawk.Shop.Csvimport do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
           record ->   #if the record exists, update it with the new values
+            op = merge_existing_data_collection(record, op)
             Shop.update_runlist(record, op)
           end
       end)
@@ -64,6 +65,7 @@ defmodule Shophawk.Shop.Csvimport do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
           record ->   #if the record exists, update it with the new values
+            op = merge_existing_data_collection(record, op)
             Shop.update_runlist(record, op)
           end
       end)
@@ -97,11 +99,96 @@ defmodule Shophawk.Shop.Csvimport do
           nil -> #if the record does not exist, create a new one for it
             Shop.create_runlist(op)
           record ->   #if the record exists, update it with the new values
+            op = merge_existing_data_collection(record, op)
             Shop.update_runlist(record, op)
           end
       end)
     end
   end
+
+  def merge_existing_data_collection(record, op) do
+    op =
+      if op.employee != nil do
+        new_runlist_data =
+          %{}
+          |> Map.put(:act_run_hrs,
+            case op.act_run_hrs do
+              nil -> record.act_run_hrs
+              _ -> op.act_run_hrs + record.act_run_hrs
+            end)
+          |> Map.put(:act_run_qty,
+            case op.act_run_qty do
+              nil -> record.act_run_qty
+              _ -> op.act_run_qty + record.act_run_qty
+            end)
+          |> Map.put(:act_scrap_qty,
+            case op.act_scrap_qty do
+              nil -> record.act_scrap_qty
+              _ -> op.act_scrap_qty + record.act_scrap_qty
+            end)
+          |> Map.put(:data_collection_note_text,
+            case op.data_collection_note_text do
+              nil -> record.data_collection_note_text
+              _ -> record.data_collection_note_text <> " | " <> op.data_collection_note_text
+            end)
+          |> Map.put(:employee,
+            case op.employee do
+              nil -> record.employee
+              _ ->
+                if record.employee != nil do
+                  record.employee <> " | " <> op.employee
+                  |> String.split("|")
+                  |> Enum.map(&String.trim/1)
+                  |> Enum.uniq
+                  |> Enum.join(" | ")
+                else
+                  op.employee
+                end
+            end)
+          Map.merge(op, new_runlist_data)
+      else
+        op
+      end
+  end
+
+  def temp_merge_data_collection() do
+    start_time = DateTime.utc_now()
+    jobs_to_update = ["131737"]#jobs_to_update() #creates list of all jobs #'s that have a change somewhere
+
+    if jobs_to_update != [] do
+      operations =
+        Enum.chunk_every(jobs_to_update, 500) #breaks the list up into chunks
+        |> Enum.map(fn jobs_chunk ->
+
+
+          #code from load_and_merge_job_chunk(jobs_chunk)
+          export_job_chunk(jobs_chunk) #export csv files for each chunk.
+          operations =
+            runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
+            |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
+            |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
+          #Isolated function for merging data collection
+          Enum.map(operations, fn map ->
+            map
+            |> Map.update(:est_total_hrs, 0.00, fn hrs -> Float.round(String.to_float(hrs), 2) end)
+            |> Map.put_new(:currentop, nil) #add keys for data_collection_merge after the changeset
+            |> Map.put_new(:employee, nil) #add needed keys for data-collection merge
+            |> Map.put_new(:work_date, nil)
+            |> Map.put_new(:act_setup_hrs, 0.0)
+            |> Map.put_new(:act_run_hrs, 0.0)
+            |> Map.put_new(:act_run_qty, 0.0)
+            |> Map.put_new(:act_scrap_qty, 0.0)
+            |> Map.put_new(:data_collection_note_text, nil)
+            end)
+            |> data_collection_merge(Path.join([File.cwd!(), "csv_files/operationtime.csv"]))
+
+            end)
+            |> Enum.reduce([], fn result, acc ->
+              acc ++ result
+        end)
+    end
+    end
+
 
   def import_all_history() do
     #sets time for auto import function to start from
@@ -498,9 +585,16 @@ defmodule Shophawk.Shop.Csvimport do
         [new_map | acc]  end)
 
     Enum.map(operations, fn %{job_operation: job_operation} = op ->
+
+      #change Enum.find to Enum.filter, making a list of all collection entries.
+      #Enum.each to enter them all on similar to collection merge later on?
       new_runlist_data = Enum.find(new_data_collection_map_list, &((&1.job_operation) == job_operation))
 
-      if new_runlist_data do
+
+
+
+
+      if new_runlist_data != nil do
         {:ok, work_date, _} = DateTime.from_iso8601(String.replace(new_runlist_data.work_date, " ", "T") <> "Z")
         work_date = Calendar.strftime(work_date, "%m-%d-%y")
 
@@ -533,10 +627,6 @@ defmodule Shophawk.Shop.Csvimport do
           end)
 
         map = Map.merge(op, new_runlist_data)
-        #if op.job == "133992" do
-        #  IO.inspect(op)
-        #end
-        #map
       else
         op
       end
