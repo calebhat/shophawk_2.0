@@ -15,7 +15,7 @@ defmodule ScheduledTasks do
 
   def handle_info(:run_task, _state) do
     # 1. Execute your function here
-    Csvimport.update_operations(self())
+    Csvimport.update_operations(self(), 0)
     #IO.puts("import Started")
     {:noreply, nil}
   end

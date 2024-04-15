@@ -61,10 +61,10 @@ defmodule Shophawk.Shop do
     |> Enum.each(fn chunk -> Repo.insert_all(Runlist, chunk) end)
   end
 
-  def find_matching_operations(operations) do #used in csvimport
+  def find_matching_operations(operations_list) do #used in csvimport
     query =
       from r in Runlist,
-      where: r.job_operation in ^operations
+      where: r.job_operation in ^operations_list
       Repo.all(query)
     end
 

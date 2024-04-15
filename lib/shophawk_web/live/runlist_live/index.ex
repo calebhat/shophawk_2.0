@@ -167,15 +167,12 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, stream(socket, :runlists, [])}
   end
 
-  def handle_event("5_minute_import", _, socket) do
-    Csvimport.temp_merge_data_collection()
-    #Csvimport.update_operations()
-    socket
-
+  def handle_event("time_based_import", _, socket) do
+    Csvimport.update_operations(nil, 0)
     {:noreply, stream(socket, :runlists, [])}
   end
 
-  def handle_event("test_import", _, socket) do
+  def handle_event("rework_to_do", _, socket) do
     Csvimport.rework_to_do()
   {:noreply, socket}
   end
