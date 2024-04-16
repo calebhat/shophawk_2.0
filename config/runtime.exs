@@ -17,7 +17,9 @@ import Config
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 
-  env = System.get_env("MIX_INV")
+  env = System.get_env("MIX_ENV")
+  #secret_key_base = System.get_env("SECRET_KEY_BASE")
+  IO.inspect(env)
   if env == "prod" do
     # Configure your database
     config :shophawk, Shophawk.Repo,
@@ -34,14 +36,14 @@ import Config
       # want to use a different value for prod and you most likely don't want
       # to check this value into version control, so we use an environment
       # variable instead.
-    secret_key_base =
+      secret_key_base = #"PR0sWJL4C/5YD5vdh5Qu2mHVMaNRGCYZVTwIDVrN1ubHkCIWMminkcR1xEF8hza3"
       System.get_env("SECRET_KEY_BASE") ||
         raise """
         environment variable SECRET_KEY_BASE is missing.
         You can generate one by calling: mix phx.gen.secret
         """
 
-    host = System.get_env("PHX_HOST") || "127.0.0.1"
+        host = System.get_env("PHX_HOST") || "127.0.0.1"
     port = String.to_integer(System.get_env("PORT") || "4001")
 
     config :shophawk, ShophawkWeb.Endpoint,

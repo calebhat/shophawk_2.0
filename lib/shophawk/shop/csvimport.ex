@@ -3,42 +3,9 @@ defmodule Shophawk.Shop.Csvimport do
   alias Shophawk.Shop
 
   def rework_to_do do
-#WORKING, NEED TO RUN ON PROD DB TO SYNC ALL OLD DATA COLLECTION.
-    Enum.chunk_every(export_active_jobs() , 500) #breaks the list up into chunks
-    |> Enum.map(fn jobs_chunk ->
-      export_job_chunk(jobs_chunk) #export csv files for each chunk.
-      operations = runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
-
-      job_operations_to_export =
-        operations
-        |> Enum.map(&Map.get(&1, :job_operation))
-        |> case do
-          [] -> false
-          job_operations -> "(" <> Enum.join(job_operations, ", ") <> ")"
-        end
-
-      sql_export =
-        if job_operations_to_export do
-          #Job_operation_time
-          path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
-          export = """
-          sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Job_Operation in <%= job_operations_to_export %> ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
-          """
-          EEx.eval_string(export, [job_operations_to_export: job_operations_to_export, path: path])
-        else
-          ""
-        end
-
-      if sql_export != "" do
-        File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-        System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-      end
-      #LIST OF OPERATIONS FROM OPERATIONS LIST
-
-      update_data_collection_only()
-    end)
 
   end
+
 
   def save_enum_to_text(data) do
     file_content = Enum.reduce(data, "", fn map, acc -> acc <> inspect(map) <> "\n" end)
@@ -98,7 +65,7 @@ defmodule Shophawk.Shop.Csvimport do
           end
       end)
     else
-      update_data_collection_only()
+      update_data_collection_only(true)
     end
     IO.puts("Import Complete - " <> Integer.to_string(Enum.count(jobs_to_update)) <> " Jobs Updated")
     if caller_pid != nil do
@@ -106,7 +73,7 @@ defmodule Shophawk.Shop.Csvimport do
     end
   end
 
-  def update_data_collection_only() do
+  def update_data_collection_only(merge_with_existing_data) do
     process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
     existing_records =
       File.stream!(Path.join([File.cwd!(), "csv_files/operationtime.csv"]))
@@ -134,7 +101,12 @@ defmodule Shophawk.Shop.Csvimport do
       Enum.each(merged_ops, fn op ->
         case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
           existing_record ->   #if the record exists, update it with the new values
-            op = merge_existing_data_collection(existing_record, op) |> Map.from_struct
+            op =
+              if merge_with_existing_data = true do
+                merge_existing_data_collection(existing_record, op) |> Map.from_struct
+              else
+                Map.to_struct(op)
+              end
             Shop.update_runlist(existing_record, op)
           _ -> nil
           end
@@ -170,7 +142,8 @@ defmodule Shophawk.Shop.Csvimport do
             case op.data_collection_note_text do
               nil -> record.data_collection_note_text
               "" -> record.data_collection_note_text
-              _ -> record.data_collection_note_text <> " | " <> op.data_collection_note_text
+              _ -> new_string = record.data_collection_note_text <> " | " <> op.data_collection_note_text
+                   if String.length(new_string) > 220, do: String.slice(record.data_collection_note_text, 0, 230), else: new_string
             end)
           |> Map.put(:employee,
             case op.employee do
@@ -178,11 +151,12 @@ defmodule Shophawk.Shop.Csvimport do
               "" -> record.employee
               _ ->
                 if record.employee != nil do
-                  record.employee <> " | " <> op.employee
+                  new_string = record.employee <> " | " <> op.employee
                   |> String.split("|")
                   |> Enum.map(&String.trim/1)
                   |> Enum.uniq
                   |> Enum.join(" | ")
+                  if String.length(new_string) > 220, do: record.employee, else: new_string
                 else
                   op.employee
                 end
@@ -585,13 +559,15 @@ defmodule Shophawk.Shop.Csvimport do
             case new_runlist_data_op.data_collection_note_text do
               "" -> map.data_collection_note_text
               nil -> map.data_collection_note_text
-              _ -> map.data_collection_note_text <> " | " <> new_runlist_data_op.data_collection_note_text
+              _ -> new_string = map.data_collection_note_text <> " | " <> new_runlist_data_op.data_collection_note_text
+                   if String.length(new_string) > 220, do: String.slice(map.data_collection_note_text, 0, 230), else: new_string
             end)
           |> Map.put(:employee,
             case new_runlist_data_op.employee do
               "" -> map.employee
               nil -> map.employee
-              _ -> map.employee <> " | " <> new_runlist_data_op.employee <> ": " <> work_date
+              _ -> new_string = map.employee <> " | " <> new_runlist_data_op.employee <> ": " <> work_date
+                   if String.length(new_string) > 220, do: map.employee, else: new_string
             end)
         end)
       else
@@ -875,6 +851,61 @@ defmodule Shophawk.Shop.Csvimport do
     |> Stream.reject(&String.contains?(&1, "("))
     |> Stream.reject(&(&1 == ""))
     |> Enum.to_list()
+  end
+
+  def resync_data_collection do
+    jobs = export_all_jobs()
+    IO.inspect(Enum.count(jobs))
+    current_chunk = 0
+    #jobs = export_active_jobs()
+    Enum.chunk_every(jobs , 250) #breaks the list up into chunks
+    |> chunk_import_loop(0)
+
+    IO.inspect("update complete")
+  end
+
+  def chunk_import_loop([],  _current_chunk), do: :ok
+
+  def chunk_import_loop([jobs_chunk | remaining_chunks], chunk_index) do
+    File.write!(Path.join([File.cwd!(), "csv_files/import_chunk.text"]), Integer.to_string(chunk_index))
+    IO.inspect(chunk_index)
+    if chunk_index > 460 do
+      import_chunk(jobs_chunk)
+    end
+    chunk_import_loop(remaining_chunks, chunk_index + 1)
+  end
+
+  defp import_chunk(jobs_chunk) do
+    export_job_chunk(jobs_chunk) #export csv files for each chunk.
+    operations = runlist_ops(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
+
+    job_operations_to_export =
+      operations
+      |> Enum.map(&Map.get(&1, :job_operation))
+      |> case do
+        [] -> false
+        job_operations -> "(" <> Enum.join(job_operations, ", ") <> ")"
+      end
+
+    sql_export =
+      if job_operations_to_export do
+        #Job_operation_time
+        path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
+        export = """
+        sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Job_Operation in <%= job_operations_to_export %> ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
+        """
+        EEx.eval_string(export, [job_operations_to_export: job_operations_to_export, path: path])
+      else
+        ""
+      end
+
+    if sql_export != "" do
+      File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+      System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+    end
+    #LIST OF OPERATIONS FROM OPERATIONS LIST
+
+    update_data_collection_only(false)
   end
 
 end

@@ -29,7 +29,7 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
 
 
         <br>
-        <div class="grid grid-cols-2">
+        <div class="grid grid-cols-1">
         <div class="flex justify-center">
           <.link patch={~p"/runlists/#{@department_id}/new_assignment"}>
           <button
@@ -42,19 +42,6 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
             New Assignment
           </button>
           </.link>
-          </div>
-          <div class="flex justify-center">
-            <button
-              phx-click={JS.exec("data-cancel", to: "#assignment-modal")}
-              type="submit"
-              class={[
-                "rounded-lg bg-lime-800 hover:bg-lime-700 py-1.5 text-center",
-                "text-sm font-semibold text-white active:text-white/80 w-44"
-              ]}
-              aria-label={gettext("close")}
-            >
-              Save
-            </button>
           </div>
         </div>
       </body>
