@@ -1,0 +1,1 @@
+﻿sqlcmd -S GEARSERVER\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [HolidayName] ,[HolidayStart] ,[HolidayEnd] FROM [PRODUCTION].[dbo].[Holiday] WHERE Shift='668B4614-5E2B-418E-B156-2045FA0E8CDF'" -o "C:\phoenixapps\shophawk\csv_files\blackoutdates.csv" -W -w 1024 -s "`" -f 65001
