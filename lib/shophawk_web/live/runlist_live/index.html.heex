@@ -64,7 +64,7 @@
     <%= if @streams.runlists.inserts == [] do %>
     <br>
     <div class="bg-cyan-800 rounded-lg p-4 text-center text-white text-2xl">    
-      <div class="loader"/>
+      <div class="loader"></div>
     </div>
     <% end  %>
   <% end %>
@@ -78,8 +78,7 @@
     <% end  %>
   <% end  %>
 
-<%= if @streams.runlists.inserts != [] do %>
-
+<%= if @streams.runlists.inserts != [] do %>  
   <.runlist_table
     id="runlists"
     rows={@streams.runlists}
@@ -89,20 +88,18 @@
     dots={@dots}
     row_click={fn {_id, runlist} -> "show_job" end}
   >
-    <:col :let={{_id, runlist}} label="Job" headerstyle="w-20 text-center" cellstyle="text-center"><%= runlist.job %></:col>
-    <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14 text-center" cellstyle=""><%= runlist.order_quantity %></:col>
-    <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-14 text-center" cellstyle=""><%= runlist.est_total_hrs %></:col>
-    <:col :let={{_id, runlist}} label="Material" headerstyle="w-40" cellstyle=""><%= runlist.material %></:col>
-    <:col :let={{_id, runlist}} label="Part number" headerstyle="w-32" cellstyle=""><%= runlist.part_number %></:col>
-    <:col :let={{_id, runlist}} label="Description" headerstyle="w-fit" cellstyle=""><%= runlist.description %></:col>
-    <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24" cellstyle=""><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
-    <:col :let={{_id, runlist}} label="Customer" headerstyle="w-32" cellstyle=""><%= runlist.customer %></:col>
-    <:col :let={{_id, runlist}} label="Assignment" headerstyle="text-center w-fit" cellstyle="text-center"><%= runlist.assignment %></:col>
+    <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
+    <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.order_quantity %></:col>
+    <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-16 text-center" cellstyle="text-center"><%= runlist.est_total_hrs %></:col>
+    <:col :let={{_id, runlist}} label="Material" headerstyle="w-32 2xl:w-44" cellstyle=""><%= runlist.material %></:col>
+    <:col :let={{_id, runlist}} label="Part number" headerstyle="2xl:w-fit" cellstyle=""><%= runlist.part_number %></:col>
+    <:col :let={{_id, runlist}} label="Description" headerstyle="2xl:w-fit" cellstyle="text-sm"><%= runlist.description %></:col>
+    <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24 text-center" cellstyle="text-center"><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
+    <:col :let={{_id, runlist}} label="Customer" headerstyle="2xl:w-40" cellstyle="font-xs"><%= runlist.customer %></:col>
+    <:col :let={{_id, runlist}} label="Assignment" headerstyle="w-32 2xl:w-60 text-center" cellstyle="text-center"><%= runlist.assignment %></:col>
     <:col :let={{_id, runlist}} label="Material waiting" headerstyle="w-14 text-sm" cellstyle="text-center"><%= runlist.material_waiting %></:col> 
-    <:col :let={{_id, runlist}} label="Current Location" headerstyle="w-28 text-base text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
-    <:col :let={{_id, runlist}} label="Workcenter" headerstyle="w-52 text-lg" cellstyle=""><%= runlist.wc_vendor %></:col>
-    
-
+    <:col :let={{_id, runlist}} label="Current Location" headerstyle="2xl:w-24 text-base text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
+    <:col :let={{_id, runlist}} label="Workcenter" headerstyle="2xl:w-52 text-lg" cellstyle=""><%= runlist.wc_vendor %></:col>
   </.runlist_table>
 <% end %>
 

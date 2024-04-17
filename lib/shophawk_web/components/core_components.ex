@@ -670,7 +670,7 @@ defmodule ShophawkWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto overflow-x-auto px-4 sm:overflow-visible sm:px-0 mt-4">
+    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4">
       <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
         <%= if @dots != %{} do %>
           <div class={[@dots.dot_columns, "grid text-center pt-3 px-3"]}>
@@ -690,7 +690,8 @@ defmodule ShophawkWeb.CoreComponents do
                 Double Dots
                 </div>
                 <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 2))}>
-                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %></div>
+                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+                  </div>
                 </div>
               </div>
             <% end %>
@@ -700,19 +701,25 @@ defmodule ShophawkWeb.CoreComponents do
                 Triple Dots
                 </div>
                 <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 3))}>
-                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %></div>
+                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+                  </div>
                 </div>
               </div>
             <% end %>
           </div>
         <% end %>
         <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= @weekly_load.weekone %>% </div>
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= @weekly_load.weektwo %>% </div>
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}> Week Three Load: <%= @weekly_load.weekthree %>% </div>
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}> Week Four Load: <%= @weekly_load.weekfour %>% </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= @weekly_load.weekone %>%
+          </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= @weekly_load.weektwo %>%
+          </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}> Week Three Load: <%= @weekly_load.weekthree %>%
+          </div>
+          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}> Week Four Load: <%= @weekly_load.weekfour %>%
+          </div>
         </div>
       </div>
+
       <table class="w-[40rem] sm:w-full table-fixed">
         <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
           <tr>
