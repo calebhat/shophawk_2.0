@@ -5,6 +5,8 @@ defmodule Shophawk.Shop.Csvimport do
   def rework_to_do do
     #resync_data_collection()
     update_operations(nil, 172800)
+    #export_last_updated(500)
+    #update_data_collection_only(true)
   end
 
 
@@ -130,7 +132,9 @@ defmodule Shophawk.Shop.Csvimport do
               if merge_with_existing_data == true do
                 merge_existing_data_collection(existing_record, op)
                 |> Map.from_struct
+                |> (fn map -> [map] end).() #convert to a list for next function
                 |> set_assignment_if_started()
+                |> List.first() #convert back to map to use for updating existing_record
               else
                 Map.from_struct(op)
               end
