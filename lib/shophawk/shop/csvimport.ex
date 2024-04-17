@@ -3,7 +3,8 @@ defmodule Shophawk.Shop.Csvimport do
   alias Shophawk.Shop
 
   def rework_to_do do
-
+    #resync_data_collection()
+    update_operations(nil, 172800)
   end
 
 
@@ -14,7 +15,9 @@ defmodule Shophawk.Shop.Csvimport do
 
   def update_operations(caller_pid, rewind_seconds) do #quick import of most recent changes, updates currentop too.
     start_time = DateTime.utc_now()
+
     export_last_updated(rewind_seconds) #runs sql queries to only export jobs updated since last time it ran
+
     #create list of all jobs #'s that have a change somewhere
     job_list = #make a list of jobs that changed
       File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
@@ -38,6 +41,10 @@ defmodule Shophawk.Shop.Csvimport do
       |> Stream.reject(&(&1 == ""))
       |> Enum.to_list()
     jobs_to_update = job_list ++ material_job_list ++ operations_job_list |> Enum.uniq()
+
+    #jobs_to_update = export_active_jobs()
+    #jobs_to_update = ["134090"]
+
     if jobs_to_update != [] do
       operations =
         Enum.chunk_every(jobs_to_update, 500) #breaks the list up into chunks
@@ -49,8 +56,9 @@ defmodule Shophawk.Shop.Csvimport do
           |> export_and_merge_new_job_operations_and_user_value()
           |> set_current_ops()
           |> set_material_waiting()
+          |> set_assignment_if_started()
         end)
-        |> Enum.reduce([], fn result, acc -> acc ++ result end)
+        |> Enum.reduce([], fn result, acc -> acc ++ result end) #adds all chunks back together(it makes a list within a list if only one chunk)
       existing_records = #get structs of all operations needed for update
         Enum.map(operations, &(&1.job_operation))
         |> Enum.uniq #makes list of operation ID's to check for
@@ -73,6 +81,24 @@ defmodule Shophawk.Shop.Csvimport do
     end
   end
 
+  defp set_assignment_if_started(operations) do
+    Enum.map(operations, fn op ->
+      op =
+        if op.status == "S" do
+        employee =
+          op.employee
+          |> String.split("|")
+          |> Enum.map(&String.trim/1)
+          |> List.last
+          |> String.split(":")
+          |> List.first
+        Map.put(op, :assignment, employee)
+      else
+        op
+      end
+    end)
+  end
+
   def update_data_collection_only(merge_with_existing_data) do
     process_csv(Path.join([File.cwd!(), "csv_files/operationtime.csv"]), 8)
     existing_records =
@@ -86,8 +112,6 @@ defmodule Shophawk.Shop.Csvimport do
       merged_ops =
         Enum.map(existing_records, fn map ->
           map
-          |> Map.put(:est_total_hrs, 0.00)
-          |> Map.put(:currentop, nil) #add keys for data_collection_merge after the changeset
           |> Map.put(:employee, nil) #add needed keys for data-collection merge
           |> Map.put(:work_date, nil)
           |> Map.put(:act_setup_hrs, 0.0)
@@ -95,17 +119,20 @@ defmodule Shophawk.Shop.Csvimport do
           |> Map.put(:act_run_qty, 0.0)
           |> Map.put(:act_scrap_qty, 0.0)
           |> Map.put(:data_collection_note_text, "")
+          |> Map.put(:job_operation, Integer.to_string(map.job_operation))
         end)
         |> data_collection_merge(Path.join([File.cwd!(), "csv_files/operationtime.csv"]))
 
       Enum.each(merged_ops, fn op ->
-        case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
+        case Enum.find(existing_records, &(&1.job_operation == String.to_integer(op.job_operation))) do
           existing_record ->   #if the record exists, update it with the new values
             op =
-              if merge_with_existing_data = true do
-                merge_existing_data_collection(existing_record, op) |> Map.from_struct
+              if merge_with_existing_data == true do
+                merge_existing_data_collection(existing_record, op)
+                |> Map.from_struct
+                |> set_assignment_if_started()
               else
-                Map.to_struct(op)
+                Map.from_struct(op)
               end
             Shop.update_runlist(existing_record, op)
           _ -> nil
@@ -527,7 +554,7 @@ defmodule Shophawk.Shop.Csvimport do
         [new_map | acc]  end)
 
     Enum.map(operations, fn %{job_operation: job_operation} = op ->
-      new_runlist_data = Enum.filter(new_data_collection_map_list, &((&1.job_operation) == job_operation))
+      new_runlist_data = Enum.filter(new_data_collection_map_list, &((&1.job_operation) ==  String.to_integer(job_operation)))
       starting_map = %{act_run_hrs: op.act_run_hrs, act_run_qty: op.act_run_qty, act_scrap_qty: op.act_scrap_qty,  data_collection_note_text: op.data_collection_note_text, employee: op.employee}
       starting_map = if starting_map.data_collection_note_text == nil, do: Map.put(starting_map, :data_collection_note_text, ""), else: starting_map
       starting_map = if starting_map.employee == nil, do: Map.put(starting_map, :employee, ""), else: starting_map
@@ -543,7 +570,7 @@ defmodule Shophawk.Shop.Csvimport do
           |> Map.put(:act_run_hrs,
             case new_runlist_data_op.act_run_hrs do
               nil -> map.act_run_hrs
-              _ -> map.act_run_hrs + new_runlist_data_op.act_run_hrs
+              _ -> Float.round(map.act_run_hrs + new_runlist_data_op.act_run_hrs, 2)
             end)
           |> Map.put(:act_run_qty,
             case new_runlist_data_op.act_run_qty do
@@ -568,6 +595,7 @@ defmodule Shophawk.Shop.Csvimport do
               nil -> map.employee
               _ -> new_string = map.employee <> " | " <> new_runlist_data_op.employee <> ": " <> work_date
                    if String.length(new_string) > 220, do: map.employee, else: new_string
+
             end)
         end)
       else
@@ -577,12 +605,13 @@ defmodule Shophawk.Shop.Csvimport do
 
       trimmed_employee =
         if new_map.employee != nil do
-          new_map.employee
-          |> String.split("|")
-          |> Enum.map(&String.trim/1)
-          |> Enum.filter(fn x -> x != "" end)
-          |> Enum.uniq
-          |> Enum.join(" | ")
+          new_string =
+            new_map.employee
+            |> String.split("|")
+            |> Enum.map(&String.trim/1)
+            |> Enum.filter(fn x -> x != "" end)
+            |> Enum.uniq
+            |> Enum.join(" | ")
         else
           op.employee
         end
@@ -854,10 +883,11 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   def resync_data_collection do
-    jobs = export_all_jobs()
+    #jobs = export_all_jobs()
+    jobs = export_active_jobs()
     IO.inspect(Enum.count(jobs))
     current_chunk = 0
-    #jobs = export_active_jobs()
+
     Enum.chunk_every(jobs , 250) #breaks the list up into chunks
     |> chunk_import_loop(0)
 
@@ -869,7 +899,7 @@ defmodule Shophawk.Shop.Csvimport do
   def chunk_import_loop([jobs_chunk | remaining_chunks], chunk_index) do
     File.write!(Path.join([File.cwd!(), "csv_files/import_chunk.text"]), Integer.to_string(chunk_index))
     IO.inspect(chunk_index)
-    if chunk_index > 460 do
+    if chunk_index >= 433 do
       import_chunk(jobs_chunk)
     end
     chunk_import_loop(remaining_chunks, chunk_index + 1)

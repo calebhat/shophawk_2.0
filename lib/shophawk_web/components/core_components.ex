@@ -335,6 +335,7 @@ defmodule ShophawkWeb.CoreComponents do
 
   attr :department_name, :string, default: nil
   attr :selected_assignment, :string, default: nil
+  attr :started_assignment_list, :list, default: []
 
   attr :type, :string,
     default: "text",
@@ -403,7 +404,7 @@ defmodule ShophawkWeb.CoreComponents do
       >
         <option :if={@prompt} value=""><%= @prompt %></option>
         <%= for option <- @options do %>
-            <option> <%= option %></option>
+          <option> <%= option %></option>
         <% end %>
       </select>
       <.error :for={msg <- @errors}><%= msg %></.error>
@@ -424,9 +425,13 @@ defmodule ShophawkWeb.CoreComponents do
         <option :if={@prompt} value=""><%= @prompt %></option>
         <%= for option <- @options do %>
           <%= if option == @selected_assignment do %>
-            <option selected> <%= option %></option>
+            <option selected disabled> <%= option %></option>
           <% else %>
-            <option> <%= option %></option>
+            <%= if option in @started_assignment_list do %>
+              <option style="display:none"> <%= option %> </option>
+            <% else %>
+              <option> <%= option %> </option>
+            <% end %>
           <% end %>
         <% end %>
       </select>
@@ -757,7 +762,7 @@ defmodule ShophawkWeb.CoreComponents do
                   <div class={[ "h-12 block" ]} >
                     <form phx-change="change_assignment" phx-value-id={elem(row, 1).id}>
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
-                        <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" selected_assignment={elem(row, 1).assignment}  />
+                        <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}  />
                       </span>
                     </form>
                   </div>

@@ -188,8 +188,19 @@ defmodule ShophawkWeb.RunlistLive.Index do
         _ ->
         department = Shop.get_department!(department_id)
         workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-        assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
         {runlist, weekly_load} = Shop.list_runlists(workcenter_list, department)
+        assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
+        started_assignment_list =
+          Enum.filter(runlist, fn op ->
+            if Map.has_key?(op, :assignment) do
+              op.assignment != "" and op.assignment != nil and not Enum.member?(assignment_list, op.assignment)
+            else
+              false
+            end
+          end)
+          |> Enum.map(fn op -> op.assignment end)
+          |> Enum.uniq
+
 
         dots =
           runlist
@@ -202,35 +213,36 @@ defmodule ShophawkWeb.RunlistLive.Index do
               _ -> acc
             end
           end)
-          dots = case Map.size(dots) do
-            2 -> Map.put_new(dots, :dot_columns, "grid-cols-1")
-            3 -> Map.put_new(dots, :dot_columns, "grid-cols-2")
-            4 -> Map.put_new(dots, :dot_columns, "grid-cols-3")
-            _ -> dots
+        dots = case Map.size(dots) do
+          2 -> Map.put_new(dots, :dot_columns, "grid-cols-1")
+          3 -> Map.put_new(dots, :dot_columns, "grid-cols-2")
+          4 -> Map.put_new(dots, :dot_columns, "grid-cols-3")
+          _ -> dots
+        end
+        dots =
+          if dots[:ops] != nil do
+            unique_ops_list =
+              Enum.reduce(dots[:ops], %{}, fn runlist, acc ->
+                if Map.has_key?(acc, runlist.job) do
+                  acc
+                else
+                  Map.put(acc, runlist.job, runlist)
+                end
+              end)
+              |> Map.values
+              |> Enum.reverse
+            dots = Map.put(dots, :ops, unique_ops_list)
+          else
+            dots
           end
-          dots =
-            if dots[:ops] != nil do
-              unique_ops_list =
-                Enum.reduce(dots[:ops], %{}, fn runlist, acc ->
-                  if Map.has_key?(acc, runlist.job) do
-                    acc
-                  else
-                    Map.put(acc, runlist.job, runlist)
-                  end
-                end)
-                |> Map.values
-                |> Enum.reverse
-              dots = Map.put(dots, :ops, unique_ops_list)
-            else
-              dots
-            end
 
         socket
         |> assign(dots: dots)
         |> assign(department_name: department.department)
         |> assign(department: department)
         |> assign(department_id: department.id)
-        |> assign(assignments: [""] ++ assignment_list)
+        |> assign(assignments: [""] ++ assignment_list ++ started_assignment_list)
+        |> assign(started_assignment_list: started_assignment_list)
         |> assign(weekly_load: weekly_load)
         |> stream(:runlists, runlist, reset: true)
       end

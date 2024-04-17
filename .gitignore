@@ -37,4 +37,5 @@ npm-debug.log
 
 #csv data for imports
 /csv_files
+/batch_files
 

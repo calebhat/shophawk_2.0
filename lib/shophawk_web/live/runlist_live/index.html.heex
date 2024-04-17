@@ -80,11 +80,11 @@
 
 <%= if @streams.runlists.inserts != [] do %>
 
-
   <.runlist_table
     id="runlists"
     rows={@streams.runlists}
     assignments={@assignments}
+    started_assignment_list={@started_assignment_list}
     weekly_load={@weekly_load}
     dots={@dots}
     row_click={fn {_id, runlist} -> "show_job" end}
