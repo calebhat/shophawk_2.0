@@ -709,18 +709,23 @@ defmodule ShophawkWeb.CoreComponents do
           </div>
         <% end %>
         <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}> Load for coming week: <%= @weekly_load.weekone %>%
+          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}>
+            Load for coming week: <%= @weekly_load.weekone %>%
           </div>
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}> Week Two Load: <%= @weekly_load.weektwo %>%
+          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}>
+            Week Two Load: <%= @weekly_load.weektwo %>%
           </div>
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}> Week Three Load: <%= @weekly_load.weekthree %>%
+          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}>
+            Week Three Load: <%= @weekly_load.weekthree %>%
           </div>
-          <div class={ [ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}> Week Four Load: <%= @weekly_load.weekfour %>%
+          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}>
+            Week Four Load: <%= @weekly_load.weekfour %>%
           </div>
         </div>
       </div>
 
-      <table class="w-[40rem] sm:w-full table-fixed">
+      <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
+      <table class={["w-[40rem] sm:w-full table-fixed"]}>
         <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
           <tr>
             <th :for={col <- @col} class={["p-0 pr-1 pb-4 font-normal", col[:headerstyle] ]} ><%= col[:label] %></th>
@@ -812,6 +817,7 @@ defmodule ShophawkWeb.CoreComponents do
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
     """
   end

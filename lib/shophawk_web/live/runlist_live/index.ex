@@ -10,9 +10,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, load_all_runlist_loads())}
+      {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, load_all_runlist_loads()) |> assign(show_runlist_table: false) |> assign(updated: 0)}
     else
-     {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil)}
+     {:ok, socket |> assign(department_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil) |> assign(show_runlist_table: false) |> assign(updated: 0)}
     end
   end
 
@@ -99,12 +99,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("refresh_department", _, socket) do
-    {:noreply, socket
-      |> assign(department_loads: nil)
-      |> load_runlist(socket.assigns.department_id)}
-  end
-
   def handle_event("select_department", %{"selection" => department}, socket) do
     case department do
       "Select Department" ->
@@ -113,10 +107,13 @@ defmodule ShophawkWeb.RunlistLive.Index do
         |> assign(department_loads: load_all_runlist_loads())
         |> stream(:runlists, [], reset: true)}
       _ ->
-        {:noreply,
-        socket
-        |> assign(department_loads: nil)
-        |> load_runlist(Shop.get_department_by_name(department).id)}
+
+        socket =
+          socket
+          |> assign(department_loads: nil)
+          |> load_runlist(Shop.get_department_by_name(department).id)
+
+        {:noreply, socket}
     end
   end
 
@@ -178,6 +175,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp load_runlist(socket, department_id) do
+
     socket =
       case department_id do
         nil ->
@@ -235,17 +233,46 @@ defmodule ShophawkWeb.RunlistLive.Index do
           else
             dots
           end
+        socket =
+          socket
+          |> assign(show_runlist_table: true)
+          |> assign(dots: dots)
+          |> assign(department_name: department.department)
+          |> assign(department: department)
+          |> assign(department_id: department.id)
+          |> assign(assignments: [""] ++ assignment_list ++ started_assignment_list)
+          |> assign(saved_assignments: assignment_list)
+          |> assign(started_assignment_list: started_assignment_list)
+          |> assign(weekly_load: weekly_load)
+          |> stream(:runlists, runlist, reset: true)
+
 
         socket
-        |> assign(dots: dots)
-        |> assign(department_name: department.department)
-        |> assign(department: department)
-        |> assign(department_id: department.id)
-        |> assign(assignments: [""] ++ assignment_list ++ started_assignment_list)
-        |> assign(started_assignment_list: started_assignment_list)
-        |> assign(weekly_load: weekly_load)
-        |> stream(:runlists, runlist, reset: true)
       end
+  end
+
+  def handle_event("refresh_department", _, socket) do
+
+    process = self()
+    Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
+      :timer.sleep(300)
+      Process.send(process, {:send_runlist, load_runlist(socket, socket.assigns.department_id)}, [])
+    end)
+    update_number = socket.assigns.updated + 1
+    {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
+  end
+
+  def handle_info({:send_runlist, updated_socket}, socket) do
+    process = self()
+    Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
+      Process.send_after(process, :clear_updated, 0)
+    end)
+    {:noreply, updated_socket}
+  end
+
+  def handle_info(:clear_updated, socket) do
+    update_number = socket.assigns.updated + 2
+    {:noreply, assign(socket, :updated, update_number)}
   end
 
   def load_all_runlist_loads() do

@@ -60,8 +60,8 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
   end
 
   defp load_assignment_form(assignments, department_id) do
-      List.delete_at(assignments, 0)
-      |> Enum.with_index( fn a, index ->
+    IO.inspect(assignments)
+      Enum.with_index(assignments, fn a, index ->
         %{"assignment" => a, "id" => Integer.to_string(Shop.get_assignment(a, department_id).id)}
       end)
       |> Enum.map(&to_form/1)

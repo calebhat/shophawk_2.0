@@ -5,7 +5,9 @@
       <form>
         <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@department_name}/>
         <.link phx-click="refresh_department">
-          <.info_button class="ml-2">Refresh</.info_button>
+        
+          <.info_button class={[(if rem(@updated, 2) == 1, do: "heartbeat", else: ""), "ml-2"]}><%= if rem(@updated, 2) == 1, do: "Refreshing", else: "Refresh" %></.info_button>
+
         </.link>
 
         <!--
@@ -78,9 +80,10 @@
     <% end  %>
   <% end  %>
 
-<%= if @streams.runlists.inserts != [] do %>  
+<%= if @show_runlist_table == true do %>  
   <.runlist_table
     id="runlists"
+    updated={@updated}
     rows={@streams.runlists}
     assignments={@assignments}
     started_assignment_list={@started_assignment_list}
@@ -147,7 +150,7 @@
     id={@department_id || :assignments}
     title={@page_title}
     action={@live_action}
-    assignments={@assignments}
+    assignments={@saved_assignments}
     department_id={@department_id}
     department_name={@department_name}
     patch={~p"/runlists"}
