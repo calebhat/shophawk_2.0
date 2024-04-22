@@ -670,7 +670,7 @@ defmodule ShophawkWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4">
+    <div class={["overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4", (if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")]}>
       <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
         <%= if @dots != %{} do %>
           <div class={[@dots.dot_columns, "grid text-center pt-3 px-3"]}>
@@ -724,7 +724,7 @@ defmodule ShophawkWeb.CoreComponents do
         </div>
       </div>
 
-      <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
+      <div>
       <table class={["w-[40rem] sm:w-full table-fixed"]}>
         <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
           <tr>

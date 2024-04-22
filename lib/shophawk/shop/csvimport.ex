@@ -44,7 +44,7 @@ defmodule Shophawk.Shop.Csvimport do
       |> Enum.to_list()
     jobs_to_update = job_list ++ material_job_list ++ operations_job_list |> Enum.uniq()
 
-    #jobs_to_update = export_active_jobs()
+    jobs_to_update = export_active_jobs()
     #jobs_to_update = ["134090"]
 
     if jobs_to_update != [] do
@@ -56,9 +56,14 @@ defmodule Shophawk.Shop.Csvimport do
           |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
           |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
           |> export_and_merge_new_job_operations_and_user_value()
-          |> set_current_ops()
+          |> Enum.reverse
+          |> Enum.group_by(&{&1.job})
+          |> Map.values
+          |> set_current_op()
           |> set_material_waiting()
+          |> List.flatten
           |> set_assignment_if_started()
+
         end)
         |> Enum.reduce([], fn result, acc -> acc ++ result end) #adds all chunks back together(it makes a list within a list if only one chunk)
       existing_records = #get structs of all operations needed for update
@@ -216,7 +221,7 @@ defmodule Shophawk.Shop.Csvimport do
         |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
         |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
         |> export_and_merge_new_job_operations_and_user_value()
-        |> set_current_ops()
+        |> set_current_op()
         |> set_material_waiting()
         |> Enum.map(fn map ->
           new_map =
@@ -427,53 +432,48 @@ defmodule Shophawk.Shop.Csvimport do
         end)
   end
 
-  defp set_current_ops(operations) do
-    {operations, _, _, _} = #set current op
-      Enum.reduce(Enum.reverse(operations), {[], nil, nil, false}, fn op, {acc, last_wc_vendor, last_job, hold} ->
-        case {op.status, op.job, hold} do
-          {"O", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
-            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+  defp set_current_op(grouped_ops) do
+    Enum.reduce(grouped_ops, [], fn group, acc ->
+      {updated_maps, _} =
+        Enum.reduce(group, {[], nil}, fn op, {acc, last_open_op} ->
+          cond do
+            op.status in ["O", "S"] and last_open_op == nil ->
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor}
 
-          {"O", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
-            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+            op.status in ["O", "S"] and last_open_op != nil ->
+              {[%{op | currentop: last_open_op} | acc], last_open_op}
 
-          {"O", job, true} when job == last_job -> #continues setting the previous wc_vendor
-            {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
+            op.status == "C" ->
+              {[%{op | currentop: nil} | acc], nil}
 
-          {"O", job, true} -> #if found a new job
-            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
+            true -> {[%{op | currentop: nil} | acc], nil}
+          end
+        end)
 
-          {"S", job, _} when last_job == nil -> #for starting the search and no previous operation to go from
-          {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-          {"S", job, false} when job == last_job -> #locks in the current wc_vendor to hold for next one
-            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-          {"S", job, true} when job == last_job -> #continues setting the previous wc_vendor
-            {[%{op | currentop: last_wc_vendor} | acc], last_wc_vendor, op.job, true}
-
-          {"S", job, _} -> #if found a new job
-            {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job, true}
-
-          {"C", job, _}  ->
-            {[%{op | currentop: nil} | acc], nil, op.job, false}
-
-          {_, _, _} ->
-            {[%{op | currentop: nil} | acc], nil, op.job, false}
-        end
-      end)
-    Enum.reverse(operations)
+      [Enum.reverse(updated_maps) | acc]
+    end)
   end
 
-  defp set_material_waiting(operations) do
-    operations = Enum.map(operations, fn op ->
-      if op.currentop == "IN" do
-        Map.put_new(op, :material_waiting, true)
-      else
-        op
-      end
+  defp set_material_waiting(grouped_ops) do
+
+    Enum.reduce(grouped_ops, [], fn group, acc ->
+      {updated_maps, _, _} =
+        Enum.reduce(group, {[], nil, false}, fn op, {acc, last_op, turn_off_mat_waiting} ->
+          cond do
+            op.currentop == "IN" ->
+              {[Map.put(op, :material_waiting, true) | acc], op.wc_vendor, false}
+
+            op.currentop != "IN" and last_op == "IN" ->
+              {[Map.put(op, :material_waiting, false) | acc], op.wc_vendor, true}
+
+            op.currentop != "IN" and turn_off_mat_waiting == true ->
+              {[Map.put(op, :material_waiting, false) | acc], op.wc_vendor, true}
+
+            true -> {[op | acc], op.wc_vendor, false}
+          end
+        end)
+      [Enum.reverse(updated_maps) | acc]
     end)
-    operations
   end
 
   def check_if_null(value) do
