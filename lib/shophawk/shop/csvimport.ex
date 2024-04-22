@@ -4,7 +4,7 @@ defmodule Shophawk.Shop.Csvimport do
 
   def rework_to_do do
     #resync_data_collection()
-    update_operations(nil, 172800)
+    update_operations(nil, 0)
     #export_last_updated(500)
     #update_data_collection_only(true)
   end
@@ -16,7 +16,7 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   def update_operations(caller_pid, rewind_seconds) do #quick import of most recent changes, updates currentop too.
-    start_time = DateTime.utc_now()
+    #start_time = DateTime.utc_now()
 
     export_last_updated(rewind_seconds) #runs sql queries to only export jobs updated since last time it ran
 
@@ -44,7 +44,7 @@ defmodule Shophawk.Shop.Csvimport do
       |> Enum.to_list()
     jobs_to_update = job_list ++ material_job_list ++ operations_job_list |> Enum.uniq()
 
-    jobs_to_update = export_active_jobs()
+    #jobs_to_update = export_active_jobs()
     #jobs_to_update = ["134090"]
 
     if jobs_to_update != [] do
@@ -702,37 +702,40 @@ defmodule Shophawk.Shop.Csvimport do
     end
   end
 
-  defp export_last_updated(additional_seconds) do #changes short term batch files to export from database based on last export time.
+  defp export_last_updated(additional_milliseconds) do #changes short term batch files to export from database based on last export time.
     {:ok, prev_date, _} = File.read!(Path.join([File.cwd!(), "csv_files/last_export.text"])) |> DateTime.from_iso8601()
-    time = DateTime.diff(prev_date, DateTime.truncate(DateTime.utc_now(), :second))
-    time = time - additional_seconds
-    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.truncate(DateTime.utc_now(), :second)))
+    File.write!(Path.join([File.cwd!(), "csv_files/last_export.text"]), DateTime.to_string(DateTime.truncate(DateTime.utc_now(), :millisecond)))
+
+    time = DateTime.diff(prev_date, DateTime.utc_now(), :millisecond)
+    time = time - additional_milliseconds
+    IO.inspect(prev_date)
+    IO.inspect(time)
 
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(SECOND,<%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(MILLISECOND,<%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n
     """
     sql_export = EEx.eval_string(export, [time: time, path: path])
 
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(SECOND, <%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(MILLISECOND, <%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     #material
     path = Path.join([File.cwd!(), "csv_files/material.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(SECOND, <%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(MILLISECOND, <%= time %>,GETDATE())" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
     #Job_operation_time
     path = Path.join([File.cwd!(), "csv_files/operationtime.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > DATEADD(SECOND, <%= time %>,GETDATE()) ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > DATEADD(MILLISECOND, <%= time %>,GETDATE()) ORDER BY Job_Operation DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [time: time, path: path, prev_command: sql_export])
 
