@@ -142,13 +142,13 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_event("show_job", %{"job" => job}, socket) do
 
-    {jobs, job_info} = Shop.list_job(job)
+    {job_ops, job_info} = Shop.list_job(job)
     socket =
       socket
       |> assign(id: job)
       |> assign(page_title: "Job #{job}")
       |> assign(:live_action, :show_job)
-      |> assign(:job_ops, jobs) #Load job data here and send as a list of ops in order
+      |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
       |> assign(:job_info, job_info)
 
       #IO.inspect(socket)

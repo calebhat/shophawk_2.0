@@ -18,7 +18,7 @@ defmodule Shophawk.Shop do
       where: r.job == ^job,
       order_by: [asc: r.sequence]
 
-    jobs =
+    job_ops =
     Repo.all(query)
     |> Enum.map(fn map ->
       map = case map do
@@ -31,11 +31,18 @@ defmodule Shophawk.Shop do
       map = if map.rev == nil, do: Map.put(map, :rev, ""), else: Map.put(map, :rev, ", Rev: " <> map.rev)
       map = if map.customer_po_line == nil, do: Map.put(map, :customer_po_line, ""), else: map
     end)
-    [job | tail] = jobs
-    {jobs, sort_job_info(job)}
+    [job | tail] = job_ops
+    {job_ops, sort_job_info(job)}
   end
 
   def sort_job_info(job) do
+    IO.inspect(String.split(job.note_text, " "))
+    job_manager =
+      String.split(job.note_text, " ")
+      |> Enum.slice(-2, 2)
+      |> Enum.map(&(String.capitalize(&1, :ascii)))
+      |> Enum.join(" ")
+      |> String.trim()
     %{}
     |> Map.put(:part_number, job.part_number <> job.rev)
     |> Map.put(:order_quantity, job.order_quantity)
@@ -44,6 +51,7 @@ defmodule Shophawk.Shop do
     |> Map.put(:customer_po_line, job.customer_po_line)
     |> Map.put(:description, job.description)
     |> Map.put(:material, job.material)
+    |> Map.put(:job_manager, job_manager)
   end
 
   defp status_change(status) do

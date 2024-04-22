@@ -7,9 +7,13 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
 
   def render(assigns) do
     ~H"""
-      <div class="">
-      <div class="text-2xl text-black text-center underline">
-      <%= assigns.job %>
+      <div>
+      <div class="text-center text-black p-6" >
+        <div class="grid grid-cols-3" >
+          <div> </div>
+          <div class="text-2xl underline"><%= assigns.job %> </div>
+          <div class="text-base"><%= assigns.job_info.job_manager %></div>
+        </div>
       </div>
       <div class="text-lg text-center border-b-4 border-zinc-400 p-6">
         <div class="grid grid-cols-3 grid-rows-5">
