@@ -46,6 +46,7 @@ defmodule Shophawk.Shop do
     %{}
     |> Map.put(:part_number, job.part_number <> job.rev)
     |> Map.put(:order_quantity, job.order_quantity)
+    |> Map.put(:make_quantity, job.make_quantity)
     |> Map.put(:customer, job.customer)
     |> Map.put(:customer_po, job.customer_po)
     |> Map.put(:customer_po_line, job.customer_po_line)
@@ -101,7 +102,7 @@ defmodule Shophawk.Shop do
         where: not is_nil(r.sched_start),
         where: not is_nil(r.job_sched_end),
         order_by: [asc: r.sched_start, asc: r.job],
-        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.order_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
+        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
     query = #checks if "show jobs started is checked and load them.
       if department.show_jobs_started do
@@ -238,6 +239,107 @@ defmodule Shophawk.Shop do
       {complete_runlist, calc_weekly_load(date_rows_list, department)}
     end
   end
+
+  def list_workcenter(workcenter_name) do #takes in a list of workcenters to load runlist items for
+  workcenter_name = [workcenter_name]
+  query =
+    from r in Runlist,
+      where: r.wc_vendor in ^workcenter_name,
+      where: not is_nil(r.sched_start),
+      where: not is_nil(r.job_sched_end),
+      order_by: [asc: r.sched_start, asc: r.job],
+      select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
+
+  query = query |> where([r], r.status == "O" or r.status == "S")
+
+  runlists = Repo.all(query)
+  |> Enum.map(fn row ->
+    case row.operation_service do #combines wc_vendor and operation_service if needed
+      nil -> row
+      "" -> row
+      _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
+    end
+  end)
+
+  if Enum.empty?(runlists) do
+    {[], []}
+  else
+    [first_row | tail] = runlists
+    [second_row | _tail] = tail
+    last_row = List.last(runlists)
+    first_row_id = first_row.id
+    last_row_id = last_row.id
+    blackout_dates = Csvimport.load_blackout_dates
+
+
+    {date_rows_list, _, _} = #Make list of date & hours map for matching to date rows
+      Enum.reduce_while(runlists, {[], nil, 0}, fn row, {acc, prev_sched_start, daily_hours} ->
+        sched_start = row.sched_start
+
+        if prev_sched_start == sched_start do #for 2nd row and beyond
+          new_daily_hours = Float.round(daily_hours + row.est_total_hrs, 2)
+            if row.id == last_row_id do #checks for last row
+            date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
+              {:halt, {date_row, sched_start, daily_hours}}
+            else
+              {:cont, {acc, sched_start, new_daily_hours}}
+            end
+        else #if a new day
+          new_daily_hours = row.est_total_hrs#only to pass on for next day accumulator
+
+          case row.id do #adds in date rows between operations
+            ^first_row_id ->
+              {:cont, {acc, sched_start, new_daily_hours}}
+
+            ^last_row_id ->
+              date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}] #2nd to last day
+              date_row = date_row ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0}] #last day
+              {:halt, {date_row, sched_start, daily_hours}}
+
+            _ ->
+              date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}]
+              {:cont, {date_row, sched_start, new_daily_hours}}
+          end
+        end
+      end)
+
+    {complete_runlist, _} =
+      Enum.reduce_while(date_rows_list, {[], nil}, fn date_row, {acc, prev_sched_start} ->
+
+        dot_sorter = fn map ->
+          case Map.get(map, :dots) do
+            4 -> 0
+            3 -> 1
+            2 -> 2
+            1 -> 3
+            _ -> 4
+          end
+        end
+
+        at_location_sorter = fn map ->
+          exact_wc_vendor = String.replace(Map.get(map, :wc_vendor), " -#{map.operation_service}", "")
+          currentop = Map.get(map, :currentop)
+          case exact_wc_vendor do
+            ^currentop -> 0
+            _ -> 2
+          end
+        end
+
+        main_ops =
+          Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
+          |> Enum.sort_by(dot_sorter)
+          |> Enum.sort_by(at_location_sorter)
+
+        started_ops =
+          Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
+
+
+        {:cont, {acc ++ [date_row] ++ main_ops ++ started_ops, date_row.sched_start}} #add runner rows after [row] here
+
+      end)
+    complete_runlist
+  end
+end
 
   defp calc_weekly_load(date_rows, department) do
     today = Date.utc_today()
@@ -441,6 +543,10 @@ defmodule Shophawk.Shop do
   end
 
   def get_workcenter!(id), do: Repo.get!(Workcenter, id)
+
+  def get_workcenter_by_name(workcenter) do
+    Repo.get_by!(Workcenter, workcenter: workcenter)
+  end
 
   def create_workcenter(attrs \\ %{}) do
     changeset = Workcenter.changeset(%Workcenter{}, attrs)

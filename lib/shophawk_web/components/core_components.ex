@@ -440,6 +440,34 @@ defmodule ShophawkWeb.CoreComponents do
     """
   end
 
+  def input(%{type: "runlist_workcenter_only_assignment_select"} = assigns) do #Change this this one for assigns selector
+    ~H"""
+    <div phx-feedback-for={@name}>
+      <select
+        id={@id}
+        name={@name}
+        class="block w-full h-10 rounded-md border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-m"
+        multiple={@multiple}
+        {@rest}
+      >
+        <option :if={@prompt} value=""><%= @prompt %></option>
+        <%= for option <- @options do %>
+          <%= if option == @selected_assignment do %>
+            <option selected disabled> <%= option %></option>
+          <% else %>
+            <%= if option in @started_assignment_list do %>
+              <option style="display:none"> <%= option %> </option>
+            <% else %>
+              <option> <%= option %> </option>
+            <% end %>
+          <% end %>
+        <% end %>
+      </select>
+      <.error :for={msg <- @errors}><%= msg %></.error>
+    </div>
+    """
+  end
+
   def input(%{type: "runlist_department_select"} = assigns) do
     ~H"""
     <div phx-feedback-for={@name}>
@@ -447,7 +475,7 @@ defmodule ShophawkWeb.CoreComponents do
       <select
         id={@id}
         name={@name}
-        class="py-2 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-sm"
+        class="py-2 mt-4 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-sm"
         multiple={@multiple}
         {@rest}
       >
@@ -708,20 +736,22 @@ defmodule ShophawkWeb.CoreComponents do
             <% end %>
           </div>
         <% end %>
-        <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
-          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}>
-            Load for coming week: <%= @weekly_load.weekone %>%
+        <%= if @weekly_load != nil do %>
+          <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
+            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}>
+              Load for coming week: <%= @weekly_load.weekone %>%
+            </div>
+            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}>
+              Week Two Load: <%= @weekly_load.weektwo %>%
+            </div>
+            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}>
+              Week Three Load: <%= @weekly_load.weekthree %>%
+            </div>
+            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}>
+              Week Four Load: <%= @weekly_load.weekfour %>%
+            </div>
           </div>
-          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}>
-            Week Two Load: <%= @weekly_load.weektwo %>%
-          </div>
-          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}>
-            Week Three Load: <%= @weekly_load.weekthree %>%
-          </div>
-          <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}>
-            Week Four Load: <%= @weekly_load.weekfour %>%
-          </div>
-        </div>
+        <% end %>
       </div>
 
       <div>
@@ -751,7 +781,9 @@ defmodule ShophawkWeb.CoreComponents do
                   </span>
                 <% 2 -> %>
                   <span class={["font-semibold text-zinc-900"]}>
-                  ~<%= elem(row, 1).est_total_hrs %>
+                  <%= if Map.has_key?(elem(row, 1), :est_total_hrs) do %>
+                    ~<%= elem(row, 1).est_total_hrs %>
+                  <% end %>
                   </span>
                  <% 3 -> %>
                   <span class={["font-semibold text-zinc-900"]}>
@@ -821,6 +853,171 @@ defmodule ShophawkWeb.CoreComponents do
     </div>
     """
   end
+
+  attr :id, :string, required: true
+  attr :rows, :list, required: true
+  attr :row_id, :any, default: nil, doc: "the function for generating the row id"
+  attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+
+  attr :row_item, :any,
+    default: &Function.identity/1,
+    doc: "the function for mapping each row before calling the :col and :action slots"
+
+  slot :col, required: true do
+    attr :label, :string
+  end
+
+  slot :action, doc: "the slot for showing user actions in the last table column"
+
+  def runlist_table_workcenter_only(assigns) do
+    assigns =
+      with %{rows: %Phoenix.LiveView.LiveStream{}} <- assigns do
+        assign(assigns, row_id: assigns.row_id || fn {id, _item} -> id end)
+      end
+
+    ~H"""
+      <div class={["overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4", (if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")]}>
+        <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
+          <%= if @dots != %{} do %>
+            <div class={[@dots.dot_columns, "grid text-center pt-3 px-3"]}>
+              <%= if Map.has_key?(@dots, :one) do %>
+                <div class={[@dots.one, "m-1 rounded"]}>
+                  <div class="text-lg font-semibold underline">
+                  Single Dots
+                  </div>
+                  <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 1))}>
+                    <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %></div>
+                  </div>
+                </div>
+              <% end %>
+              <%= if Map.has_key?(@dots, :two) do %>
+                <div class={[@dots.two, "m-1 rounded"]}>
+                  <div class="text-lg font-semibold underline">
+                  Double Dots
+                  </div>
+                  <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 2))}>
+                    <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+              <%= if Map.has_key?(@dots, :three) do %>
+                <div class={[@dots.three, "m-1 rounded"]}>
+                  <div class="text-lg font-semibold underline">
+                  Triple Dots
+                  </div>
+                  <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 3))}>
+                    <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+            <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
+
+            </div>
+        </div>
+
+        <div>
+        <table class={["w-[40rem] sm:w-full table-fixed"]}>
+          <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
+            <tr>
+              <th :for={col <- @col} class={["p-0 pr-1 pb-4 font-normal", col[:headerstyle] ]} ><%= col[:label] %></th>
+            </tr>
+          </thead>
+          <tbody
+            id={@id}
+            phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
+            class="relative divide-y divide-stone-800 border-t-0 leading-5 text-stone-200"
+          >
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
+
+              <%= if elem(row, 1).id == 0 do %>
+
+                <td :for={{col, i} <- Enum.with_index(@col)}
+                class={["bg-stone-300"]}
+                colspan="">
+                <div class="h-6">
+                  <%= case i do %>
+                  <% 0 -> %>
+                    <span class={["font-semibold text-zinc-900"]}>
+                    <%= Calendar.strftime(elem(row, 1).sched_start, "%m-%d-%y") %>
+                    </span>
+                  <% 2 -> %>
+                    <span class={["font-semibold text-zinc-900"]}>
+                    <%= if Map.has_key?(elem(row, 1), :est_total_hrs) do %>
+                      ~<%= elem(row, 1).est_total_hrs %>
+                    <% end %>
+                    </span>
+                  <% 3 -> %>
+                    <span class={["font-semibold text-zinc-900"]}>
+                    Hours of Work
+                  </span>
+                  <% _ -> %>
+                    <div></div>
+                  <% end %>
+                  </div>
+                </td>
+
+              <% else %>
+
+              <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
+
+              <div :for={{col, i} <- Enum.with_index(@col)}>
+                  <%= case i do %>
+                  <% 8 -> %>
+                  <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={[ "h-12 block" ]} >
+                      <form phx-change="change_assignment" phx-value-id={elem(row, 1).id}>
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
+                          <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}  />
+                        </span>
+                      </form>
+                    </div>
+                  </td>
+                  <% 9 -> %>
+                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={[ "h-12 text-center block" ]}>
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                        <input phx-click="mat_waiting_toggle" phx-value-id={elem(row, 1).id} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
+                      </span>
+                    </div>
+                  </td>
+                  <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
+                    <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <div class={[ ]}>
+                            <%= if i == 10 do %>
+                              &#x2705 Job at <%= elem(row, 1).wc_vendor %>
+                            <% else %>
+                              <%= render_slot(col, @row_item.(row)) %>
+                            <% end %>
+                          </div>
+                        </span>
+                      </div>
+                    </td>
+                  <% _ -> %>
+                    <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <%= render_slot(col, @row_item.(row)) %>
+                        </span>
+                      </div>
+                    </td>
+                  <% end %>
+                </div>
+              <% end %>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+      """
+    end
 
   defp different_sched_start?(prev_sched_start, current_sched_start) do
     prev_sched_start != current_sched_start

@@ -16,14 +16,17 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
         </div>
       </div>
       <div class="text-lg text-center border-b-4 border-zinc-400 p-6">
-        <div class="grid grid-cols-3 grid-rows-5">
+        <div class="grid grid-cols-4 grid-rows-3">
           <div class="underline text-base">Part</div>
-          <div class="underline text-base">Qty</div>
+          <div class="underline text-base">Make</div>
+          <div class="underline text-base">Ordered</div>
           <div class="underline text-base">Customer </div>
           <div class="text-lg row-span-2"><%= assigns.job_info.part_number %> </div>
+          <div class="text-lg row-span-2"><%= assigns.job_info.make_quantity %> </div>
           <div class="text-lg row-span-2"><%= assigns.job_info.order_quantity %> </div>
           <div class="text-lg row-span-2"><%= assigns.job_info.customer %> </div>
-
+        </div>
+        <div class="grid grid-cols-3 grid-rows-2">
           <div class="underline text-base">Description</div>
           <div class="underline text-base">material</div>
           <div class="underline text-base">Customer PO </div>
@@ -45,7 +48,6 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
       </div>
     """
   end
-
 
   def update(assigns, socket) do
     #IO.inspect(assigns)
