@@ -4,8 +4,8 @@
       <%= cond do %>  
       <%= @department_id != nil -> %>    
         <form>
-          <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@name}/>
           <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
+          <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@name}/>
           <.link phx-click="refresh_department">  
             <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
                <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
@@ -18,8 +18,8 @@
         </form>
       <%= @workcenter_id != nil -> %>
         <form>
-          <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />
           <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" department_name={@name}/> 
+          <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />
           <.link phx-click="refresh_workcenter">        
             <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
                <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
@@ -31,8 +31,8 @@
           </.link>
         </form>
       <%= true -> %>
-        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" /> 
         <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
+        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" /> 
       <% end %>    
     </div> 
   </form>
@@ -52,12 +52,12 @@
       </.link>
     <% end %>
 
-    <!-- Testing purposes  -->
+    <!-- Testing purposes  
     <.button phx-click="time_based_import" class="ml-2">time_based_import</.button>
     
     <.button phx-click="importall" class="ml-2">Import All</.button>
     <.button phx-click="rework_to_do" class="ml-2">rework_to_do</.button>    
-    
+    -->
     
   </:actions>    
 </.header>

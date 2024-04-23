@@ -708,8 +708,8 @@ defmodule Shophawk.Shop.Csvimport do
 
     time = DateTime.diff(prev_date, DateTime.utc_now(), :millisecond)
     time = time - additional_milliseconds
-    IO.inspect(prev_date)
-    IO.inspect(time)
+    #IO.inspect(prev_date)
+    #IO.inspect(time)
 
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
@@ -905,7 +905,7 @@ defmodule Shophawk.Shop.Csvimport do
 
   def chunk_import_loop([jobs_chunk | remaining_chunks], chunk_index) do
     File.write!(Path.join([File.cwd!(), "csv_files/import_chunk.text"]), Integer.to_string(chunk_index))
-    IO.inspect(chunk_index)
+    #IO.inspect(chunk_index)
     if chunk_index >= 433 do
       import_chunk(jobs_chunk)
     end
