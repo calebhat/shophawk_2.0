@@ -77,6 +77,13 @@ defmodule Shophawk.Shop do
       Repo.all(query)
     end
 
+  def find_matching_job_ops(job_list) do #used in csvimport
+    query =
+      from r in Runlist,
+      where: r.job in ^job_list
+      Repo.all(query)
+  end
+
   def toggle_mat_waiting(id) do
     op = Repo.get!(Runlist, id)
     new_matertial_waiting = !op.material_waiting
@@ -236,112 +243,112 @@ defmodule Shophawk.Shop do
           {:cont, {acc ++ [date_row] ++ main_ops ++ runner_ops ++ started_ops, date_row.sched_start}} #add runner rows after [row] here
 
         end)
-      {complete_runlist, calc_weekly_load(date_rows_list, department)}
+      {complete_runlist, calc_weekly_load(date_rows_list, department, runlists)}
     end
   end
 
   def list_workcenter(workcenter_name) do #takes in a list of workcenters to load runlist items for
-  workcenter_name = [workcenter_name]
-  query =
-    from r in Runlist,
-      where: r.wc_vendor in ^workcenter_name,
-      where: not is_nil(r.sched_start),
-      where: not is_nil(r.job_sched_end),
-      order_by: [asc: r.sched_start, asc: r.job],
-      select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
+    workcenter_name = [workcenter_name]
+    query =
+      from r in Runlist,
+        where: r.wc_vendor in ^workcenter_name,
+        where: not is_nil(r.sched_start),
+        where: not is_nil(r.job_sched_end),
+        order_by: [asc: r.sched_start, asc: r.job],
+        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
-  query = query |> where([r], r.status == "O" or r.status == "S")
+    query = query |> where([r], r.status == "O" or r.status == "S")
 
-  runlists = Repo.all(query)
-  |> Enum.map(fn row ->
-    case row.operation_service do #combines wc_vendor and operation_service if needed
-      nil -> row
-      "" -> row
-      _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
-    end
-  end)
+    runlists = Repo.all(query)
+    |> Enum.map(fn row ->
+      case row.operation_service do #combines wc_vendor and operation_service if needed
+        nil -> row
+        "" -> row
+        _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
+      end
+    end)
 
-  if Enum.empty?(runlists) do
-    {[], []}
-  else
-    [first_row | tail] = runlists
-    [second_row | _tail] = tail
-    last_row = List.last(runlists)
-    first_row_id = first_row.id
-    last_row_id = last_row.id
-    blackout_dates = Csvimport.load_blackout_dates
+    if Enum.empty?(runlists) do
+      {[], []}
+    else
+      [first_row | tail] = runlists
+      [second_row | _tail] = tail
+      last_row = List.last(runlists)
+      first_row_id = first_row.id
+      last_row_id = last_row.id
+      blackout_dates = Csvimport.load_blackout_dates
 
 
-    {date_rows_list, _, _} = #Make list of date & hours map for matching to date rows
-      Enum.reduce_while(runlists, {[], nil, 0}, fn row, {acc, prev_sched_start, daily_hours} ->
-        sched_start = row.sched_start
+      {date_rows_list, _, _} = #Make list of date & hours map for matching to date rows
+        Enum.reduce_while(runlists, {[], nil, 0}, fn row, {acc, prev_sched_start, daily_hours} ->
+          sched_start = row.sched_start
 
-        if prev_sched_start == sched_start do #for 2nd row and beyond
-          new_daily_hours = Float.round(daily_hours + row.est_total_hrs, 2)
-            if row.id == last_row_id do #checks for last row
-            date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
-              {:halt, {date_row, sched_start, daily_hours}}
-            else
-              {:cont, {acc, sched_start, new_daily_hours}}
+          if prev_sched_start == sched_start do #for 2nd row and beyond
+            new_daily_hours = Float.round(daily_hours + row.est_total_hrs, 2)
+              if row.id == last_row_id do #checks for last row
+              date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
+                {:halt, {date_row, sched_start, daily_hours}}
+              else
+                {:cont, {acc, sched_start, new_daily_hours}}
+              end
+          else #if a new day
+            new_daily_hours = row.est_total_hrs#only to pass on for next day accumulator
+
+            case row.id do #adds in date rows between operations
+              ^first_row_id ->
+                {:cont, {acc, sched_start, new_daily_hours}}
+
+              ^last_row_id ->
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}] #2nd to last day
+                date_row = date_row ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0}] #last day
+                {:halt, {date_row, sched_start, daily_hours}}
+
+              _ ->
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}]
+                {:cont, {date_row, sched_start, new_daily_hours}}
             end
-        else #if a new day
-          new_daily_hours = row.est_total_hrs#only to pass on for next day accumulator
-
-          case row.id do #adds in date rows between operations
-            ^first_row_id ->
-              {:cont, {acc, sched_start, new_daily_hours}}
-
-            ^last_row_id ->
-              date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}] #2nd to last day
-              date_row = date_row ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0}] #last day
-              {:halt, {date_row, sched_start, daily_hours}}
-
-            _ ->
-              date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}]
-              {:cont, {date_row, sched_start, new_daily_hours}}
           end
-        end
-      end)
+        end)
 
-    {complete_runlist, _} =
-      Enum.reduce_while(date_rows_list, {[], nil}, fn date_row, {acc, prev_sched_start} ->
+      {complete_runlist, _} =
+        Enum.reduce_while(date_rows_list, {[], nil}, fn date_row, {acc, prev_sched_start} ->
 
-        dot_sorter = fn map ->
-          case Map.get(map, :dots) do
-            4 -> 0
-            3 -> 1
-            2 -> 2
-            1 -> 3
-            _ -> 4
+          dot_sorter = fn map ->
+            case Map.get(map, :dots) do
+              4 -> 0
+              3 -> 1
+              2 -> 2
+              1 -> 3
+              _ -> 4
+            end
           end
-        end
 
-        at_location_sorter = fn map ->
-          exact_wc_vendor = String.replace(Map.get(map, :wc_vendor), " -#{map.operation_service}", "")
-          currentop = Map.get(map, :currentop)
-          case exact_wc_vendor do
-            ^currentop -> 0
-            _ -> 2
+          at_location_sorter = fn map ->
+            exact_wc_vendor = String.replace(Map.get(map, :wc_vendor), " -#{map.operation_service}", "")
+            currentop = Map.get(map, :currentop)
+            case exact_wc_vendor do
+              ^currentop -> 0
+              _ -> 2
+            end
           end
-        end
 
-        main_ops =
-          Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
-          |> Enum.sort_by(dot_sorter)
-          |> Enum.sort_by(at_location_sorter)
+          main_ops =
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
+            |> Enum.sort_by(dot_sorter)
+            |> Enum.sort_by(at_location_sorter)
 
-        started_ops =
-          Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
+          started_ops =
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
 
 
-        {:cont, {acc ++ [date_row] ++ main_ops ++ started_ops, date_row.sched_start}} #add runner rows after [row] here
+          {:cont, {acc ++ [date_row] ++ main_ops ++ started_ops, date_row.sched_start}} #add runner rows after [row] here
 
-      end)
-    complete_runlist
+        end)
+      complete_runlist
+    end
   end
-end
 
-  defp calc_weekly_load(date_rows, department) do
+  defp calc_weekly_load(date_rows, department, runlists) do
     today = Date.utc_today()
     weekly_hours =
       Enum.reduce(date_rows, %{weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}, fn row, acc ->
@@ -355,6 +362,21 @@ end
             true -> acc
           end
       end)
+
+    #reduce
+    weekly_hours =
+      Enum.reduce(runlists, weekly_hours, fn row, acc ->
+        start = row.sched_start
+        acc =
+          cond do
+            Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
+            Date.after?(start, Date.add(today, 6)) and Date.before?(start, Date.add(today, 14)) -> Map.update(acc, :weektwo, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
+            Date.after?(start, Date.add(today, 13)) and Date.before?(start, Date.add(today, 21)) -> Map.update(acc, :weekthree, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
+            Date.after?(start, Date.add(today, 20)) and Date.before?(start, Date.add(today, 28)) -> Map.update(acc, :weekfour, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
+            true -> acc
+          end
+      end)
+
     weekly_hours =
       weekly_hours
       |> Map.update!(:weekone, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
@@ -498,6 +520,11 @@ end
   """
   def delete_runlist(%Runlist{} = runlist) do
     Repo.delete(runlist)
+  end
+
+  def delete_listed_runlist(runlists) do
+    jobs_to_delete = Enum.map(runlists, fn op -> op.job end)
+    from(r in Runlist, where: r.job in ^jobs_to_delete) |> Repo.delete_all()
   end
 
   @doc """

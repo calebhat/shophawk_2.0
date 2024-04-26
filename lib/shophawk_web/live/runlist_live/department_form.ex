@@ -83,7 +83,7 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
   @impl true
   def update(%{department: department} = assigns, socket) do
     changeset = Shop.change_department(department)
-    workcenters = Enum.sort(Enum.map(Shop.list_workcenters(), &Map.from_struct/1))
+    workcenters = Enum.sort(Enum.map(Shop.list_workcenters(), &Map.from_struct/1)) |> IO.inspect
     selected_workcenters =
       if department.id != nil do
         Enum.map(department.workcenters, &(&1.id)) #makes list of associated workcenter ID's for editing a department

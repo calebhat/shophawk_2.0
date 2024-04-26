@@ -10,9 +10,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, load_all_runlist_loads()) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_loader: false) |> assign(updated: 0)}
+      {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, get_runlist_loads()) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_department_loads: true) |> assign(updated: 0)}
     else
-     {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_loader: true) |> assign(updated: 0)}
+     {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_department_loads: false)|> assign(updated: 0)}
     end
   end
 
@@ -23,6 +23,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
       |> assign(:departments,  ["Select Department" | Shop.list_departments() |> Enum.map(&(&1.department)) |> Enum.sort])
       |> assign(:workcenters, ["Select Workcenter" | Shop.list_workcenters() |> Enum.map(&(&1.workcenter)) |> Enum.sort])
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+  end
+
+  def get_runlist_loads() do
+    [data: data] = :ets.lookup(:runlist_loads, :data)
+    data
   end
 
   defp apply_action(socket, :index, _params) do
@@ -59,7 +64,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     socket =
         socket
       |> assign(:page_title, "New Department")
-      |> assign(:workcenters, Shop.list_workcenters())
       |> assign(:department, %Department{})
   end
 
@@ -83,11 +87,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   @impl true
   def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
-    socket =
-      assign(socket,
-      department_loads: nil,
-        department_id: department.id,
-        deparment_name: department.department)
+    socket = load_runlist(socket, Shop.get_department_by_name(department.department).id)
+
+
 
     {:noreply, apply_action(socket, :index, nil)}
   end
@@ -112,9 +114,14 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_event("select_department", %{"selection" => department}, socket) do
     case department do
       "Select Department" ->
-        {:noreply, socket
+        #IO.inspect(get_runlist_loads())
+        {:noreply,
+        socket
         |> assign(department_id: nil)
-        |> assign(department_loads: load_all_runlist_loads())
+        |> assign(show_runlist_table: false)
+        |> assign(show_workcenter_table: false)
+        |> assign(show_department_loads: true)
+        |> assign(department_loads: get_runlist_loads())
         |> stream(:runlists, [], reset: true)}
       _ ->
         process = self()
@@ -123,7 +130,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
           Process.send(process, {:send_runlist, load_runlist(socket, Shop.get_department_by_name(department).id)}, [])
         end)
         update_number = socket.assigns.updated + 1
-        {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
+        {:noreply, assign(socket, :updated, update_number)}
     end
   end
 
@@ -132,7 +139,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
       "Select Workcenter" ->
         {:noreply, socket
         |> assign(workcenter_id: nil)
-        |> assign(department_loads: load_all_runlist_loads())
+        |> assign(show_runlist_table: false)
+        |> assign(show_workcenter_table: false)
+        |> assign(show_department_loads: true)
+        |> assign(department_loads: get_runlist_loads())
         |> stream(:runlists, [], reset: true)}
       _ ->
         process = self()
@@ -141,11 +151,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
           Process.send(process, {:send_runlist, load_workcenter(socket, Shop.get_workcenter_by_name(workcenter))}, [])
         end)
         update_number = socket.assigns.updated + 1
-        {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
+        {:noreply, assign(socket, :updated, update_number)}
     end
   end
-
-
 
   defp operation_alteration(operation) do
     new_value =
@@ -264,6 +272,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
             socket
             |> assign(show_runlist_table: true)
             |> assign(show_workcenter_table: false)
+            |> assign(show_department_loads: false)
             |> assign(dots: dots)
             |> assign(name: department.department)
             |> assign(department: department)
@@ -278,7 +287,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
           socket
           |> assign(show_runlist_table: false)
           |> assign(show_workcenter_table: false)
-          |> assign(show_loader: false)
+          |> assign(show_department_loads: false)
           |> assign(dots: %{dot_columns: ""})
           |> assign(name: department.department)
           |> assign(department: department)
@@ -353,6 +362,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
             socket
             |> assign(show_runlist_table: false)
             |> assign(show_workcenter_table: true)
+            |> assign(show_department_loads: false)
             |> assign(dots: dots)
             |> assign(name: workcenter.workcenter)
             |> assign(department: workcenter)
@@ -367,7 +377,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
           socket
           |> assign(show_runlist_table: false)
           |> assign(show_workcenter_table: false)
-          |> assign(show_loader: false)
+          |> assign(show_department_loads: false)
           |> assign(dots: %{dot_columns: ""})
           |> assign(name: workcenter.workcenter)
           |> assign(department: workcenter)
@@ -413,19 +423,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_info(:clear_updated, socket) do
     update_number = socket.assigns.updated + 2
     {:noreply, assign(socket, :updated, update_number)}
-  end
-
-  def load_all_runlist_loads() do
-    departments = Shop.list_departments |> Enum.sort_by(&(&1).department)
-    department_loads =
-      Enum.reduce(departments, %{}, fn department, acc ->
-        workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-        Map.put(acc, department.department, workcenter_list)
-      end)
-      |> Enum.reduce([], fn {department_name, workcenters}, acc ->
-        {_runlist, weekly_load} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
-        acc ++ [weekly_load]
-      end)
   end
 
   def calculate_color(load) do

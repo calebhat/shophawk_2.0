@@ -32,12 +32,17 @@
         </form>
       <%= true -> %>
         <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
-        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" /> 
+        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />    
+        <div class="mt-2 rounded-lg bg-cyan-800" >
+            <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
+            <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
+              <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
+            </g>
+          </svg>
+        </div>        
       <% end %>    
     </div> 
-  </form>
-
-  
+  </form>  
   <:actions>    
     <%= if @department_id do %>     
       <.link patch={~p"/runlists/#{@department_id}/assignments"} assignments={@assignments}>
@@ -52,51 +57,44 @@
       </.link>
     <% end %>
 
-    <!-- Testing purposes  
+    <!-- Testing purposes  -->
     <.button phx-click="time_based_import" class="ml-2">time_based_import</.button>
     
     <.button phx-click="importall" class="ml-2">Import All</.button>
     <.button phx-click="rework_to_do" class="ml-2">rework_to_do</.button>    
-    -->
+    
     
   </:actions>    
 </.header>
-
-  <%= if @department_loads do  %>
-    <br>
-    <div>
-      <div class="bg-cyan-800 pt-4 rounded-t-lg">
-      <%= for department <- @department_loads do %>      
-          <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
-              <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
-              <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
-              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
-              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
-              <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
-              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
-            </div>    
-          </div>  
-      <% end %>
-      </div>
+<div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
+  <br>
+  <div :if={@show_department_loads}>
+    <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
+    <%= for department <- @department_loads do %>      
+        <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
+            <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
+            <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
+            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
+            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
+            <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
+            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
+          </div>    
+        </div>  
+    <% end %>
     </div>
-  <% else %>
-    <%= if @streams.runlists.inserts == [] and @show_loader == true do %>
-    <br>
-    <div class="bg-cyan-800 rounded-lg p-4 text-center text-white text-2xl">    
-      <div class="loader"></div>
-    </div>
-    <% end  %>
-  <% end %>
-  <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
-    <%= if @streams.runlists.inserts == [] do %>
-      <%= if @department_id != nil or @workcenter_id != nil do %> 
-      <br>
-      <div class="bg-stone-800 text-white rounded-lg text-center text-2xl py-6">
-        Nothing Scheduled
-      </div>
-      <% end  %>
-    <% end  %>
   </div>
+
+</div>
+<div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
+  <%= if @streams.runlists.inserts == [] do %>
+    <%= if @department_id != nil or @workcenter_id != nil do %> 
+    <br>
+    <div class="bg-stone-800 text-white rounded-lg text-center text-2xl py-6">
+      Nothing Scheduled
+    </div>
+    <% end  %>
+  <% end  %>
+</div>
 
 <%= if @show_runlist_table == true do %>  
   <.runlist_table
