@@ -767,7 +767,6 @@ defmodule ShophawkWeb.CoreComponents do
           class="relative divide-y divide-stone-800 border-t-0 leading-5 text-stone-200"
         >
         <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
-
             <%= if elem(row, 1).id == 0 do %>
 
               <td :for={{col, i} <- Enum.with_index(@col)}
@@ -787,7 +786,7 @@ defmodule ShophawkWeb.CoreComponents do
                   </span>
                  <% 3 -> %>
                   <span class={["font-semibold text-zinc-900"]}>
-                   Hours of Work
+                   Hours of Work <%= if Map.has_key?(elem(row, 1), :hour_percentage), do: "(" <> elem(row, 1).hour_percentage <> "%)" %>
                 </span>
                 <% _ -> %>
                   <div></div>
@@ -932,7 +931,6 @@ defmodule ShophawkWeb.CoreComponents do
             class="relative divide-y divide-stone-800 border-t-0 leading-5 text-stone-200"
           >
           <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
-
               <%= if elem(row, 1).id == 0 do %>
 
                 <td :for={{col, i} <- Enum.with_index(@col)}
@@ -952,7 +950,7 @@ defmodule ShophawkWeb.CoreComponents do
                     </span>
                   <% 3 -> %>
                     <span class={["font-semibold text-zinc-900"]}>
-                    Hours of Work
+                    Hours of Work (<%= elem(row, 1).hour_percentage %>)%
                   </span>
                   <% _ -> %>
                     <div></div>

@@ -317,7 +317,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
         _ ->
         runlist = Shop.list_workcenter(workcenter_name)
-        IO.inspect(runlist)
         if runlist != [] do
           started_assignment_list =
             Enum.filter(runlist, fn op ->
@@ -363,7 +362,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
             else
               dots
             end
-            IO.inspect("here")
           socket =
             socket
             |> assign(show_runlist_table: false)

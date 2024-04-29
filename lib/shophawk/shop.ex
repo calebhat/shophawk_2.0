@@ -152,6 +152,7 @@ defmodule Shophawk.Shop do
       {date_rows_list, _, _} = #Make list of date & hours map for matching to date rows
         Enum.reduce_while(runlists, {[], nil, 0}, fn row, {acc, prev_sched_start, daily_hours} ->
           sched_start = row.sched_start
+          daily_capacity = department.capacity * department.machine_count
 
           if prev_sched_start == sched_start do #for 2nd row and beyond
             new_daily_hours =
@@ -161,8 +162,8 @@ defmodule Shophawk.Shop do
               end
 
               if row.id == last_row_id do #checks for last row
-                date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
-                new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil)
+                date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #last day
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil,daily_capacity)
                 {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2)}}
               else
                 {:cont, {acc, sched_start, new_daily_hours}}
@@ -185,15 +186,15 @@ defmodule Shophawk.Shop do
                 {:cont, {acc, sched_start, new_daily_hours}}
 
               ^last_row_id ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}] #2nd to last day
-                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start)
-                date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0}] #last day
-                new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil)
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #2nd to last day
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
+                date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((new_daily_hours/daily_capacity)*100)), 0..-3)}] #last day
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil, daily_capacity)
                 {:halt, {new_acc, sched_start, new_daily_hours}}
 
               _ ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}]
-                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start)
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}]
+                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
                 {:cont, {new_acc, sched_start, new_daily_hours}}
             end
           end
@@ -384,18 +385,18 @@ defmodule Shophawk.Shop do
 
   end
 
-  defp add_missing_date_rows(carryover_list, start, stop) do #adds date rows for carryover hours if non exist
+  defp add_missing_date_rows(carryover_list, start, stop, capacity) do #adds date rows for carryover hours if non exist
     inbetween_dates =
     case {start, stop} do
       {nil, stop} -> []
       {start, nil} ->
         filtered_rows = Enum.filter(carryover_list, fn map -> if Date.compare(map.date, start) == :gt, do: true end)
         Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
-          %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0} end)
+          %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil(capacity*100)), 0..-3)} end)
       {start, stop} ->
         filtered_rows = Enum.filter(carryover_list, fn map -> Date.compare(map.date, start) == :gt and Date.compare(map.date, stop) == :lt end)
           Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
-          %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0} end)
+          %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil(capacity*100)), 0..-3)} end)
     end
   end
 
