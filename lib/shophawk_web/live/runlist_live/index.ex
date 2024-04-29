@@ -164,6 +164,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
       end
   end
 
+  def handle_event("color_key", _, socket) do
+    {:noreply, assign(socket, :live_action, :color_key)}
+  end
+
   def handle_event("mat_waiting_toggle", %{"id" => id}, socket) do
     Shop.toggle_mat_waiting(id)
     {:noreply, socket}
@@ -313,7 +317,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
         _ ->
         runlist = Shop.list_workcenter(workcenter_name)
-        if runlist != {[], []} do
+        IO.inspect(runlist)
+        if runlist != [] do
           started_assignment_list =
             Enum.filter(runlist, fn op ->
               if Map.has_key?(op, :assignment) do
@@ -358,6 +363,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
             else
               dots
             end
+            IO.inspect("here")
           socket =
             socket
             |> assign(show_runlist_table: false)

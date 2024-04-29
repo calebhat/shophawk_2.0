@@ -4,7 +4,26 @@
 @import "loader";
 
 /* This file is for your main application CSS */
+
+/* CUSTOM CLASSES*/
+.color-key-box {
+    @apply p-4 m-2 w-80 h-10 content-center text-center rounded-lg
+}
+
+.tooltip-container .tooltip {
+    display: none;
+  }
   
+  .tooltip-container:hover .tooltip {
+    display: block;
+    position: absolute; 
+    background-color: #ccccef;
+    @apply p-4 mx-2 content-center rounded-lg
+    /* Add more styling as needed */
+  }
+  
+
+/* ANIMATIONS */
   .spin-icon {
     animation: spin 1s linear infinite;
   }

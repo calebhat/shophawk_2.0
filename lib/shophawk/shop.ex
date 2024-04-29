@@ -36,7 +36,6 @@ defmodule Shophawk.Shop do
   end
 
   def sort_job_info(job) do
-    IO.inspect(String.split(job.note_text, " "))
     job_manager =
       String.split(job.note_text, " ")
       |> Enum.slice(-2, 2)
@@ -131,7 +130,6 @@ defmodule Shophawk.Shop do
       {[], []}
     else
       [first_row | tail] = runlists
-      [second_row | _tail] = tail
       last_row = List.last(runlists)
       first_row_id = first_row.id
       last_row_id = last_row.id
@@ -269,10 +267,9 @@ defmodule Shophawk.Shop do
     end)
 
     if Enum.empty?(runlists) do
-      {[], []}
+      []
     else
       [first_row | tail] = runlists
-      [second_row | _tail] = tail
       last_row = List.last(runlists)
       first_row_id = first_row.id
       last_row_id = last_row.id
@@ -350,7 +347,7 @@ defmodule Shophawk.Shop do
 
   defp calc_weekly_load(date_rows, department, runlists) do
     today = Date.utc_today()
-    weekly_hours =
+    weekly_hours_list =
       Enum.reduce(date_rows, %{weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}, fn row, acc ->
         start = row.sched_start
         acc =
@@ -363,9 +360,8 @@ defmodule Shophawk.Shop do
           end
       end)
 
-    #reduce
-    weekly_hours =
-      Enum.reduce(runlists, weekly_hours, fn row, acc ->
+    weekly_hours_with_act_run_hrs_subtracted =
+      Enum.reduce(runlists, weekly_hours_list, fn row, acc ->
         start = row.sched_start
         acc =
           cond do
@@ -377,8 +373,8 @@ defmodule Shophawk.Shop do
           end
       end)
 
-    weekly_hours =
-      weekly_hours
+    weekly_hours_as_percentages =
+      weekly_hours_with_act_run_hrs_subtracted
       |> Map.update!(:weekone, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
       |> Map.update!(:weektwo, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
       |> Map.update!(:weekthree, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))

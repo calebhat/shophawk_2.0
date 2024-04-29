@@ -50,19 +50,25 @@
       </.link>   
       <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
         <.info_button>Edit Department</.info_button>
-      </.link>   
+      </.link>
+      <.info_button phx-click="color_key">Color Key</.info_button>
     <% else %>
       <.link patch={~p"/runlists/new_department"}>
         <.button>New Department</.button>
       </.link>
     <% end %>
+    <%= if @workcenter_id do %>
+      <.info_button phx-click="color_key">Color Key</.info_button>
+    <% end %>
+    
 
-    <!-- Testing purposes  -->
+
+    <!-- Testing purposes  
     <.button phx-click="time_based_import" class="ml-2">time_based_import</.button>
     
     <.button phx-click="importall" class="ml-2">Import All</.button>
     <.button phx-click="rework_to_do" class="ml-2">rework_to_do</.button>    
-    
+    -->
     
   </:actions>    
 </.header>
@@ -208,4 +214,51 @@
     title={@page_title}
     action={@live_action}
   />
+</.modal>
+
+<.modal :if={@live_action in [:color_key]} id="color-key-modal" show on_cancel={JS.patch(~p"/runlists")}>
+<div class="text-4xl text-center text-stone-950">Color Key</div>
+<div class="text-sm text-center text-stone-950">(Hover for more info)</div>
+<br>
+<div class="">
+<div class="grid grid-cols-3">
+    <div class="color-key-box bg-rose-200 text-stone-950">Behind Schedule</div>
+    <div class="color-key-box bg-sky-200 text-stone-950">Starts Today</div>
+    <div class="color-key-box bg-cyan-800 text-stone-200">Starts After Today</div>
+</div>
+<div class="grid grid-cols-3">
+  <div class="tooltip-container">
+    <div class="color-key-box bg-cyan-500 text-stone-950">1 Dot</div>
+    <div class="tooltip mt-14">Jobs to pay extra attention too. <br>(Tight schedule, remakes)</div>
+  </div>
+  <div class="tooltip-container">
+    <div class="color-key-box bg-amber-500 text-stone-950">2 Dot</div>
+    <div class="tooltip mt-14">Standard Rush Orders <br>-Run these the next time your machine is open or within a few hours.</div>
+  </div>
+  <div class="tooltip-container">
+    <div class="color-key-box bg-red-600 text-stone-950">3 Dot</div>
+    <div class="tooltip mt-14">Extra Hot. <br>Drop everything and run this operation <br>(Emergency breakdowns)</div>
+  </div>
+</div>
+<div class="grid grid-cols-3">
+    <div class="tooltip-container">
+      <div class="color-key-box  bg-cyan-950 text-stone-200">A "Runner"</div>
+      <div class="tooltip">-A job that's total hours exceeds the daily capacity for the department. These rows are duplicate rows that are spread out over the future days until all hours are accounted for.
+      <br>-These rows auto sort toward the bottom of each days list.
+      <br> changing one of these rows will update all matching rows elsewhere
+      <br><br>example: 
+      <br>~An operation has 18 hours of estimated hours.
+      <br>~The daily capacity per machine is set to 8 hours
+      <br>~18 hours / 8 Hour per day = 2.25 days (Round up, so this will show up for 3 days total)
+      <br>~The job will show up as normal on the first day, then show up as this darker duplicate day for 2 following days. 
+      </div>
+    </div>
+    <div class="tooltip-container">
+      <div class="color-key-box bg-emerald-500 text-stone-950">Job is Started</div>
+      <div class="tooltip">-These rows autofill the "Assignment" with the initials of whoever last logged into the operation. <br>-These rows auto sort toward the bottom of each days list. </div>
+    </div>
+</div>
+</div>
+
+
 </.modal>

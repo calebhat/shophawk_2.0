@@ -662,6 +662,7 @@ defmodule Shophawk.Shop.Csvimport do
       end)
       |> Enum.reduce( [], fn [ wc_vendor | _], acc -> [wc_vendor | acc] end)
       |> Enum.uniq
+      |> Enum.filter(fn string -> !String.contains?(string, "rows affected") end)
       |> Enum.sort
 
     saved_workcenters = Enum.map(Shop.list_workcenters, &(&1.workcenter))
