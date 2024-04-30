@@ -17,7 +17,7 @@ module.exports = {
         brand: "#FD4F00",
       },
       backgroundImage: {
-        'shophawk': "url('../images/gearhawk.jpg')",
+        'shophawk': "url('../images/gearhawk_wide.jpg')",
       }
     },
   },
