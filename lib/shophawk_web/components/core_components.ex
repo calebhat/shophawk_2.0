@@ -950,7 +950,7 @@ defmodule ShophawkWeb.CoreComponents do
                     </span>
                   <% 3 -> %>
                     <span class={["font-semibold text-zinc-900"]}>
-                    Hours of Work (<%= elem(row, 1).hour_percentage %>)%
+                    Hours of Work <%= if Map.has_key?(elem(row, 1), :hour_percentage), do: "(" <> elem(row, 1).hour_percentage <> "%)" %>
                   </span>
                   <% _ -> %>
                     <div></div>
