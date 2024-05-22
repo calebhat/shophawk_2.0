@@ -627,7 +627,7 @@ defmodule Shophawk.Shop.Csvimport do
   ####### Below used in other modules ######
 
   def load_blackout_dates do
-    System.cmd("cmd", ["/C", "C:\\phoenixapps\\shophawk\\batch_files\\load_blackout_dates.bat"])
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/load_blackout_dates.bat"])])
 
     blackout_dates =
       File.stream!(Path.join([File.cwd!(), "csv_files/blackoutdates.csv"]))
@@ -650,6 +650,7 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   def update_workcenters do #check for new workcenters to be added for department workcenter selection
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/load_workcenter.bat"])])
     workcenters =
       File.stream!(Path.join([File.cwd!(), "csv_files/workcenters.csv"]))
       |> Stream.map(&String.trim(&1))

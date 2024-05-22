@@ -9,3 +9,12 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+
+Shophawk.Repo.insert!(%Shophawk.Shopinfo.Slideshow{
+  workhours: "07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,07:00,16:00,false,false",
+  announcement1: "",
+  announcement2: "",
+  announcement3: "",
+  quote: "",
+  photo: ""
+})

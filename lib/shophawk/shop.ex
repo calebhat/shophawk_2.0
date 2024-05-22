@@ -469,6 +469,23 @@ defmodule Shophawk.Shop do
     Repo.get_by(Runlist, job_operation: job_operation)
   end
 
+  def get_hot_jobs() do
+    query =
+      from r in Runlist,
+      where: r.dots > 0 and r.status == "O",
+      order_by: [desc: r.id],
+      select: %Runlist{id: r.id, job: r.job, description: r.description, customer: r.customer, part_number: r.part_number, make_quantity: r.make_quantity, dots: r.dots, currentop: r.currentop, job_sched_end: r.job_sched_end}
+    hot_jobs = Repo.all(query)
+    grouped_ops = Enum.group_by(hot_jobs, &(&1.job))
+    keys_to_keep = [:id, :job,:description, :customer, :part_number, :make_quantity, :dots, :currentop, :job_sched_end]
+    Enum.map(grouped_ops, fn {job, operations} ->
+      Enum.max_by(operations, &(&1.id))
+    end)
+    |> Enum.map(&Map.take(&1, keys_to_keep))
+    |> Enum.sort_by(&(&1.job_sched_end), Date)
+    |> Enum.slice(0..9)
+  end
+
   @doc """
   Creates a runlist.
 

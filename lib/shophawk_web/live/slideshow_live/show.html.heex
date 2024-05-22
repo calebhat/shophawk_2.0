@@ -1,0 +1,31 @@
+<.header>
+  Slideshow <%= @slideshow.id %>
+  <:subtitle>This is a slideshow record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/slideshow/#{@slideshow}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit slideshow</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Workhours"><%= @slideshow.workhours %></:item>
+  <:item title="Announcement1"><%= @slideshow.announcement1 %></:item>
+  <:item title="Announcement2"><%= @slideshow.announcement2 %></:item>
+  <:item title="Announcement3"><%= @slideshow.announcement2 %></:item>
+  <:item title="Quote"><%= @slideshow.quote %></:item>
+  <:item title="Photo"><%= @slideshow.photo %></:item>
+</.list>
+
+<.back navigate={~p"/slideshow"}>Back to slideshow</.back>
+
+<.modal :if={@live_action == :edit} id="slideshow-modal" show on_cancel={JS.patch(~p"/slideshow/#{@slideshow}")}>
+  <.live_component
+    module={ShophawkWeb.SlideshowLive.FormComponent}
+    id={@slideshow.id}
+    title={@page_title}
+    action={@live_action}
+    slideshow={@slideshow}
+    patch={~p"/slideshow/#{@slideshow}"}
+  />
+</.modal>

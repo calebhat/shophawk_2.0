@@ -41,15 +41,24 @@ defmodule ShophawkWeb.Router do
     live "/runlists/:id/show/edit", RunlistLive.Show, :edit
     live "/runlists/importall", RunlistLive.Importall, :importall
 
-
-
-
     live "/departments", DepartmentLive.Index, :index
     live "/departments/new", DepartmentLive.Index, :new_department
     live "/departments/:id/edit", DepartmentLive.Index, :edit_department
-
     live "/departments/:id", DepartmentLive.Show, :show
     live "/departments/:id/show/edit", DepartmentLive.Show, :edit
+
+    live "/slideshow", SlideshowLive.Index, :index
+    live "/slideshow/new", SlideshowLive.Index, :new
+    live "/slideshow/:id/edit", SlideshowLive.Index, :edit
+    live "/run_slideshow/:id", SlideshowLive.Index, :run_slideshow
+    live "/slideshow/:id", SlideshowLive.Show, :show
+    live "/slideshow/:id/show/edit", SlideshowLive.Show, :edit
+
+    live "/timeoff", TimeoffLive.Index, :index
+    live "/timeoff/new", TimeoffLive.Index, :new
+    live "/timeoff/:id/edit", TimeoffLive.Index, :edit
+    live "/timeoff/:id", TimeoffLive.Show, :show
+    live "/timeoff/:id/show/edit", TimeoffLive.Show, :edit
 
   end
 

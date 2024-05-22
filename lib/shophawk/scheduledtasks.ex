@@ -1,6 +1,7 @@
 defmodule ScheduledTasks do
   use GenServer
   alias Shophawk.Shop.Csvimport
+  alias Shophawk.JobbossExports
   alias Shophawk.Shop
 
   # Client API
@@ -14,7 +15,11 @@ defmodule ScheduledTasks do
     #Process.send_after(self(), :update_from_jobboss, 0) # Start the task after initialization
 
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
-    Process.send_after(self(), :update_all_runlist_loads, 0)
+    #Process.send(self(), :update_all_runlist_loads, [])
+
+    :ets.new(:birthdays_cache, [:set, :named_table, :public, read_concurrency: true])
+    Process.send(self(), :load_current_week_birthdays, [])
+
     {:ok, nil}
   end
 
@@ -46,6 +51,36 @@ defmodule ScheduledTasks do
     Process.send_after(self(), :update_all_runlist_loads, 6000000)
     IO.puts("Loads Updated")
 
+    {:noreply, nil}
+  end
+
+  def handle_info(:load_current_week_birthdays, _state) do
+    employees = JobbossExports.export_employees
+    today = Date.utc_today()
+    day_of_week = Date.day_of_week(today)
+    sunday = Date.add(today, -day_of_week)
+    next_monday = Date.add(sunday, 8)
+    this_weeks_birthdays =
+      Enum.map(employees, fn emp ->
+        normalized_birthday = %{emp.birthday | year: today.year} #changes the year to be this year for comparison
+        if Date.before?(normalized_birthday, next_monday) and Date.after?(normalized_birthday, sunday) do
+          emp
+        end
+      end)
+      |> Enum.filter(fn item -> is_map(item) end)
+
+    #TEST DATA
+    this_weeks_birthdays = [%{employee: "GV", user_value: "2774", first_name: "Greg", last_name: "Vike", hire_date: ~D[2010-06-28], birthday: ~D[2024-05-06]}]
+
+    birthday_lines =
+      Enum.reduce(this_weeks_birthdays, [], fn bday, acc ->
+        acc ++ ["#{bday.first_name} #{bday.last_name} on #{Calendar.strftime(bday.birthday, "%A")} (#{bday.birthday.month}-#{bday.birthday.day})"]
+      end)
+      IO.inspect(birthday_lines)
+
+    :ets.insert(:birthdays_cache, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
+    #Process.send_after(self(), :load_current_week_birthdays, 6000000)
+    IO.puts("This Weeks Birthdays Updated")
     {:noreply, nil}
   end
 

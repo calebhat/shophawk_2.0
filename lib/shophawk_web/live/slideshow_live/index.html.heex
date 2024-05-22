@@ -1,0 +1,65 @@
+<.header>
+  Listing Slideshow
+  <:actions>
+    <.link patch={~p"/run_slideshow/1"}>
+      <.button>Run Slideshow</.button>
+    </.link>
+    <.link patch={~p"/slideshow/1/edit"}>
+      <.button>edit Slideshow</.button>
+    </.link>
+    <.link patch={~p"/timeoff"}>
+      <.button>Timeoff</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="slideshow"
+  rows={@streams.slideshow_collection}
+  row_click={fn {_id, slideshow} -> JS.navigate(~p"/slideshow/#{slideshow}") end}
+>
+  <:col :let={{_id, slideshow}} label="Workhours"><%= slideshow.workhours %></:col>
+  <:col :let={{_id, slideshow}} label="Announcement1"><%= slideshow.announcement1 %></:col>
+  <:col :let={{_id, slideshow}} label="Annountment2"><%= slideshow.announcement2 %></:col>
+  <:col :let={{_id, slideshow}} label="Announcemnet3"><%= slideshow.announcement3 %></:col>
+  <:col :let={{_id, slideshow}} label="Quote"><%= slideshow.quote %></:col>
+  <:col :let={{_id, slideshow}} label="Photo"><%= slideshow.photo %></:col>
+  <:action :let={{_id, slideshow}}>
+    <div class="sr-only">
+      <.link navigate={~p"/slideshow/#{slideshow}"}>Show</.link>
+    </div>
+    <.link patch={~p"/slideshow/#{slideshow}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, slideshow}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: slideshow.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="slideshow-modal" show on_cancel={JS.patch(~p"/slideshow")}>
+  <.live_component
+    module={ShophawkWeb.SlideshowLive.FormComponent}
+    id={@slideshow.id || :new}
+    title={@page_title}
+    action={@live_action}
+    slideshow={@slideshow}
+    patch={~p"/slideshow"}
+  />
+</.modal>
+
+<.slideshow_modal :if={@live_action in [:run_slideshow]} id="slideshow-modal" show on_cancel={JS.patch(~p"/slideshow")}>
+  <.live_component
+    module={ShophawkWeb.SlideshowLive.SlideshowComponent}
+    id={@slideshow.id}
+    title={@page_title}
+    action={@live_action}
+    slideshow={@slideshow}
+    slide={:hours}
+    slide_index={0}
+    patch={~p"/slideshow"}
+  />
+</.slideshow_modal>

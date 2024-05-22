@@ -1,0 +1,41 @@
+<div class="mx-auto w-fit bg-cyan-700 p-4 rounded-lg text-white">
+<.header>
+  Listing Timeoff
+  <:actions>
+    <.link patch={~p"/timeoff/new"}>
+      <.button>New Timeoff</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="timeoff"
+  rows={@streams.timeoff_collection}
+>
+  <:col :let={{_id, timeoff}} label="Employee"><%= timeoff.employee %></:col>
+  <:col :let={{_id, timeoff}} label="Start"><%= Calendar.strftime(timeoff.startdate, "%m-%d-%y %I:%M %p") %></:col>
+  <:col :let={{_id, timeoff}} label="End"><%= Calendar.strftime(timeoff.enddate, "%m-%d-%y %I:%M %p") %></:col>
+  <:action :let={{_id, timeoff}}>
+    <.link patch={~p"/timeoff/#{timeoff}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, timeoff}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: timeoff.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+</div>
+
+<.modal :if={@live_action in [:new, :edit]} id="timeoff-modal" show on_cancel={JS.patch(~p"/timeoff")}>
+  <.live_component
+    module={ShophawkWeb.TimeoffLive.FormComponent}
+    id={@timeoff.id || :new}
+    title={@page_title}
+    action={@live_action}
+    timeoff={@timeoff}
+    patch={~p"/timeoff"}
+  />
+</.modal>
