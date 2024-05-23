@@ -1,4 +1,10 @@
+<div class="flex justify-end">
+  <.link patch={~p"/slideshow"}>
+    <.button>Back to Slideshow</.button>
+  </.link>
+</div>
 <div class="mx-auto w-fit bg-cyan-700 p-4 rounded-lg text-white">
+
 <.header>
   Listing Timeoff
   <:actions>
@@ -7,6 +13,15 @@
     </.link>
   </:actions>
 </.header>
+<div>
+  <form phx-change="search">
+    <div class="grid grid-cols-3">
+      <div class="mx-0.5"><.input type="search" name="search_term" value={@search_term || ""} placeholder="Search" /></div>
+      <div class="mx-0.5"><.input type="date" name="start_date" value={@start_date || ""} /></div>
+      <div class="mx-0.5"><.input type="date" name="end_date" value={@end_date || ""}/></div>
+    </div>
+  </form>
+</div>
 
 <.table
   id="timeoff"

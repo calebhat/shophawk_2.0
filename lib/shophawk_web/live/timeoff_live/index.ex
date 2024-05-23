@@ -6,7 +6,13 @@ defmodule ShophawkWeb.TimeoffLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, stream(socket, :timeoff_collection, Shopinfo.list_timeoff())}
+    {:ok,
+      socket
+      |> assign(:search_term, "")
+      |> assign(:start_date, Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d"))
+      |> assign(:end_date, "")
+      |> assign_timeoff_collection()
+    }
   end
 
   @impl true
@@ -34,7 +40,7 @@ defmodule ShophawkWeb.TimeoffLive.Index do
 
   @impl true
   def handle_info({ShophawkWeb.TimeoffLive.FormComponent, {:saved, timeoff}}, socket) do
-    {:noreply, stream_insert(socket, :timeoff_collection, timeoff)}
+    {:noreply, assign_timeoff_collection(socket)}
   end
 
   @impl true
@@ -42,6 +48,24 @@ defmodule ShophawkWeb.TimeoffLive.Index do
     timeoff = Shopinfo.get_timeoff!(id)
     {:ok, _} = Shopinfo.delete_timeoff(timeoff)
 
-    {:noreply, stream_delete(socket, :timeoff_collection, timeoff)}
+    {:noreply, assign_timeoff_collection(socket)}
   end
+
+  @impl true
+  def handle_event("search", %{"search_term" => search_term, "start_date" => start_date, "end_date" => end_date}, socket) do
+    socket =
+      socket
+      |> assign(:search_term, search_term)
+      |> assign(:start_date, start_date)
+      |> assign(:end_date, end_date)
+      |> assign_timeoff_collection()
+
+    {:noreply, socket}
+  end
+
+  defp assign_timeoff_collection(socket) do
+    timeoff_collection = Shopinfo.search_timeoff(socket.assigns.search_term, socket.assigns.start_date, socket.assigns.end_date)
+    stream(socket, :timeoff_collection, timeoff_collection, reset: true)
+  end
+
 end

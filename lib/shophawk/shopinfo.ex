@@ -117,6 +117,38 @@ defmodule Shophawk.Shopinfo do
     Repo.all(Timeoff)
   end
 
+  def search_timeoff(search_term, start_date, end_date) do
+
+    start_date = parse_date(start_date)
+    end_date = parse_date(end_date)
+    end_date =
+      if end_date == "" do
+        {:ok, datetime} = DateTime.now("Etc/UTC")
+        DateTime.add(datetime, 365, :day)
+      else
+        end_date
+      end
+
+    query =
+      Timeoff
+      |> where([t], ilike(t.employee, ^"%#{search_term}%"))
+      |> where([t], t.enddate >= ^start_date)
+      |> where([t], t.enddate <= ^end_date)
+
+    Repo.all(query)
+    |> Enum.sort_by(&(&1.startdate))
+  end
+
+  defp parse_date(""), do: ""
+  defp parse_date(date_str) do
+    case Date.from_iso8601(date_str) do
+      {:ok, date} ->
+        {:ok, naive_date} = NaiveDateTime.new(date.year, date.month, date.day, 0, 0, 0)
+        naive_date
+      _ -> ""
+    end
+  end
+
   @doc """
   Gets a single timeoff.
 
