@@ -140,6 +140,10 @@ defmodule Shophawk.Shopinfo do
   end
 
   defp parse_date(""), do: ""
+  defp parse_date(%Date{} = date) do
+    {:ok, naive_date} = NaiveDateTime.new(date.year, date.month, date.day, 0, 0, 0)
+    naive_date
+  end
   defp parse_date(date_str) do
     case Date.from_iso8601(date_str) do
       {:ok, date} ->

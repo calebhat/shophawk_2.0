@@ -15,10 +15,13 @@ defmodule ScheduledTasks do
     #Process.send_after(self(), :update_from_jobboss, 0) # Start the task after initialization
 
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
-    #Process.send(self(), :update_all_runlist_loads, [])
+    Process.send(self(), :update_all_runlist_loads, [])
 
     :ets.new(:birthdays_cache, [:set, :named_table, :public, read_concurrency: true])
     Process.send(self(), :load_current_week_birthdays, [])
+
+    :ets.new(:weekly_dates, [:set, :named_table, :public, read_concurrency: true])
+    Process.send(self(), :save_weekly_dates, [])
 
     {:ok, nil}
   end
@@ -35,7 +38,7 @@ defmodule ScheduledTasks do
     {:noreply, state}
   end
 
-  #runs every 30 seconds
+  #runs every 5 minutes
   def handle_info(:update_all_runlist_loads, _state) do
     departments = Shop.list_departments |> Enum.sort_by(&(&1).department)
     department_loads =
@@ -48,12 +51,13 @@ defmodule ScheduledTasks do
         acc ++ [weekly_load]
       end)
     :ets.insert(:runlist_loads, {:data, department_loads})  # Store the data in ETS
-    Process.send_after(self(), :update_all_runlist_loads, 6000000)
+    #Process.send_after(self(), :update_all_runlist_loads, 300000)
     IO.puts("Loads Updated")
 
     {:noreply, nil}
   end
 
+  #runs 4 times a days
   def handle_info(:load_current_week_birthdays, _state) do
     employees = JobbossExports.export_employees
     today = Date.utc_today()
@@ -79,8 +83,21 @@ defmodule ScheduledTasks do
       IO.inspect(birthday_lines)
 
     :ets.insert(:birthdays_cache, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
-    #Process.send_after(self(), :load_current_week_birthdays, 6000000)
+    #Process.send_after(self(), :load_current_week_birthdays, 1440000)
     IO.puts("This Weeks Birthdays Updated")
+    {:noreply, nil}
+  end
+
+  def handle_info(:save_weekly_dates, _state) do
+    today = Date.utc_today()
+    day_of_week = Date.day_of_week(today)
+    monday = Date.add(today, -(day_of_week - 1))
+    friday = Date.add(monday, 4)
+    next_monday = Date.add(monday, 7)
+    next_friday = Date.add(next_monday, 4)
+    :ets.insert(:weekly_dates, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
+    IO.puts("weekly dates updated")
+    #Process.send_after(self(), :load_current_week_birthdays, 1440000)
     {:noreply, nil}
   end
 

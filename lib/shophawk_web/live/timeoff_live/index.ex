@@ -53,6 +53,7 @@ defmodule ShophawkWeb.TimeoffLive.Index do
 
   @impl true
   def handle_event("search", %{"search_term" => search_term, "start_date" => start_date, "end_date" => end_date}, socket) do
+    IO.inspect(start_date)
     socket =
       socket
       |> assign(:search_term, search_term)
@@ -61,6 +62,16 @@ defmodule ShophawkWeb.TimeoffLive.Index do
       |> assign_timeoff_collection()
 
     {:noreply, socket}
+  end
+
+  def handle_event("clear_search", _params, socket) do
+    {:noreply,
+    socket
+    |> assign(:search_term, "")
+    |> assign(:start_date, Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d"))
+    |> assign(:end_date, "")
+    |> assign_timeoff_collection()
+  }
   end
 
   defp assign_timeoff_collection(socket) do

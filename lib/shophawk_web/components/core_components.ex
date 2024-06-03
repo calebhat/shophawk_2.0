@@ -346,7 +346,7 @@ defmodule ShophawkWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "hx-submit-loading:opacity-75 rounded-lg bg-cyan-800 hover:bg-cyan-700 py-1.5 px-3",
+        "hx-submit-loading:opacity-75 rounded-lg bg-cyan-800 hover:bg-cyan-600 py-1.5 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
@@ -676,7 +676,7 @@ defmodule ShophawkWeb.CoreComponents do
 
     ~H"""
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] mt-11 sm:w-full">
+      <table class="w-[40rem] mt-4 sm:w-full">
         <thead class="text-lg text-left leading-6 text-white text-center">
           <tr>
             <th :for={col <- @col} class="p-0 pr-6 pb-4 font-normal"><%= col[:label] %></th>

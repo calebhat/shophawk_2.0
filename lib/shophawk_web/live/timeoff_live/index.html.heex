@@ -15,10 +15,11 @@
 </.header>
 <div>
   <form phx-change="search">
-    <div class="grid grid-cols-3">
-      <div class="mx-0.5"><.input type="search" name="search_term" value={@search_term || ""} placeholder="Search" /></div>
-      <div class="mx-0.5"><.input type="date" name="start_date" value={@start_date || ""} /></div>
-      <div class="mx-0.5"><.input type="date" name="end_date" value={@end_date || ""}/></div>
+    <div class="flex space-x-2">
+      <div class="flex-grow mx-0.5"><.input type="search" name="search_term" value={@search_term || ""} placeholder="Search" /></div>
+      <div class="flex-grow mx-0.5"><.input type="date" name="start_date" value={@start_date || ""} /></div>
+      <div class="flex-grow mx-0.5"><.input type="date" name="end_date" value={@end_date || ""}/></div>
+      <div class="flex-none self-center pt-3" phx-click="clear_search"><.info_button>Clear Search</.info_button></div>
     </div>
   </form>
 </div>

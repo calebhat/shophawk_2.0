@@ -165,6 +165,8 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
               <div class="grid justify-items-end"><img src={~p"/images/party-confetti.svg"} width="200" class="rotate-90" /></div>
             </div>
           </div>
+        <% :time_off -> %> <%= @slideshow.time_off.nt %>
+        <% nil -> %> <div class="text-6xl">Initializing Slideshow</div>
         <% end %>
         </div>
       </div>
@@ -173,79 +175,24 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
 end
 
   @impl true
-  def update(%{slideshow: slideshow, slide: slide, slide_index: index} = assigns, socket) do
-    slide_time = 3000 #seconds to next slide
+  def update(%{slideshow: slideshow, slide: slide, slide_index: index, slides: slides} = assigns, socket) do
+    slide_time = if slide == nil, do: 800, else: 1000 #seconds to next slide
     IO.inspect(slide)
-    slideshow =
-    case slide do
-      :hours ->
-        map_keys = [:mondayo1, :mondayc1, :tuesdayo1, :tuesdayc1, :wednesdayo1, :wednesdayc1, :thursdayo1, :thursdayc1, :fridayo1, :fridayc1, :saturdayo1, :saturdayc1, :mondayo2, :mondayc2, :tuesdayo2, :tuesdayc2, :wednesdayo2, :wednesdayc2, :thursdayo2, :thursdayc2, :fridayo2, :fridayc2, :saturdayo2, :saturdayc2, :showsaturday1, :showsaturday2]
-        slideshow =
-          String.split(slideshow.workhours, ",")
-          |> Enum.map(fn x ->
-            if String.contains?(x, ":") do
-              [hours, minutes] = String.split(x, ":")
-              hours = String.to_integer(hours)
-              hours = if hours > 12, do: hours - 12, else: hours
-              "#{hours}:#{minutes}"
-            else
-              x
-            end
-          end)
-          |> Enum.map(fn x ->
-            case x do
-              "true" -> true
-              "false" -> false
-              _ -> x
-            end
-          end)
-          |> Enum.zip(map_keys)
-          |> Enum.reduce(slideshow, fn {value, key}, acc ->
-            Map.put(acc, key, value)
-          end)
-        #add current and next week dates to slideshow map
-        today = Date.utc_today()
-        day_of_week = Date.day_of_week(today)
-        monday = Date.add(today, -(day_of_week - 1))
-        friday = Date.add(monday, 4)
-        next_monday = Date.add(monday, 7)
-        next_friday = Date.add(next_monday, 4)
-        monday_formatted = Date.to_string(monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        friday_formatted = Date.to_string(friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        next_monday_formatted = Date.to_string(next_monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        next_friday_formatted = Date.to_string(next_friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        slideshow = Map.put(slideshow, :this_week, "#{monday_formatted} - #{friday_formatted}")
-        slideshow = Map.put(slideshow, :next_week, "#{next_monday_formatted} - #{next_friday_formatted}")
-      :announcement1 -> slideshow = Map.put(slideshow, :announcement1, slideshow.announcement1 |> String.replace("\n", "<br>"))
-      :announcement2 -> slideshow = Map.put(slideshow, :announcement2, slideshow.announcement2 |> String.replace("\n", "<br>"))
-      :announcement3 -> slideshow = Map.put(slideshow, :announcement3, slideshow.announcement3 |> String.replace("\n", "<br>"))
-      _ -> slideshow
-      end
-      socket =
-        if slide == :hot_jobs do
-          stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true)
-        else
-          socket
-        end
-
+    socket = if slide == :hot_jobs, do: stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true), else: socket
     index = index + 1 #used to trigger css animations
-    index = if index == 10, do: 0, else: index
+    index = if index == 10, do: 0, else: index #keeps number low after running for weeks/months nonstop.
     process = self()
     if rem(index, 2) == 0 do
       Task.start(fn ->
-        Process.send_after(process, {:next_slide, slideshow, assigns.slide, index}, 300)
+        Process.send_after(process, {:next_slide, slideshow, assigns.slide, index, slides}, 300)
       end)
     else #fade animations
       Task.start(fn ->
-        Process.send_after(process, {:next_slide_animation, slideshow, assigns.slide, index}, slide_time)
+        Process.send_after(process, {:next_slide_animation, slideshow, assigns.slide, index, slides}, slide_time)
       end)
     end
 
-    {:ok,
-     socket
-     |> assign(assigns)
-     |> assign(slideshow: slideshow)
-     |> assign(slide_index: index)}
+    {:ok, socket |> assign(assigns) |> assign(slide_index: index)}
   end
 
   defp transition(index) do

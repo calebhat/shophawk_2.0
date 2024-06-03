@@ -35,7 +35,7 @@ defmodule Shophawk.Shopinfo.Timeoff do
       nil ->
         current_date = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
         {year, month, day} = {current_date.year, current_date.month, current_date.day}
-        {:ok, evening} = NaiveDateTime.new(year, month, day, 16, 0, 0)
+        {:ok, evening} = NaiveDateTime.new(year, month, day, 15, 0, 0)
         put_change(changeset, :enddate, evening)
       _ -> changeset
     end
