@@ -38,7 +38,7 @@ defmodule ScheduledTasks do
     {:noreply, state}
   end
 
-  #runs every 5 minutes
+#runs every 5 minutes
   def handle_info(:update_all_runlist_loads, _state) do
     departments = Shop.list_departments |> Enum.sort_by(&(&1).department)
     department_loads =
@@ -51,13 +51,13 @@ defmodule ScheduledTasks do
         acc ++ [weekly_load]
       end)
     :ets.insert(:runlist_loads, {:data, department_loads})  # Store the data in ETS
-    #Process.send_after(self(), :update_all_runlist_loads, 300000)
+    Process.send_after(self(), :update_all_runlist_loads, 300000)
     IO.puts("Loads Updated")
 
     {:noreply, nil}
   end
 
-  #runs 4 times a days
+#runs 4 times a days
   def handle_info(:load_current_week_birthdays, _state) do
     employees = JobbossExports.export_employees
     today = Date.utc_today()
@@ -74,16 +74,15 @@ defmodule ScheduledTasks do
       |> Enum.filter(fn item -> is_map(item) end)
 
     #TEST DATA
-    this_weeks_birthdays = [%{employee: "GV", user_value: "2774", first_name: "Greg", last_name: "Vike", hire_date: ~D[2010-06-28], birthday: ~D[2024-05-06]}]
+    #this_weeks_birthdays = [%{employee: "GV", user_value: "2774", first_name: "Greg", last_name: "Vike", hire_date: ~D[2010-06-28], birthday: ~D[2024-05-06]}]
 
     birthday_lines =
       Enum.reduce(this_weeks_birthdays, [], fn bday, acc ->
         acc ++ ["#{bday.first_name} #{bday.last_name} on #{Calendar.strftime(bday.birthday, "%A")} (#{bday.birthday.month}-#{bday.birthday.day})"]
       end)
-      IO.inspect(birthday_lines)
 
     :ets.insert(:birthdays_cache, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
-    #Process.send_after(self(), :load_current_week_birthdays, 1440000)
+    Process.send_after(self(), :load_current_week_birthdays, 1440000)
     IO.puts("This Weeks Birthdays Updated")
     {:noreply, nil}
   end
@@ -97,7 +96,7 @@ defmodule ScheduledTasks do
     next_friday = Date.add(next_monday, 4)
     :ets.insert(:weekly_dates, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
     IO.puts("weekly dates updated")
-    #Process.send_after(self(), :load_current_week_birthdays, 1440000)
+    Process.send_after(self(), :load_current_week_birthdays, 1440000)
     {:noreply, nil}
   end
 

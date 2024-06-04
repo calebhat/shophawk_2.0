@@ -165,7 +165,48 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
               <div class="grid justify-items-end"><img src={~p"/images/party-confetti.svg"} width="200" class="rotate-90" /></div>
             </div>
           </div>
-        <% :time_off -> %> <%= @slideshow.time_off.nt %>
+        <% :week1_timeoff -> %>
+          <div class="justify-center h-screen w-sceen">
+            <div class="text-center text-6xl font-bold">
+              This weeks Time Off
+            </div>
+            <div class="text-center text-4xl border-b-4 border-stone-600 pb-2">
+              <%= Calendar.strftime(@slideshow.weekly_dates.monday, "%m-%d") %> to <%= Calendar.strftime(@slideshow.weekly_dates.friday, "%m-%d") %>
+            </div>
+            <div class="grid grid-cols-5 text-6xl text-center">
+              <%= for {key, values} <- @slideshow.week1_timeoff do %>
+                <div>
+                  <h2 class="font-bold pb-4"><%= timeoff_header_rename(key) %></h2>
+                  <ul class="border-black border text-4xl">
+                    <%= for value <- values do %>
+                      <li class="border border-y border-black py-4"><%= value %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% :week2_timeoff -> %>
+          <div class="justify-center h-screen w-sceen">
+            <div class="text-center text-6xl font-bold">
+              Next weeks Time Off
+            </div>
+            <div class="text-center text-4xl border-b-4 border-stone-600 pb-2">
+              <%= Calendar.strftime(@slideshow.weekly_dates.next_monday, "%m-%d") %> to <%= Calendar.strftime(@slideshow.weekly_dates.next_friday, "%m-%d") %>
+            </div>
+            <div class="grid grid-cols-5 text-6xl text-center">
+              <%= for {key, values} <- @slideshow.week2_timeoff do %>
+                <div>
+                  <h2 class="font-bold pb-4"><%= timeoff_header_rename(key) %></h2>
+                  <ul class="border-black border text-4xl">
+                    <%= for value <- values do %>
+                      <li class="border border-y border-black py-4"><%= value %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              <% end %>
+            </div>
+          </div>
         <% nil -> %> <div class="text-6xl">Initializing Slideshow</div>
         <% end %>
         </div>
@@ -176,7 +217,7 @@ end
 
   @impl true
   def update(%{slideshow: slideshow, slide: slide, slide_index: index, slides: slides} = assigns, socket) do
-    slide_time = if slide == nil, do: 800, else: 1000 #seconds to next slide
+    slide_time = if slide == nil, do: 800, else: 7000 #seconds to next slide
     IO.inspect(slide)
     socket = if slide == :hot_jobs, do: stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true), else: socket
     index = index + 1 #used to trigger css animations
@@ -221,6 +262,22 @@ end
       1 -> "bg-cyan-500/30"
       2 -> "bg-amber-500/30"
       3 -> "bg-red-600/30"
+      _ -> ""
+    end
+  end
+
+  def timeoff_header_rename(key) do
+    case key do
+      :m -> "Monday"
+      :t -> "Tuesday"
+      :w -> "Wednesday"
+      :thur -> "Thursday"
+      :f -> "Friday"
+      :nm -> "Monday"
+      :nt -> "Wednesday"
+      :nw -> "Thursday"
+      :nthur -> "Thursday"
+      :nf -> "Friday"
       _ -> ""
     end
   end

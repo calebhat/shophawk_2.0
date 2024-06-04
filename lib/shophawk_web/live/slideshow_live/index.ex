@@ -65,24 +65,24 @@ defmodule ShophawkWeb.SlideshowLive.Index do
       end)
     {slideshow, slides, next_slide} =
       if current_slide == next_slide do
-        #{slideshow, slides} = {parse_hours(slideshow), [:hours]}
-        #{slideshow, slides} = if String.trim(slideshow.announcement1) != "", do: {Map.put(slideshow, :announcement1, slideshow.announcement1 |> String.replace("\n", "<br>")), slides ++ [:announcement1]}, else: {slideshow, slides}
-        #{slideshow, slides} = if String.trim(slideshow.announcement2) != "", do: {Map.put(slideshow, :announcement2, slideshow.announcement2 |> String.replace("\n", "<br>")), slides ++ [:announcement2]}, else: {slideshow, slides}
-        #{slideshow, slides} = if String.trim(slideshow.announcement3) != "", do: {Map.put(slideshow, :announcement3, slideshow.announcement3 |> String.replace("\n", "<br>")), slides ++ [:announcement3]}, else: {slideshow, slides}
-        #slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
-        #slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
+        {slideshow, slides} = {parse_hours(slideshow), [:hours]}
+        {slideshow, slides} = if String.trim(slideshow.announcement1) != "", do: {Map.put(slideshow, :announcement1, slideshow.announcement1 |> String.replace("\n", "<br>")), slides ++ [:announcement1]}, else: {slideshow, slides}
+        {slideshow, slides} = if String.trim(slideshow.announcement2) != "", do: {Map.put(slideshow, :announcement2, slideshow.announcement2 |> String.replace("\n", "<br>")), slides ++ [:announcement2]}, else: {slideshow, slides}
+        {slideshow, slides} = if String.trim(slideshow.announcement3) != "", do: {Map.put(slideshow, :announcement3, slideshow.announcement3 |> String.replace("\n", "<br>")), slides ++ [:announcement3]}, else: {slideshow, slides}
+        slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
+        slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
+
         [weekly_dates: weekly_dates] = :ets.lookup(:weekly_dates, :weekly_dates)
+        slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
+        {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
+        {slideshow, slides} = if Enum.all?(week1_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week1_timeoff, week1_timeoff), slides ++ [:week1_timeoff]}, else: {slideshow, slides}
+        {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
 
-        final_timeoff_map = %{m: [], t: [], w: [], thur: [], f: [], s: [], sun: [], nm: [], nt: [], nw: [], nthur: [], nf: [], ns: [], nsun: []}
-        time_off = Shophawk.Shopinfo.search_timeoff("", weekly_dates.monday, weekly_dates.next_friday) |> sort_time_off(weekly_dates, final_timeoff_map)
-        |> IO.inspect
-
-
-        {slideshow, slides} = if time_off != final_timeoff_map, do: {Map.put(slideshow, :time_off, time_off), slides ++ [:time_off]}, else: {slideshow, slides}
         hot_jobs = Shophawk.Shop.get_hot_jobs()
-        #{slideshow, slides} = if hot_jobs != [], do: {Map.put(slideshow, :hot_jobs, hot_jobs), slides ++ [:hot_jobs]}, else: {slideshow, slides}
-        #[this_weeks_birthdays: birthdays] = :ets.lookup(:birthdays_cache, :this_weeks_birthdays)
-        #{slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
+        {slideshow, slides} = if hot_jobs != [], do: {Map.put(slideshow, :hot_jobs, hot_jobs), slides ++ [:hot_jobs]}, else: {slideshow, slides}
+
+        [this_weeks_birthdays: birthdays] = :ets.lookup(:birthdays_cache, :this_weeks_birthdays)
+        {slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
         {slideshow, slides, List.first(slides)}
       else
         {slideshow, slides, next_slide}
@@ -129,6 +129,18 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         next_friday_formatted = Date.to_string(weekly_dates.next_friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
         slideshow = Map.put(slideshow, :this_week, "#{monday_formatted} - #{friday_formatted}")
         slideshow = Map.put(slideshow, :next_week, "#{next_monday_formatted} - #{next_friday_formatted}")
+  end
+
+  def load_timeoff(weekly_dates) do
+    final_timeoff_map = %{m: [], t: [], w: [], thur: [], f: [], s: [], sun: [], nm: [], nt: [], nw: [], nthur: [], nf: []}
+    all_time_off =
+      Shophawk.Shopinfo.search_timeoff("", weekly_dates.monday, weekly_dates.next_friday)
+      |> sort_time_off(weekly_dates, final_timeoff_map)
+    order = [:m, :t, :w, :thur, :f, :s, :sun, :nm, :nt, :nw, :nthur, :nf]
+    sorted_all_time_off = Enum.map(order, fn key -> {key, Map.get(all_time_off, key, [])} end)
+    {week1_timeoff, tail} = Enum.split_while(sorted_all_time_off, fn {k, _v} -> k != :s end)
+    {_head, week2_timeoff} = Enum.split_while(tail, fn {k, _v} -> k != :nm end)
+    {week1_timeoff, week2_timeoff}
   end
 
   defp sort_time_off(list, dates, final_timeoff_map) do
