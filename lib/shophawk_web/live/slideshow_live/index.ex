@@ -39,11 +39,6 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   end
 
   @impl true
-  def handle_info({ShophawkWeb.SlideshowLive.FormComponent, {:saved, slideshow}}, socket) do
-    {:noreply, stream_insert(socket, :slideshow_collection, slideshow)}
-  end
-
-  @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     slideshow = Shopinfo.get_slideshow!(id)
     {:ok, _} = Shopinfo.delete_slideshow(slideshow)
@@ -51,9 +46,14 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     {:noreply, stream_delete(socket, :slideshow_collection, slideshow)}
   end
 
+  @impl true
+  def handle_info({ShophawkWeb.SlideshowLive.FormComponent, {:saved, slideshow}}, socket) do
+    {:noreply, stream_insert(socket, :slideshow_collection, slideshow)}
+  end
+
   def handle_info({:next_slide, slideshow, current_slide, index, slides}, socket) do
     {next_slide, _value} =
-      Enum.reduce_while(slides, {nil, false}, fn slide, {_last_slide, found} = acc ->
+      Enum.reduce_while(slides, {nil, false}, fn slide, {_last_slide, found} = _acc ->
         case {slide == current_slide, found} do
           {true, false} ->
             {:cont, {slide, true}}  # Found the current slide
@@ -128,7 +128,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         next_monday_formatted = Date.to_string(weekly_dates.next_monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
         next_friday_formatted = Date.to_string(weekly_dates.next_friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
         slideshow = Map.put(slideshow, :this_week, "#{monday_formatted} - #{friday_formatted}")
-        slideshow = Map.put(slideshow, :next_week, "#{next_monday_formatted} - #{next_friday_formatted}")
+        Map.put(slideshow, :next_week, "#{next_monday_formatted} - #{next_friday_formatted}")
   end
 
   def load_timeoff(weekly_dates) do
@@ -153,23 +153,22 @@ defmodule ShophawkWeb.SlideshowLive.Index do
       stime = NaiveDateTime.to_time(timeoff.startdate)
       etime = NaiveDateTime.to_time(timeoff.enddate)
 
-      final_timeoff_map =
-        if sdate == edate do
-          key = day_key(Date.diff(sdate, List.first(dates_map)))
-          if key != false do
-            timeoff_string = set_timeoff_string(timeoff, sdate, edate, stime, etime)
-            Map.update!(acc, key, fn list -> [timeoff_string | list] end)
-          else
-            final_timeoff_map
-          end
+      if sdate == edate do
+        key = day_key(Date.diff(sdate, List.first(dates_map)))
+        if key != false do
+          timeoff_string = set_timeoff_string(timeoff, stime, etime)
+          Map.update!(acc, key, fn list -> [timeoff_string | list] end)
         else
-          spread_across_days(timeoff, acc, dates_map, sdate, edate, stime, etime)
+          final_timeoff_map
         end
+      else
+        spread_across_days(timeoff, acc, dates_map, sdate, edate)
+      end
     end)
     sorted_list
   end
 
-  defp set_timeoff_string(timeoff, sdate, edate, stime, etime) do
+  defp set_timeoff_string(timeoff, stime, etime) do
     if stime == ~T[07:00:00] and etime == ~T[15:00:00] do
       "#{timeoff.employee} - All Day"
     else
@@ -186,19 +185,18 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     if String.length(string) == 1, do: String.pad_leading(string, 2, "0"), else: string
   end
 
-  defp spread_across_days(timeoff, final_timeoff_map, dates_map, sdate, edate, stime, etime) do
+  defp spread_across_days(timeoff, final_timeoff_map, dates_map, sdate, edate) do
     dates = Enum.map(0..Date.diff(edate, sdate), &Date.add(sdate, &1))
-    final_timeoff_map =
-      Enum.reduce(dates, final_timeoff_map, fn date, acc ->
-        key = day_key(Date.diff(date, List.first(dates_map)))
-        if key != false do
-          stime = if date == sdate, do: NaiveDateTime.to_time(timeoff.startdate), else: ~T[07:00:00]
-          etime = if date == edate, do: NaiveDateTime.to_time(timeoff.enddate), else: ~T[15:00:00]
-          timeoff_string = set_timeoff_string(timeoff, sdate, edate, stime, etime)
-          Map.update!(acc, key, fn list -> [timeoff_string | list] end)
-        else
-          acc
-        end
+    Enum.reduce(dates, final_timeoff_map, fn date, acc ->
+      key = day_key(Date.diff(date, List.first(dates_map)))
+      if key != false do
+        stime = if date == sdate, do: NaiveDateTime.to_time(timeoff.startdate), else: ~T[07:00:00]
+        etime = if date == edate, do: NaiveDateTime.to_time(timeoff.enddate), else: ~T[15:00:00]
+        timeoff_string = set_timeoff_string(timeoff, stime, etime)
+        Map.update!(acc, key, fn list -> [timeoff_string | list] end)
+      else
+        acc
+      end
     end)
   end
 

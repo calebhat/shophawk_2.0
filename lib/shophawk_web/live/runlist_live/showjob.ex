@@ -1,10 +1,6 @@
 defmodule ShophawkWeb.RunlistLive.ShowJob do
   use ShophawkWeb, :live_component
 
-  alias Shophawk.Shop
-
-  #JS.navigate(~p"/runlists/#{runlist}")  Show one runlist item.
-
   def render(assigns) do
     ~H"""
       <div>

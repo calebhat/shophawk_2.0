@@ -47,7 +47,7 @@ defmodule Shophawk.Inventory.Tool do
 
   defp clear_amount_to_be_checked_out(changeset) do
     checkout_amount = get_field(changeset, :checkout_amount)
-    if checkout_amount = 0 do
+    if checkout_amount == 0 do
       put_change(changeset, :checkout_amount, "")
     end
   end

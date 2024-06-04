@@ -394,7 +394,7 @@ defmodule ShophawkWeb.CoreComponents do
   attr :type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file hidden month number password
-               range radio search select tel text textarea time url week hours_box)
+               range radio search select tel text textarea time url week hours_box runlist_assignment_select runlist_department_select)
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
@@ -823,7 +823,7 @@ defmodule ShophawkWeb.CoreComponents do
         <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
             <%= if elem(row, 1).id == 0 do %>
 
-              <td :for={{col, i} <- Enum.with_index(@col)}
+              <td :for={{_col, i} <- Enum.with_index(@col)}
               class={["bg-stone-300"]}
               colspan="">
               <div class="h-6">
@@ -987,7 +987,7 @@ defmodule ShophawkWeb.CoreComponents do
           <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group">
               <%= if elem(row, 1).id == 0 do %>
 
-                <td :for={{col, i} <- Enum.with_index(@col)}
+                <td :for={{_col, i} <- Enum.with_index(@col)}
                 class={["bg-stone-300"]}
                 colspan="">
                 <div class="h-6">
@@ -1071,10 +1071,6 @@ defmodule ShophawkWeb.CoreComponents do
       """
     end
 
-  defp different_sched_start?(prev_sched_start, current_sched_start) do
-    prev_sched_start != current_sched_start
-  end
-
   defp date_color(date, dots, runner, status) do
     color =
       case Date.compare(date, Date.utc_today()) do
@@ -1090,7 +1086,7 @@ defmodule ShophawkWeb.CoreComponents do
       3 -> "bg-red-600 text-stone-950"
       _ -> color
     end
-    color = if runner == true, do: "bg-cyan-950", else: color
+    if runner == true, do: "bg-cyan-950", else: color
   end
 
   defp hover_color(date, dots, runner, status) do
@@ -1108,7 +1104,7 @@ defmodule ShophawkWeb.CoreComponents do
       3 -> "group-hover:bg-red-500"
       _ -> color
     end
-    color = if runner == true, do: "group-hover:bg-cyan-900", else: color
+    if runner == true, do: "group-hover:bg-cyan-900", else: color
   end
 
   @doc """

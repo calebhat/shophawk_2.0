@@ -1,8 +1,6 @@
 defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
   use ShophawkWeb, :live_component
 
-  alias Shophawk.Shopinfo
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -253,7 +251,7 @@ end
       1 -> ~p"/images/one_dot.svg"
       2 -> ~p"/images/two_dots.svg"
       3 -> ~p"/images/three_dots.svg"
-      _ ->
+      _ -> ""
     end
   end
 

@@ -39,53 +39,53 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   def update_operations(jobs_to_update) do
-    operations = #creates a list of all operations in their most recent state
-      Enum.chunk_every(jobs_to_update, 400) #breaks the list up into chunks
-      |> Enum.map(fn jobs_chunk ->
-        export_job_chunk(jobs_chunk) #export csv files for each chunk.
-        operations =
-          runlist_creation_start(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
-          |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
-          |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
-        {operations, merge_data, merge_user} = export_data_collection_and_user_values(operations) #uses job_operation to find data
-        operations =
-          merge_data_collection(operations, merge_data)
-          |> merge_user_values(merge_user)
-          |> Enum.reverse
-          |> Enum.group_by(&{&1.job})
-          |> Map.values
-          |> set_current_op()
-          |> set_material_waiting()
-          |> List.flatten
-          |> set_assignment_from_note_text_if_op_started
-        existing_records = Enum.map(operations, &(&1.job)) |> Enum.uniq |> Shop.find_matching_job_ops #create list of structs that already exist in DB
-        operations =
-          Enum.map(operations, fn op -> #merges assignment value to operations
-            case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
-              nil -> #if the record does not exist, create a new one for it
-                op
-              record ->   #if the record exists, update it with the new values
-                Map.put(op, :assignment, record.assignment)
-              end
-          end)
-          |> Enum.map(fn map -> #shortens any strings to be under the string length limit
-            new_map =
-              Enum.map(map, fn {key, value} -> #shortens values to fit max character length
-                if is_binary(value) and String.length(value) > 255, do: {key, String.slice(value, 0, 255)}, else: {key, value}
-              end)
-              |> Enum.into(%{}) # Convert back into a map
-            list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
-              %Runlist{}
-              |> Runlist.changeset(new_map)
-              #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
-            list.changes #The changeset results in a list of data, extracts needed map from changeset.
-            |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-            |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
-          end)
+    #creates a list of all operations in their most recent state
+    Enum.chunk_every(jobs_to_update, 400) #breaks the list up into chunks
+    |> Enum.map(fn jobs_chunk ->
+      export_job_chunk(jobs_chunk) #export csv files for each chunk.
+      operations =
+        runlist_creation_start(Path.join([File.cwd!(), "csv_files/runlistops.csv"])) #create map of all operations from the past year
+        |> jobs_merge(Path.join([File.cwd!(), "csv_files/jobs.csv"])) #Merge job data with each operation
+        |> mat_merge(Path.join([File.cwd!(), "csv_files/material.csv"])) #Merge material data with each operation
+      {operations, merge_data, merge_user} = export_data_collection_and_user_values(operations) #uses job_operation to find data
+      operations =
+        merge_data_collection(operations, merge_data)
+        |> merge_user_values(merge_user)
+        |> Enum.reverse
+        |> Enum.group_by(&{&1.job})
+        |> Map.values
+        |> set_current_op()
+        |> set_material_waiting()
+        |> List.flatten
+        |> set_assignment_from_note_text_if_op_started
+      existing_records = Enum.map(operations, &(&1.job)) |> Enum.uniq |> Shop.find_matching_job_ops #create list of structs that already exist in DB
+      operations =
+        Enum.map(operations, fn op -> #merges assignment value to operations
+          case Enum.find(existing_records, &(&1.job_operation == op.job_operation)) do
+            nil -> #if the record does not exist, create a new one for it
+              op
+            record ->   #if the record exists, update it with the new values
+              Map.put(op, :assignment, record.assignment)
+            end
+        end)
+        |> Enum.map(fn map -> #shortens any strings to be under the string length limit
+          new_map =
+            Enum.map(map, fn {key, value} -> #shortens values to fit max character length
+              if is_binary(value) and String.length(value) > 255, do: {key, String.slice(value, 0, 255)}, else: {key, value}
+            end)
+            |> Enum.into(%{}) # Convert back into a map
+          list = #for each map in the list, run it through changeset casting/validations. converts everything to correct datatype
+            %Runlist{}
+            |> Runlist.changeset(new_map)
+            #have to manually add timestamps for insert all operation. Time must be in NavieDateTime for Ecto.
+          list.changes #The changeset results in a list of data, extracts needed map from changeset.
+          |> Map.put(:inserted_at, NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+          |> Map.put(:updated_at,  NaiveDateTime.truncate(DateTime.to_naive(DateTime.utc_now()), :second))
+        end)
 
-          if existing_records != [], do: Shop.delete_listed_runlist(existing_records)
-          Shop.import_all(operations)
-      end)
+        if existing_records != [], do: Shop.delete_listed_runlist(existing_records)
+        Shop.import_all(operations)
+    end)
     IO.puts("Import Complete - " <> Integer.to_string(Enum.count(jobs_to_update)) <> " Jobs Updated")
     :ok
   end
@@ -104,7 +104,7 @@ defmodule Shophawk.Shop.Csvimport do
       [_] -> false #lines with only one entry
       [job | _] -> jobs_to_update |> Enum.empty?() || Enum.member?(jobs_to_update, job) #if the "jobs_to_update" list is empty, it allows any job to pass, if it's not empty, it checks if each job is on the list before passing it through
     end)
-    |> Enum.reduce( [], fn [ job, job_operation, wc_vendor, operation_service, vendor, sched_start, sched_end, sequence, status, est_total_hrs | _], acc ->
+    |> Enum.reduce( [], fn [ job, job_operation, wc_vendor, operation_service, sched_start, sched_end, sequence, status, est_total_hrs | _], acc ->
       new_map = %{job: job, job_operation: String.to_integer(job_operation), wc_vendor: wc_vendor, operation_service: operation_service, sched_start: sched_start, sched_end: sched_end, sequence: sequence, status: status, est_total_hrs: est_total_hrs}
       [new_map | acc]
     end)
@@ -115,11 +115,11 @@ defmodule Shophawk.Shop.Csvimport do
       File.stream!(file)
       |> initial_mapping()
       |> Enum.reduce( [],
-        fn [job, customer, order_date, part_number, job_status, rev, description, order_quantity, extra_quantity, pick_quantity, make_quantity, open_operations, completed_quantity, shipped_quantity, customer_po, customer_po_line, job_sched_end, job_sched_start, note_text, released_date, user_value | _], acc ->
+        fn [job, customer, order_date, part_number, job_status, rev, description, order_quantity, extra_quantity, pick_quantity, make_quantity, open_operations, shipped_quantity, customer_po, customer_po_line, job_sched_end, job_sched_start, note_text, released_date, user_value | _], acc ->
           new_map =%{job: job, customer: customer, order_date: order_date,  part_number: part_number,  job_status: job_status,  rev: rev,  description: description,  order_quantity: order_quantity,  extra_quantity: extra_quantity,  pick_quantity: pick_quantity,  make_quantity: make_quantity,  open_operations: open_operations,  shipped_quantity: shipped_quantity,  customer_po: customer_po,  customer_po_line: customer_po_line,  job_sched_end: job_sched_end,  job_sched_start: job_sched_start,  released_date: released_date,  note_text: note_text,  user_value: user_value}
           [new_map | acc]
         end)
-    merged_list = Enum.map(operations, fn %{job: job} = map1 ->
+    Enum.map(operations, fn %{job: job} = map1 ->
       map2 = Enum.find(Enum.reverse(new_list), &(&1.job == job))
       if map2 do
         Map.merge(map1, map2)
@@ -139,7 +139,6 @@ defmodule Shophawk.Shop.Csvimport do
       mat_pick_or_buy: nil,
       mat_status: nil
     }
-    keys_to_exclude = [:job]
     new_list =
       File.stream!(file)
       |> initial_mapping()
@@ -254,13 +253,12 @@ defmodule Shophawk.Shop.Csvimport do
           new_map = Map.merge(op, combined_data_collection)
           trimmed_employee =
             if new_map.employee != nil do
-              new_string =
-                new_map.employee
-                |> String.split("|")
-                |> Enum.map(&String.trim/1)
-                |> Enum.filter(fn x -> x != "" end)
-                |> Enum.uniq
-                |> Enum.join(" | ")
+              new_map.employee
+              |> String.split("|")
+              |> Enum.map(&String.trim/1)
+              |> Enum.filter(fn x -> x != "" end)
+              |> Enum.uniq
+              |> Enum.join(" | ")
             else
               op.employee
             end
@@ -346,8 +344,7 @@ defmodule Shophawk.Shop.Csvimport do
 
   defp set_assignment_from_note_text_if_op_started(operations) do
     Enum.map(operations, fn op ->
-      op =
-        if op.status == "S" do
+      if op.status == "S" do
         employee =
           op.employee
           |> String.split("|")
@@ -374,7 +371,7 @@ defmodule Shophawk.Shop.Csvimport do
     end)
     |> Stream.filter(fn
       [_] -> false #lines with only one entry
-      [job | _] -> true end)
+      [_job | _] -> true end)
   end
 
   defp dots_calc(dots) do
@@ -628,25 +625,23 @@ defmodule Shophawk.Shop.Csvimport do
 
   def load_blackout_dates do
     System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/load_blackout_dates.bat"])])
-
-    blackout_dates =
-      File.stream!(Path.join([File.cwd!(), "csv_files/blackoutdates.csv"]))
-      |> Stream.map(&String.trim(&1))
-      |> Stream.map(&String.split(&1, "`"))
-      |> Stream.filter(fn
-        [_, "HolidayStart" | _] -> false #filter out header line
-        ["-----------" | _] -> false #filter out empty line
-        [_] -> false #lines with only one entry
-        [name | _] -> true
-      end)
-      |> Enum.map(fn [name, start_date, end_date] ->
-        {:ok, start_date} = NaiveDateTime.from_iso8601(start_date)
-        {:ok, end_date} = NaiveDateTime.from_iso8601(end_date)
-        for date <- Date.range(NaiveDateTime.to_date(start_date), NaiveDateTime.to_date(end_date)) do
-          date
-        end
-      end)
-      |> List.flatten()
+    File.stream!(Path.join([File.cwd!(), "csv_files/blackoutdates.csv"]))
+    |> Stream.map(&String.trim(&1))
+    |> Stream.map(&String.split(&1, "`"))
+    |> Stream.filter(fn
+      [_, "HolidayStart" | _] -> false #filter out header line
+      ["-----------" | _] -> false #filter out empty line
+      [_] -> false #lines with only one entry
+      [_name | _] -> true
+    end)
+    |> Enum.map(fn [_name, start_date, end_date] ->
+      {:ok, start_date} = NaiveDateTime.from_iso8601(start_date)
+      {:ok, end_date} = NaiveDateTime.from_iso8601(end_date)
+      for date <- Date.range(NaiveDateTime.to_date(start_date), NaiveDateTime.to_date(end_date)) do
+        date
+      end
+    end)
+    |> List.flatten()
   end
 
   def update_workcenters do #check for new workcenters to be added for department workcenter selection
@@ -668,10 +663,10 @@ defmodule Shophawk.Shop.Csvimport do
 
     saved_workcenters = Enum.map(Shop.list_workcenters, &(&1.workcenter))
     workcenters
-      |> Enum.reject(fn workcenter -> Enum.member?(saved_workcenters, workcenter) end) #filters out workcenters that already exist
-      |> Enum.reduce(%{}, fn workcenter, acc ->
-        Shop.create_workcenter(%{"workcenter" => workcenter})
-      end)
+    |> Enum.reject(fn workcenter -> Enum.member?(saved_workcenters, workcenter) end) #filters out workcenters that already exist
+    |> Enum.each(fn workcenter ->
+      Shop.create_workcenter(%{"workcenter" => workcenter})
+    end)
   end
 
 

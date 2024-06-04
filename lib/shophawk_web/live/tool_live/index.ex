@@ -3,7 +3,6 @@ defmodule ShophawkWeb.ToolLive.Index do
 
   alias Shophawk.Inventory
   alias Shophawk.Inventory.Tool
-  alias NimbleCSV.RFC4180, as: CSV
 
   @impl true
   def mount(_params, _session, socket) do

@@ -3,7 +3,7 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
 
   alias Shophawk.Shop
 
-  @impl true
+
   def render(assigns) do
     ~H"""
     <div>
@@ -80,7 +80,6 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
     """
   end
 
-  @impl true
   def update(%{department: department} = assigns, socket) do
     changeset = Shop.change_department(department)
     workcenters = Enum.sort(Enum.map(Shop.list_workcenters(), &Map.from_struct/1))
@@ -101,7 +100,6 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
     }
   end
 
-
   def handle_event("validate", %{"department" => department_params} = params, socket) do
     workcenters =
       Map.get(params, "workcenter_ids", []) #gets checked workcenters, defaults to empty list "[]" if none checked
@@ -120,7 +118,7 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
     {:noreply, socket}
   end
 
-  def handle_event("delete_department", %{"id" => id} = params, socket) do
+  def handle_event("delete_department", %{"id" => id} = _params, socket) do
     department = Shop.get_department!(String.to_integer(id))
     case Shop.delete_department(department) do
       {:ok, department} ->
@@ -134,7 +132,6 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
           {:noreply, assign_form(socket, changeset)}
       end
   end
-
 
   def handle_event("save", %{"department" => department_params} = params, socket) do
     workcenters =

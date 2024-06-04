@@ -2,7 +2,7 @@
   <form>
     <div class="flex flex-none gap-4">       
       <%= cond do %>  
-      <%= @department_id != nil -> %>    
+      <% @department_id != nil -> %>    
         <form>
           <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
           <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@name}/>
@@ -16,7 +16,7 @@
             </button>
           </.link>
         </form>
-      <%= @workcenter_id != nil -> %>
+      <% @workcenter_id != nil -> %>
         <form>
           <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" department_name={@name}/> 
           <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />
@@ -30,7 +30,7 @@
             </button>
           </.link>
         </form>
-      <%= true -> %>
+      <% true -> %>
         <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
         <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />    
         <.link phx-click="select_department" phx-value-selection="Select Department"> 
@@ -47,7 +47,7 @@
   </form>  
   <:actions>    
     <%= if @department_id do %>     
-      <.link patch={~p"/runlists/#{@department_id}/assignments"} assignments={@assignments}>
+      <.link patch={~p"/runlists/#{@department_id}/assignments"}>
         <.info_button>Assignments</.info_button>
       </.link>   
       <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
@@ -115,7 +115,7 @@
     started_assignment_list={@started_assignment_list}
     weekly_load={@weekly_load}
     dots={@dots}
-    row_click={fn {_id, runlist} -> "show_job" end}
+    row_click={fn {_id, _runlist} -> "show_job" end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
     <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.order_quantity %></:col>
@@ -141,7 +141,7 @@
     started_assignment_list={@started_assignment_list}
     weekly_load={@weekly_load}
     dots={@dots}
-    row_click={fn {_id, runlist} -> "show_job" end}
+    row_click={fn {_id, _runlist} -> "show_job" end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
     <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.order_quantity %></:col>

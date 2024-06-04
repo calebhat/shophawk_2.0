@@ -170,7 +170,7 @@ end
 
   defp combine_hours(slideshow_params) do
     workhours = "#{slideshow_params["mondayo1"]},#{slideshow_params["mondayc1"]},#{slideshow_params["tuesdayo1"]},#{slideshow_params["tuesdayc1"]},#{slideshow_params["wednesdayo1"]},#{slideshow_params["wednesdayc1"]},#{slideshow_params["thursdayo1"]},#{slideshow_params["thursdayc1"]},#{slideshow_params["fridayo1"]},#{slideshow_params["fridayc1"]},#{slideshow_params["saturdayo1"]},#{slideshow_params["saturdayc1"]},#{slideshow_params["mondayo2"]},#{slideshow_params["mondayc2"]},#{slideshow_params["tuesdayo2"]},#{slideshow_params["tuesdayc2"]},#{slideshow_params["wednesdayo2"]},#{slideshow_params["wednesdayc2"]},#{slideshow_params["thursdayo2"]},#{slideshow_params["thursdayc2"]},#{slideshow_params["fridayo2"]},#{slideshow_params["fridayc2"]},#{slideshow_params["saturdayo2"]},#{slideshow_params["saturdayc2"]},#{slideshow_params["showsaturday1"]},#{slideshow_params["showsaturday2"]}"
-    slideshow_params = Map.put(slideshow_params, "workhours", workhours)
+    Map.put(slideshow_params, "workhours", workhours)
   end
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})

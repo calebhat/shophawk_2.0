@@ -3,7 +3,6 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
 
   alias Shophawk.Shop
 
-  @impl true
   def render(assigns) do
     ~H"""
     <div class="text-center">
@@ -49,7 +48,6 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
     """
   end
 
-  @impl true
   def update(%{assignments: assignments} = assigns, socket) do
     {:ok,
      socket
@@ -60,14 +58,13 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
   end
 
   defp load_assignment_form(assignments, department_id) do
-    IO.inspect(assignments)
-      Enum.with_index(assignments, fn a, index ->
+      Enum.with_index(assignments, fn a, _index ->
         %{"assignment" => a, "id" => Integer.to_string(Shop.get_assignment(a, department_id).id)}
       end)
       |> Enum.map(&to_form/1)
   end
 
-  def handle_event("assignments_name_change", %{"assignment" => new_assignment, "id" => id, "old_assignment" => old_assignment} = params, socket) do
+  def handle_event("assignments_name_change", %{"assignment" => new_assignment, "id" => id, "old_assignment" => old_assignment} = _params, socket) do
     selected_keys = [:ed, :title, :action, :patch, :department_id, :department_name, :assignments]
     if new_assignment == "" do
       {:noreply, socket}
@@ -89,10 +86,9 @@ defmodule ShophawkWeb.RunlistLive.ViewAssignments do
     end
   end
 
-  def handle_event("delete", %{"id" => id, "department_id" => department_id}, socket) do
+  def handle_event("delete", %{"id" => id, "department_id" => _department_id}, socket) do
     Shop.delete_assignment(id)
     {:noreply, socket }
   end
 
-  defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
 end

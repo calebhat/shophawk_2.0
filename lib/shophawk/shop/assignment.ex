@@ -1,6 +1,5 @@
 defmodule Shophawk.Shop.Assignment do
   use Ecto.Schema
-  import Ecto.Changeset
 
   schema "assignments" do
     field :assignment, :string

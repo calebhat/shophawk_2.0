@@ -39,7 +39,7 @@ defmodule ShophawkWeb.TimeoffLive.Index do
   end
 
   @impl true
-  def handle_info({ShophawkWeb.TimeoffLive.FormComponent, {:saved, timeoff}}, socket) do
+  def handle_info({ShophawkWeb.TimeoffLive.FormComponent, {:saved, _timeoff}}, socket) do
     {:noreply, assign_timeoff_collection(socket)}
   end
 

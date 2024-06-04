@@ -54,18 +54,17 @@ defmodule Shophawk.JobbossExports do
             new_map = %{user_value: user_value, birthday: Date.from_iso8601!(String.slice(birthday, 0..9))}
             [new_map | acc]
           end)
-        employees =
-          if birthdays_list != [] do #csv could be empty if no matching user values found
-            Enum.map(employees, fn %{user_value: user_value} = employee ->
-              found_birthday = Enum.find(birthdays_list, &(&1.user_value == user_value))
-              if found_birthday do
-                Map.merge(employee, found_birthday)
-              end
-            end)
-          else
-            employees
-          end
-          |> Enum.filter(fn item -> is_map(item) end)
+        if birthdays_list != [] do #csv could be empty if no matching user values found
+          Enum.map(employees, fn %{user_value: user_value} = employee ->
+            found_birthday = Enum.find(birthdays_list, &(&1.user_value == user_value))
+            if found_birthday do
+              Map.merge(employee, found_birthday)
+            end
+          end)
+        else
+          employees
+        end
+        |> Enum.filter(fn item -> is_map(item) end)
       end
   end
 
@@ -81,7 +80,7 @@ defmodule Shophawk.JobbossExports do
     end)
     |> Stream.filter(fn
       [_] -> false #lines with only one entry
-      [job | _] -> true end)
+      [_job | _] -> true end)
   end
 
 end

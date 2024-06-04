@@ -5,10 +5,7 @@ defmodule Shophawk.Inventory do
 
   import Ecto.Query, warn: false
   alias Shophawk.Repo
-
   alias Shophawk.Inventory.Tool
-
-  import Ecto.Changeset
 
   @doc """
   Returns the list of tools.
@@ -38,7 +35,7 @@ defmodule Shophawk.Inventory do
 
   """
   def get_tool!(id) do
-    tool = Repo.get!(Tool, id)
+    Repo.get!(Tool, id)
   end
 
   @doc """

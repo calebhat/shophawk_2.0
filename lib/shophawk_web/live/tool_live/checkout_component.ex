@@ -54,25 +54,6 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
     save_tool(socket, socket.assigns.action, updated_tool_params)
   end
 
-
-
-  defp save_tool(socket, :checkout, tool_params) do
-    case Inventory.update_tool(socket.assigns.tool, tool_params) do
-      {:ok, tool} ->
-        notify_parent({:saved, tool})
-        IO.inspect(socket)
-        {:noreply,
-         socket
-         |> put_flash(:info, "Tool updated successfully")
-         |> push_navigate(to: socket.assigns.patch)}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}
-    end
-  end
-
-  defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
-
   def handle_event("validate", %{"tool" => tool_params}, socket) do
     tool_params =
       case Integer.parse(Map.get(tool_params, "checkout_amount")) do
@@ -90,6 +71,23 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
       #IO.inspect(socket)
     {:noreply, socket}
   end
+
+  defp save_tool(socket, :checkout, tool_params) do
+    case Inventory.update_tool(socket.assigns.tool, tool_params) do
+      {:ok, tool} ->
+        notify_parent({:saved, tool})
+        IO.inspect(socket)
+        {:noreply,
+         socket
+         |> put_flash(:info, "Tool updated successfully")
+         |> push_navigate(to: socket.assigns.patch)}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign_form(socket, changeset)}
+    end
+  end
+
+  defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
 
   def update(%{tool: tool} = assigns, socket) do
     changeset = Inventory.change_tool(tool)
