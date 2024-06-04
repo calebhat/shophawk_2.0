@@ -115,14 +115,21 @@ defmodule ShophawkWeb.RunlistLive.Index do
     case department do
       "Select Department" ->
         #IO.inspect(get_runlist_loads())
-        {:noreply,
-        socket
-        |> assign(department_id: nil)
-        |> assign(show_runlist_table: false)
-        |> assign(show_workcenter_table: false)
-        |> assign(show_department_loads: true)
-        |> assign(department_loads: get_runlist_loads())
-        |> stream(:runlists, [], reset: true)}
+        process = self()
+        Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
+          :timer.sleep(300)
+          socket =
+            socket
+            |> assign(department_id: nil)
+            |> assign(show_runlist_table: false)
+            |> assign(show_workcenter_table: false)
+            |> assign(show_department_loads: true)
+            |> assign(department_loads: get_runlist_loads())
+            |> stream(:runlists, [], reset: true)
+          Process.send(process, {:send_runlist, socket}, [])
+        end)
+        update_number = socket.assigns.updated + 1
+        {:noreply, assign(socket, :updated, update_number)}
       _ ->
         process = self()
         Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
@@ -137,13 +144,21 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_event("select_workcenter", %{"choice" => workcenter}, socket) do
     case workcenter do
       "Select Workcenter" ->
-        {:noreply, socket
-        |> assign(workcenter_id: nil)
-        |> assign(show_runlist_table: false)
-        |> assign(show_workcenter_table: false)
-        |> assign(show_department_loads: true)
-        |> assign(department_loads: get_runlist_loads())
-        |> stream(:runlists, [], reset: true)}
+        process = self()
+        Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
+          :timer.sleep(300)
+          socket =
+            socket
+            |> assign(workcenter_id_id: nil)
+            |> assign(show_runlist_table: false)
+            |> assign(show_workcenter_table: false)
+            |> assign(show_department_loads: true)
+            |> assign(department_loads: get_runlist_loads())
+            |> stream(:runlists, [], reset: true)
+          Process.send(process, {:send_runlist, socket}, [])
+        end)
+        update_number = socket.assigns.updated + 1
+        {:noreply, assign(socket, :updated, update_number)}
       _ ->
         process = self()
         Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first

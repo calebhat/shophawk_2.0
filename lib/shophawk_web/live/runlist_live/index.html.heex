@@ -33,13 +33,15 @@
       <%= true -> %>
         <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
         <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />    
-        <div class="mt-2 rounded-lg bg-cyan-800" >
-            <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
-            <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
-              <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
-            </g>
-          </svg>
-        </div>        
+        <.link phx-click="select_department" phx-value-selection="Select Department"> 
+          <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
+              <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
+              <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
+                <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
+              </g>
+            </svg>
+          </button>      
+        </.link>  
       <% end %>    
     </div> 
   </form>  
@@ -94,10 +96,12 @@
 <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
   <%= if @streams.runlists.inserts == [] do %>
     <%= if @department_id != nil or @workcenter_id != nil do %> 
+    <%= if @show_department_loads == false do  %>
     <br>
     <div class="bg-stone-800 text-white rounded-lg text-center text-2xl py-6">
       Nothing Scheduled
     </div>
+    <% end %>
     <% end  %>
   <% end  %>
 </div>

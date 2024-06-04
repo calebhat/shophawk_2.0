@@ -1,5 +1,5 @@
 defmodule Shophawk.JobbossExports do
-
+#used in to export needed data for slideshow
   def export_employees do
     path = Path.join([File.cwd!(), "csv_files/employees.csv"])
     export = """
