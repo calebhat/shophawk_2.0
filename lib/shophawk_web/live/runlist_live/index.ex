@@ -8,9 +8,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, get_runlist_loads()) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_department_loads: true) |> assign(updated: 0)}
+      department_loads = get_runlist_loads()
+      socket = if Enum.any?(department_loads, fn list -> list != [] end), do: assign(socket, show_department_loads: true), else: assign(socket, show_department_loads: false)
+      {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, [], reset: true) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, department_loads) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(updated: 0)}
     else
-     {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, []) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_department_loads: false)|> assign(updated: 0)}
+     {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, [], reset: true) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_department_loads: false)|> assign(updated: 0)}
     end
   end
 
@@ -114,7 +116,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_event("select_department", %{"selection" => department}, socket) do
     case department do
       "Select Department" ->
-        #IO.inspect(get_runlist_loads())
         process = self()
         Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
           :timer.sleep(300)
@@ -179,7 +180,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("change_assignment", %{"id" => id, "selection" => selection } = _params, socket) do
+  def handle_event("change_assignment", %{"id" => id, "selection" => selection } = params, socket) do
     Shop.update_runlist(Shop.get_runlist!(id), %{assignment: selection})
     {:noreply, socket}
   end
@@ -198,8 +199,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
       |> assign(:live_action, :show_job)
       |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
       |> assign(:job_info, job_info)
-
-      #IO.inspect(socket)
 
     {:noreply, socket}
   end
@@ -239,7 +238,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
       _ ->
       department = Shop.get_department!(department_id)
       workcenter_list = for %Shophawk.Shop.Workcenter{workcenter: wc} <- department.workcenters, do: wc
-      {runlist, weekly_load} = Shop.list_runlists(workcenter_list, department)
+      {runlist, weekly_load, jobs_that_ship_today} = Shop.list_runlists(workcenter_list, department)
       if runlist != [] do
         assignment_list = for %Shophawk.Shop.Assignment{assignment: a} <- department.assignments, do: a
         started_assignment_list =
@@ -255,7 +254,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
         dots =
           runlist
-          |> Enum.reject(fn %{id: id} -> id == 0 end)
+          |> Enum.reject(fn %{id: id} -> id in  [0, -1] end)
           |> Enum.reduce(%{}, fn row, acc ->
             case row.dots do
               1 -> Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)
@@ -299,6 +298,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         |> assign(saved_assignments: assignment_list)
         |> assign(started_assignment_list: started_assignment_list)
         |> assign(weekly_load: weekly_load)
+        |> assign(jobs_that_ship_today: jobs_that_ship_today)
         |> stream(:runlists, runlist, reset: true)
       else
         socket
@@ -343,7 +343,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
         dots =
           runlist
-          |> Enum.reject(fn %{id: id} -> id == 0 end)
+          |> Enum.reject(fn %{id: id} -> id in  [0, -1] end)
           |> Enum.reduce(%{}, fn row, acc ->
             case row.dots do
               1 -> Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)

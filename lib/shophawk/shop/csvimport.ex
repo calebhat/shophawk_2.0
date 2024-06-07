@@ -20,7 +20,7 @@ defmodule Shophawk.Shop.Csvimport do
   end
 
   def refresh_active_jobs() do #refresh all active jobs
-    update_operations(export_active_jobs())
+    update_operations(Enum.uniq(export_active_jobs() ++ Shop.get_all_active_jobs_from_db()))
   end
 
   def refresh_all_jobs() do #refresh all jobs
@@ -562,14 +562,14 @@ defmodule Shophawk.Shop.Csvimport do
     #RunlistOps
     path = Path.join([File.cwd!(), "csv_files/runlistops.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,REPLACE (CONVERT(VARCHAR(MAX), Operation_Service),'`','') ,[Vendor] ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job, COALESCE(Sched_Start, '9999-12-31') ASC, Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n\n
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Job_Operation] ,[WC_Vendor] ,REPLACE (CONVERT(VARCHAR(MAX), Operation_Service),'`','') ,[Sched_Start] ,[Sched_End] ,[Sequence], [Status] ,[Est_Total_Hrs] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Job in <%= jobs_to_export %> ORDER BY Job, COALESCE(Sched_Start, '9999-12-31') ASC, Job_Operation ASC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1\n\n
     """
     sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path])
 
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Completed_Quantity] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n\n<%= prev_command %>
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] ,[Customer] ,[Order_Date] ,[Part_Number], [Status] ,[Rev] ,[Description] ,[Order_Quantity] ,[Extra_Quantity] ,[Pick_Quantity] ,[Make_Quantity] ,[Open_Operations] ,[Shipped_Quantity] ,[Customer_PO] ,[Customer_PO_LN] ,[Sched_End] ,[Sched_Start] ,REPLACE (CONVERT(VARCHAR(MAX), Note_Text),CHAR(13)+CHAR(10),' ') ,[Released_Date] ,[User_Values] FROM [PRODUCTION].[dbo].[Job] WHERE Job in <%= jobs_to_export %> ORDER BY Job DESC" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1 \n\n<%= prev_command %>
     """
     sql_export = EEx.eval_string(export, [jobs_to_export: jobs_to_export, path: path, prev_command: sql_export])
 
@@ -582,26 +582,26 @@ defmodule Shophawk.Shop.Csvimport do
 
     File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
     System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 10)
-    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 21)
+    process_csv(Path.join([File.cwd!(), "csv_files/runlistops.csv"]), 9)
+    process_csv(Path.join([File.cwd!(), "csv_files/jobs.csv"]), 20)
     process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
   end
 
   defp export_active_jobs() do #FOR TESTING SMALL DATASETS
-  #Jobs
-  path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
-  export = """
-  sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE status != 'Template' AND Status='Active'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
-  """
-  sql_export = EEx.eval_string(export, [path: path])
-  File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
-  System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
-  File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
-    |> Stream.map(&String.trim(&1))
-    |> Stream.map(&String.replace(&1, "\uFEFF", ""))
-    |> Stream.reject(&String.contains?(&1, "("))
-    |> Stream.reject(&(&1 == ""))
-    |> Enum.to_list()
+    #Jobs
+    path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
+    export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE status != 'Template' AND Status='Active'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
+    """
+    sql_export = EEx.eval_string(export, [path: path])
+    File.write!(Path.join([File.cwd!(), "batch_files/data_export.bat"]), sql_export)
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/data_export.bat"])])
+    File.stream!(Path.join([File.cwd!(), "csv_files/jobs.csv"]))
+      |> Stream.map(&String.trim(&1))
+      |> Stream.map(&String.replace(&1, "\uFEFF", ""))
+      |> Stream.reject(&String.contains?(&1, "("))
+      |> Stream.reject(&(&1 == ""))
+      |> Enum.to_list()
   end
 
   defp export_all_jobs() do #changes short term batch files to export from database based on last export time.

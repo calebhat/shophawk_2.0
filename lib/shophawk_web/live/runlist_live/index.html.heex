@@ -69,11 +69,13 @@
     <.button phx-click="time_based_import" class="ml-2">time_based_import</.button>
     
     <.button phx-click="importall" class="ml-2">Import All</.button>
-    <.button phx-click="rework_to_do" class="ml-2">rework_to_do</.button>    
     -->
+    <.button phx-click="rework_to_do" class="ml-2">rework_to_do</.button>    
+    
     
   </:actions>    
 </.header>
+
 <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
   <br>
   <div :if={@show_department_loads}>
@@ -92,6 +94,7 @@
     </div>
   </div>
 
+
 </div>
 <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
   <%= if @streams.runlists.inserts == [] do %>
@@ -106,6 +109,8 @@
   <% end  %>
 </div>
 
+<% if Map.has_key?(assigns, :jobs_that_ship_today), do: IO.inspect(assigns.jobs_that_ship_today) %>
+
 <%= if @show_runlist_table == true do %>  
   <.runlist_table
     id="runlists"
@@ -115,6 +120,7 @@
     started_assignment_list={@started_assignment_list}
     weekly_load={@weekly_load}
     dots={@dots}
+    jobs_that_ship_today={assigns.jobs_that_ship_today}
     row_click={fn {_id, _runlist} -> "show_job" end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>

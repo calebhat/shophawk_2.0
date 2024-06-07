@@ -3,7 +3,7 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
 
   def render(assigns) do
     ~H"""
-      <div>
+      <div class="">
       <div class="text-center text-black p-6" >
         <div class="grid grid-cols-3" >
           <div> </div>
@@ -33,13 +33,13 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
         </div>
       </div>
 
-      <.table id={@job} rows={@job_ops}>
+      <.showjob_table id={@job} rows={@job_ops}>
         <:col :let={op} label="Operation"><%= op.wc_vendor %><%= op.operation_service %></:col>
         <:col :let={op} label="Start Date"><%= op.sched_start %></:col>
         <:col :let={op} label="Total Hours"><%= op.est_total_hrs %></:col>
         <:col :let={op} label="Status"><%= op.status %></:col>
         <:col :let={op} label="Operator"><%= op.employee %></:col>
-      </.table>
+      </.showjob_table>
 
       </div>
     """

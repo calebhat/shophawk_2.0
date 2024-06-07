@@ -46,7 +46,7 @@ defmodule ScheduledTasks do
         Map.put(acc, department.department, workcenter_list)
       end)
       |> Enum.reduce([], fn {department_name, workcenters}, acc ->
-        {_runlist, weekly_load} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
+        {_runlist, weekly_load, _jobs_that_ship_today} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
         acc ++ [weekly_load]
       end)
     :ets.insert(:runlist_loads, {:data, department_loads})  # Store the data in ETS

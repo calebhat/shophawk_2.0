@@ -12,7 +12,7 @@ defmodule Shophawk.Shop do
  alias Shophawk.Shop.Assignment
  alias Shophawk.Shop.Csvimport
 
-  def list_job(job) do
+  def list_job(job) do #loads all operations for a job
     query =
       from r in Runlist,
       where: r.job == ^job,
@@ -127,7 +127,7 @@ defmodule Shophawk.Shop do
     end)
 
     if Enum.empty?(runlists) do
-      {[], []}
+      {[], [], []}
     else
       [first_row | _tail] = runlists
       last_row = List.last(runlists)
@@ -235,7 +235,39 @@ defmodule Shophawk.Shop do
             |> Enum.map(fn row -> Map.put(row, :runner, true) end)
           acc ++ [date_row] ++ main_ops ++ runner_ops ++ started_ops #add runner rows after [row] here
         end)
-      {complete_runlist, calc_weekly_load(date_rows_list, department, runlists)}
+
+
+      jobs_that_ship_today =
+        Enum.filter(runlists, fn op -> op.job_sched_end == Date.utc_today() end)
+        |> Enum.filter(fn op ->
+          has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
+          if has_ship_op == true, do: true, else: false
+        end)
+        |> Enum.uniq()
+        |> Enum.map(fn op -> Map.from_struct(op) |> Map.put(:ships_today, true) |> Map.put(:dots, 2) |> Map.reject(fn {key, _value} -> key == :__meta__ end) end)
+
+      jobs_that_ship_today=
+        if Enum.empty?(jobs_that_ship_today) do
+          jobs_that_ship_today
+        else
+          [%{ships_today_header: true, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, id: -1}]
+        end
+
+      complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
+        if Enum.empty?(jobs_that_ship_today) do
+          complete_runlist
+        else
+          complete_runlist =
+            Enum.map(complete_runlist, fn op ->
+              case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
+                nil -> op
+                _found_ships_today -> %{id: op.id, job: op.job, dots: 2, sched_start: op.sched_start, runner: op.runner, status: op.status, shipping_today: true}
+              end
+            end)
+          jobs_that_ship_today ++ complete_runlist
+        end
+
+      {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
     end
   end
 
@@ -299,33 +331,81 @@ defmodule Shophawk.Shop do
           end
         end)
 
-      Enum.reduce(date_rows_list, [], fn date_row, acc ->
-        dot_sorter = fn map ->
-          case Map.get(map, :dots) do
-            4 -> 0
-            3 -> 1
-            2 -> 2
-            1 -> 3
-            _ -> 4
+      complete_runlist =
+        Enum.reduce(date_rows_list, [], fn date_row, acc ->
+          dot_sorter = fn map ->
+            case Map.get(map, :dots) do
+              4 -> 0
+              3 -> 1
+              2 -> 2
+              1 -> 3
+              _ -> 4
+            end
           end
-        end
-        at_location_sorter = fn map ->
-          exact_wc_vendor = String.replace(Map.get(map, :wc_vendor), " -#{map.operation_service}", "")
-          currentop = Map.get(map, :currentop)
-          case exact_wc_vendor do
-            ^currentop -> 0
-            _ -> 2
+          at_location_sorter = fn map ->
+            exact_wc_vendor = String.replace(Map.get(map, :wc_vendor), " -#{map.operation_service}", "")
+            currentop = Map.get(map, :currentop)
+            case exact_wc_vendor do
+              ^currentop -> 0
+              _ -> 2
+            end
           end
+          main_ops =
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
+            |> Enum.sort_by(dot_sorter)
+            |> Enum.sort_by(at_location_sorter)
+          started_ops =
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
+          acc ++ [date_row] ++ main_ops ++ started_ops
+        end)
+
+      jobs_that_ship_today =
+        Enum.filter(runlists, fn op -> op.job_sched_end == Date.utc_today() end)
+        |> Enum.filter(fn op ->
+          has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
+          if has_ship_op == true, do: true, else: false
+        end)
+        |> Enum.uniq()
+        |> Enum.map(fn op -> Map.from_struct(op) |> Map.put(:ships_today, true) |> Map.put(:dots, 2) |> Map.reject(fn {key, _value} -> key == :__meta__ end) end)
+
+      jobs_that_ship_today=
+        if Enum.empty?(jobs_that_ship_today) do
+          jobs_that_ship_today
+        else
+          [%{ships_today_header: true, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, id: -1}]
         end
-        main_ops =
-          Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
-          |> Enum.sort_by(dot_sorter)
-          |> Enum.sort_by(at_location_sorter)
-        started_ops =
-          Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
-        acc ++ [date_row] ++ main_ops ++ started_ops
-      end)
+
+      complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
+        if Enum.empty?(jobs_that_ship_today) do
+          complete_runlist
+        else
+          complete_runlist =
+            Enum.map(complete_runlist, fn op ->
+              case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
+                nil -> op
+                _found_ships_today -> %{id: op.id, job: op.job, dots: 2, sched_start: op.sched_start, runner: op.runner, status: op.status, shipping_today: true}
+              end
+            end)
+          jobs_that_ship_today ++ complete_runlist
+        end
+
     end
+  end
+
+  def load_job_operations(job) do #loads all operations for a job
+    query =
+      from r in Runlist,
+      where: r.job == ^job,
+      order_by: [asc: r.sequence]
+    Repo.all(query)
+  end
+
+  def get_all_active_jobs_from_db() do #loads all operations for a job
+    query =
+    from r in Runlist,
+    where: r.job_status == "Active"
+    Repo.all(query)
+    |> Enum.map(fn map -> Map.get(map, :job) end)
   end
 
   defp calc_weekly_load(date_rows, department, runlists) do
