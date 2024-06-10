@@ -36,12 +36,16 @@ defmodule Shophawk.Shop do
   end
 
   def sort_job_info(job) do
-    job_manager =
+    IO.inspect(job.note_text)
+    job_manager = case job.note_text do
+      nil -> ""
+      _ ->
       String.split(job.note_text, " ")
       |> Enum.slice(-2, 2)
       |> Enum.map(&(String.capitalize(&1, :ascii)))
       |> Enum.join(" ")
       |> String.trim()
+    end
     %{}
     |> Map.put(:part_number, job.part_number <> job.rev)
     |> Map.put(:order_quantity, job.order_quantity)
@@ -75,6 +79,7 @@ defmodule Shophawk.Shop do
       where: r.job_operation in ^operations_list
       Repo.all(query)
     end
+
 
   def find_matching_job_ops(job_list) do #used in csvimport
     query =
@@ -385,20 +390,19 @@ defmodule Shophawk.Shop do
           [%{ships_today_header: true, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, id: -1}]
         end
 
-      complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
-        if Enum.empty?(jobs_that_ship_today) do
-          complete_runlist
-        else
-          complete_runlist =
-            Enum.map(complete_runlist, fn op ->
-              case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
-                nil -> op
-                _found_ships_today -> %{id: op.id, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
-              end
-            end)
-          jobs_that_ship_today ++ complete_runlist
-        end
-
+      #adds shipping today if needed and removes ops furthur down list if found
+      if Enum.empty?(jobs_that_ship_today) do
+        complete_runlist
+      else
+        complete_runlist =
+          Enum.map(complete_runlist, fn op ->
+            case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
+              nil -> op
+              _found_ships_today -> %{id: op.id, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
+            end
+          end)
+        jobs_that_ship_today ++ complete_runlist
+      end
     end
   end
 

@@ -587,7 +587,7 @@ defmodule Shophawk.Shop.Csvimport do
     process_csv(Path.join([File.cwd!(), "csv_files/material.csv"]), 6)
   end
 
-  defp export_active_jobs() do #FOR TESTING SMALL DATASETS
+  def export_active_jobs() do #FOR TESTING SMALL DATASETS
     #Jobs
     path = Path.join([File.cwd!(), "csv_files/jobs.csv"])
     export = """

@@ -5,6 +5,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.Shop.Department
   alias Shophawk.Shop.Csvimport
   alias Shophawk.Shop.Assignment
+  alias Shophawk.Routes
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -180,7 +181,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("change_assignment", %{"id" => id, "selection" => selection } = params, socket) do
+  def handle_event("change_assignment", %{"id" => id, "selection" => selection } = _params, socket) do
     Shop.update_runlist(Shop.get_runlist!(id), %{assignment: selection})
     {:noreply, socket}
   end
@@ -226,6 +227,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
     end)
     update_number = socket.assigns.updated + 1
     {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
+  end
+
+  def handle_event("download_file", %{"filename" => filename}, socket) do
+    {:noreply, push_redirect(socket, to: Routes.file_download_file_path(socket, :download_file, filename))}
   end
 
   defp load_runlist(socket, department_id) do

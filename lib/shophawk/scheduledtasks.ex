@@ -12,16 +12,18 @@ defmodule ScheduledTasks do
   # Server callbacks
   def init([]) do
     ###  Can't run this while trying to update large chunks of data because the csv files over write each other at wrong times ###
-    Process.send_after(self(), :update_from_jobboss, 0) # Start the task after initialization
+    Process.send_after(self(), :update_from_jobboss, 1000) # Start the task after initialization
 
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
-    Process.send(self(), :update_all_runlist_loads, [])
+    Process.send_after(self(), :update_all_runlist_loads, 5000)
 
     :ets.new(:birthdays_cache, [:set, :named_table, :public, read_concurrency: true])
-    Process.send(self(), :load_current_week_birthdays, [])
+    Process.send_after(self(), :load_current_week_birthdays, 12000)
 
     :ets.new(:weekly_dates, [:set, :named_table, :public, read_concurrency: true])
-    Process.send(self(), :save_weekly_dates, [])
+    Process.send_after(self(), :save_weekly_dates, 16000)
+
+    Process.send_after(self(), :clear_deleted_jobs, 20000)
 
     {:ok, nil}
   end
@@ -53,6 +55,18 @@ defmodule ScheduledTasks do
     Process.send_after(self(), :update_all_runlist_loads, 300000)
     IO.puts("Loads Updated")
 
+    {:noreply, nil}
+  end
+
+  def handle_info(:clear_deleted_jobs, _state) do
+    jobboss_active_jobs = MapSet.new(Enum.uniq(Csvimport.export_active_jobs()))
+    shophawk_active_jobs = MapSet.new(Enum.uniq(Shop.get_all_active_jobs_from_db()))
+    MapSet.difference(shophawk_active_jobs, jobboss_active_jobs)
+    |> MapSet.to_list
+    |> Shop.find_matching_job_ops #create list of structs that already exist in DB
+    |> Shop.delete_listed_runlist
+    Process.send_after(self(), :clear_deleted_jobs, 300000)
+    IO.puts("Removed deleted/hold jobs")
     {:noreply, nil}
   end
 
