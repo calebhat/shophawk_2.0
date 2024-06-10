@@ -239,12 +239,17 @@ defmodule Shophawk.Shop do
 
       jobs_that_ship_today =
         Enum.filter(runlists, fn op -> op.job_sched_end == Date.utc_today() end)
-        |> Enum.filter(fn op ->
-          has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
-          if has_ship_op == true, do: true, else: false
-        end)
+        #|> Enum.filter(fn op ->
+        #  has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
+        #  if has_ship_op == true, do: true, else: false
+        #end)
         |> Enum.uniq()
-        |> Enum.map(fn op -> Map.from_struct(op) |> Map.put(:ships_today, true) |> Map.put(:dots, 2) |> Map.reject(fn {key, _value} -> key == :__meta__ end) end)
+        |> Enum.map(fn op ->
+          Map.from_struct(op)
+          |> Map.put(:ships_today, true)
+          |> Map.put(:dots, 3)
+          |> Map.reject(fn {key, _value} -> key == :__meta__ end) end)
+
 
       jobs_that_ship_today=
         if Enum.empty?(jobs_that_ship_today) do
@@ -261,7 +266,7 @@ defmodule Shophawk.Shop do
             Enum.map(complete_runlist, fn op ->
               case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
                 nil -> op
-                _found_ships_today -> %{id: op.id, job: op.job, dots: 2, sched_start: op.sched_start, runner: op.runner, status: op.status, shipping_today: true}
+                _found_ships_today -> %{id: op.id, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
               end
             end)
           jobs_that_ship_today ++ complete_runlist
@@ -361,12 +366,17 @@ defmodule Shophawk.Shop do
 
       jobs_that_ship_today =
         Enum.filter(runlists, fn op -> op.job_sched_end == Date.utc_today() end)
-        |> Enum.filter(fn op ->
-          has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
-          if has_ship_op == true, do: true, else: false
-        end)
+        #|> Enum.filter(fn op -> #filter for only jobs with "A-SHIP"
+        #  has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
+        #  if has_ship_op == true, do: true, else: false
+        #end)
         |> Enum.uniq()
-        |> Enum.map(fn op -> Map.from_struct(op) |> Map.put(:ships_today, true) |> Map.put(:dots, 2) |> Map.reject(fn {key, _value} -> key == :__meta__ end) end)
+        |> Enum.map(fn op ->
+          Map.from_struct(op)
+          |> Map.put(:ships_today, true)
+          |> Map.put(:dots, 3)
+          |> Map.reject(fn {key, _value} -> key == :__meta__ end)
+        end)
 
       jobs_that_ship_today=
         if Enum.empty?(jobs_that_ship_today) do
@@ -383,7 +393,7 @@ defmodule Shophawk.Shop do
             Enum.map(complete_runlist, fn op ->
               case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
                 nil -> op
-                _found_ships_today -> %{id: op.id, job: op.job, dots: 2, sched_start: op.sched_start, runner: op.runner, status: op.status, shipping_today: true}
+                _found_ships_today -> %{id: op.id, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
               end
             end)
           jobs_that_ship_today ++ complete_runlist

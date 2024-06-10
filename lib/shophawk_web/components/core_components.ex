@@ -951,14 +951,23 @@ defmodule ShophawkWeb.CoreComponents do
                   </span>
                 </div>
               </td>
-              <td colspan="1" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+              <td colspan="1" class={["relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                 <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
                   <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                  <span class={["relative font-semibold"]}>
+                  <span class={["relative"]}>
+                    <%= elem(row, 1).order_quantity %>
                   </span>
                 </div>
               </td>
-              <td colspan="9" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+              <td colspan="1" class={["relative p-0  text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                  <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                  <span class={["relative"]}>
+                    <%= elem(row, 1).est_total_hrs %>
+                  </span>
+                </div>
+              </td>
+              <td colspan="8" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                 <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
                   <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
                   <span class={["relative"]}>
@@ -998,7 +1007,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <% end %>
                 </div>
               </td>
-            <% true -> %>
+            <% true -> %> <!-- normal operation row -->
               <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
               <div :for={{col, i} <- Enum.with_index(@col)}>
                 <%= case i do %>
@@ -1197,14 +1206,23 @@ defmodule ShophawkWeb.CoreComponents do
                     </span>
                   </div>
                 </td>
-                <td colspan="1" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                <td colspan="1" class={["relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
                     <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                    <span class={["relative font-semibold"]}>
+                    <span class={["relative"]}>
+                      <%= elem(row, 1).order_quantity %>
                     </span>
                   </div>
                 </td>
-                <td colspan="9" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                <td colspan="1" class={["relative p-0  text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                  <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                    <span class={["relative"]}>
+                      <%= elem(row, 1).est_total_hrs %>
+                    </span>
+                  </div>
+                </td>
+                <td colspan="8" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
                     <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
                     <span class={["relative"]}>

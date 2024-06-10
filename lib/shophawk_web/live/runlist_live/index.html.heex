@@ -109,8 +109,6 @@
   <% end  %>
 </div>
 
-<% if Map.has_key?(assigns, :jobs_that_ship_today), do: IO.inspect(assigns.jobs_that_ship_today) %>
-
 <%= if @show_runlist_table == true do %>  
   <.runlist_table
     id="runlists"
