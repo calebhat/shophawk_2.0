@@ -148,8 +148,8 @@ defmodule ShophawkWeb.SlideshowLive.Index do
 
     sorted_list =
     Enum.reduce(list, final_timeoff_map, fn timeoff, acc ->
-      sdate = NaiveDateTime.to_date(timeoff.startdate) #|> IO.inspect
-      edate = NaiveDateTime.to_date(timeoff.enddate) #|> IO.inspect
+      sdate = NaiveDateTime.to_date(timeoff.startdate)
+      edate = NaiveDateTime.to_date(timeoff.enddate)
       stime = NaiveDateTime.to_time(timeoff.startdate)
       etime = NaiveDateTime.to_time(timeoff.enddate)
 

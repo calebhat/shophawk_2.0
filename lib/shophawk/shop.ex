@@ -11,7 +11,6 @@ defmodule Shophawk.Shop do
  alias Shophawk.Shop.Workcenter
  alias Shophawk.Shop.Assignment
  alias Shophawk.Shop.Csvimport
- alias Shophawk.JobbossExports
 
   def list_job(job) do #loads all operations for a job
     query =

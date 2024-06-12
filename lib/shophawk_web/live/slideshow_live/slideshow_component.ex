@@ -216,7 +216,6 @@ end
   @impl true
   def update(%{slideshow: slideshow, slide: slide, slide_index: index, slides: slides} = assigns, socket) do
     slide_time = if slide == nil, do: 800, else: 7000 #seconds to next slide
-    IO.inspect(slide)
     socket = if slide == :hot_jobs, do: stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true), else: socket
     index = index + 1 #used to trigger css animations
     index = if index == 10, do: 0, else: index #keeps number low after running for weeks/months nonstop.

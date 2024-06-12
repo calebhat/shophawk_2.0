@@ -7,9 +7,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.Shop.Assignment
   alias Shophawk.JobbossExports
 
-  alias ShophawkWeb.Router.Helpers, as: Routes
-
-  def mount(_params, session, socket) do
+  def mount(_params, _session, socket) do
     if connected?(socket) do
       department_loads = get_runlist_loads()
       socket = if Enum.any?(department_loads, fn list -> list != [] end), do: assign(socket, show_department_loads: true), else: assign(socket, show_department_loads: false)

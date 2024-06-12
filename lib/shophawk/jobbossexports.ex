@@ -3,7 +3,7 @@ defmodule Shophawk.JobbossExports do
   def export_employees do
     path = Path.join([File.cwd!(), "csv_files/employees.csv"])
     export = """
-    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Employee] ,[User_Values] ,[First_Name] ,[Last_Name] ,[Hire_Date] FROM [PRODUCTION].[dbo].[Employee] WHERE Status = 'Active'" -o "c:/phoenixapps/shophawkdev/csv_files/employees.csv" -W -w 1024 -s "`" -f 65001 -h -1
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Employee] ,[User_Values] ,[First_Name] ,[Last_Name] ,[Hire_Date] FROM [PRODUCTION].[dbo].[Employee] WHERE Status = 'Active'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
     """
     sql_export = EEx.eval_string(export, [path: path])
     File.write!(Path.join([File.cwd!(), "batch_files/load_employees.bat"]), sql_export)

@@ -162,7 +162,6 @@ end
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     form = to_form(changeset)
     socket = assign(socket, :form, form)
-    IO.inspect(socket.assigns)
     socket
   end
 
