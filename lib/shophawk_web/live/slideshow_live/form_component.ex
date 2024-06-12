@@ -115,9 +115,7 @@ end
 
   @impl true
   def handle_event("validate", %{"slideshow" => slideshow_params}, socket) do
-    IO.inspect(slideshow_params)
     slideshow_params = combine_hours(slideshow_params)
-    IO.inspect(slideshow_params)
     changeset =
       socket.assigns.slideshow
       |> Shopinfo.change_slideshow(slideshow_params)

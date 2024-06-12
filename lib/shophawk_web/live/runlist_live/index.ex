@@ -5,9 +5,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.Shop.Department
   alias Shophawk.Shop.Csvimport
   alias Shophawk.Shop.Assignment
-  alias Shophawk.Routes
+  alias Shophawk.JobbossExports
 
-  def mount(_params, _session, socket) do
+  alias ShophawkWeb.Router.Helpers, as: Routes
+
+  def mount(_params, session, socket) do
     if connected?(socket) do
       department_loads = get_runlist_loads()
       socket = if Enum.any?(department_loads, fn list -> list != [] end), do: assign(socket, show_department_loads: true), else: assign(socket, show_department_loads: false)
@@ -114,6 +116,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, assign(socket, :updated, update_number)}
   end
 
+  def handle_info({:load_attachments, job}, socket) do
+    :ets.insert(:job_attachments, {:data, JobbossExports.export_attachments(job)})  # Store the data in ETS
+    {:noreply, socket}
+  end
+
   def handle_event("select_department", %{"selection" => department}, socket) do
     case department do
       "Select Department" ->
@@ -191,7 +198,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("show_job", %{"job" => job}, socket) do
-
+    Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
     {job_ops, job_info} = Shop.list_job(job)
     socket =
       socket
@@ -229,8 +236,30 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
   end
 
-  def handle_event("download_file", %{"filename" => filename}, socket) do
-    {:noreply, push_redirect(socket, to: Routes.file_download_file_path(socket, :download_file, filename))}
+  def handle_event("attachments", _, socket) do
+    IO.inspect(socket.assigns.id)
+    job = socket.assigns.id
+    [{:data, attachments}] = :ets.lookup(:job_attachments, :data)
+    socket =
+      socket
+      |> assign(id: job)
+      |> assign(attachments: attachments)
+      |> assign(page_title: "Job #{job} attachments")
+      |> assign(:live_action, :job_attachments)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("download", %{"file-path" => file_path}, socket) do
+    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
+  end
+
+  def handle_event("download", _params, socket) do
+    {:noreply, socket |> assign(:not_found, "File not found")}
+  end
+
+  def handle_event("close_job_attachments", _params, socket) do
+    {:noreply, assign(socket, live_action: :show_job)}
   end
 
   defp load_runlist(socket, department_id) do

@@ -21,6 +21,7 @@ defmodule ShophawkWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/download/:file_path", DownloadController, :download
 
     live "/tools", ToolLive.Index, :index
     live "/tools/new", ToolLive.Index, :new
@@ -59,6 +60,8 @@ defmodule ShophawkWeb.Router do
     live "/timeoff/:id/edit", TimeoffLive.Index, :edit
     live "/timeoff/:id", TimeoffLive.Show, :show
     live "/timeoff/:id/show/edit", TimeoffLive.Show, :edit
+
+
 
   end
 

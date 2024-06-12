@@ -11,6 +11,7 @@ defmodule ScheduledTasks do
 
   # Server callbacks
   def init([]) do
+    :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
     ###  Can't run this while trying to update large chunks of data because the csv files over write each other at wrong times ###
     Process.send_after(self(), :update_from_jobboss, 1000) # Start the task after initialization
 

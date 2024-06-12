@@ -83,4 +83,21 @@ defmodule Shophawk.JobbossExports do
       [_job | _] -> true end)
   end
 
+  def export_attachments(job) do
+    path = Path.join([File.cwd!(), "csv_files/attachments.csv"])
+    sql_export = """
+    sqlcmd -S GEARSERVER\\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Owner_ID] ,[Attach_Path] ,[Description] FROM [PRODUCTION].[dbo].[Attachment] WHERE Owner_ID = '<%= job %>'" -o "<%= path %>" -W -w 1024 -s "`" -f 65001 -h -1
+    """
+    export = EEx.eval_string(sql_export, [job: job, path: path])
+    File.write!(Path.join([File.cwd!(), "batch_files/job_attachments.bat"]), export)
+    System.cmd("cmd", ["/C", Path.join([File.cwd!(), "batch_files/job_attachments.bat"])])
+
+    File.stream!(Path.join([File.cwd!(), "csv_files/attachments.csv"]))
+    |> initial_mapping()
+    |> Enum.reduce( [], fn [job, path, description | _], acc ->
+      new_map = %{job: job, path: path, description: description}
+      [new_map | acc]
+    end)
+  end
+
 end

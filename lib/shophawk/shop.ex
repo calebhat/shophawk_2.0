@@ -11,6 +11,7 @@ defmodule Shophawk.Shop do
  alias Shophawk.Shop.Workcenter
  alias Shophawk.Shop.Assignment
  alias Shophawk.Shop.Csvimport
+ alias Shophawk.JobbossExports
 
   def list_job(job) do #loads all operations for a job
     query =
@@ -36,7 +37,6 @@ defmodule Shophawk.Shop do
   end
 
   def sort_job_info(job) do
-    IO.inspect(job.note_text)
     job_manager = case job.note_text do
       nil -> ""
       _ ->
@@ -531,7 +531,7 @@ defmodule Shophawk.Shop do
     hot_jobs = Repo.all(query)
     grouped_ops = Enum.group_by(hot_jobs, &(&1.job))
     keys_to_keep = [:id, :job,:description, :customer, :part_number, :make_quantity, :dots, :currentop, :job_sched_end]
-    Enum.map(grouped_ops, fn operations ->
+    Enum.map(grouped_ops, fn {_job, operations} ->
       Enum.max_by(operations, &(&1.id))
     end)
     |> Enum.map(&Map.take(&1, keys_to_keep))

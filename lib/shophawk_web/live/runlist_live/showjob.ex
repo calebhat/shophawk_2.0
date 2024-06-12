@@ -6,9 +6,9 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
       <div class="">
       <div class="text-center text-black p-6" >
         <div class="grid grid-cols-3" >
-          <div> </div>
-          <div class="text-2xl underline"><%= assigns.job %> </div>
           <div class="text-base"><%= assigns.job_info.job_manager %></div>
+          <div class="text-2xl underline"><%= assigns.job %> </div>
+          <div><.info_button phx-click="attachments">Attachments</.info_button> </div>
         </div>
       </div>
       <div class="text-lg text-center border-b-4 border-zinc-400 p-6">
@@ -46,7 +46,6 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
   end
 
   def update(assigns, socket) do
-    #IO.inspect(assigns)
 
     {:ok,
     socket

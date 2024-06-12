@@ -35,7 +35,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   defp apply_action(socket, :index, _params) do
     socket
     |> assign(:page_title, "Listing Slideshow")
-    |> assign(:slideshow, nil)
+    |> assign(:slideshow, Shopinfo.get_slideshow!(1))
   end
 
   @impl true
