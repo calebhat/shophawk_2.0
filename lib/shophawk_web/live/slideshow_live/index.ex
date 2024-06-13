@@ -158,9 +158,9 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         key = day_key(Date.diff(sdate, List.first(dates_map)))
         if key != false do
           timeoff_string = set_timeoff_string(timeoff, stime, etime)
-          Map.update!(acc, key, fn list -> [timeoff_string | list] end)
+          Map.update!(acc, key, fn day -> [timeoff_string | day] end)
         else
-          acc #SOMETHING HERE ISN'T WORKING. ACC WAS "FINAL_TIMEOFF_MAP", BUT IT WOULD RESULT IN AN EMPTY MAP.
+          acc
         end
       else
         spread_across_days(timeoff, acc, dates_map, sdate, edate)

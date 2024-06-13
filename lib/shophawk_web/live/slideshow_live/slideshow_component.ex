@@ -175,7 +175,7 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
               <%= for {key, values} <- @slideshow.week1_timeoff do %>
                 <div>
                   <h2 class="font-bold pb-4"><%= timeoff_header_rename(key) %></h2>
-                  <ul class="border-black border text-4xl">
+                  <ul class="border-black border text-3xl">
                     <%= for value <- values do %>
                       <li class="border border-y border-black py-4"><%= value %></li>
                     <% end %>
@@ -196,7 +196,7 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
               <%= for {key, values} <- @slideshow.week2_timeoff do %>
                 <div>
                   <h2 class="font-bold pb-4"><%= timeoff_header_rename(key) %></h2>
-                  <ul class="border-black border text-4xl">
+                  <ul class="border-black border text-3xl">
                     <%= for value <- values do %>
                       <li class="border border-y border-black py-4"><%= value %></li>
                     <% end %>

@@ -127,8 +127,6 @@ defmodule Shophawk.Shopinfo do
       else
         NaiveDateTime.add(end_date, 30, :day)
       end
-      IO.inspect(start_date)
-      IO.inspect(end_date)
     query =
       Timeoff
       |> where([t], ilike(t.employee, ^"%#{search_term}%"))
@@ -136,7 +134,20 @@ defmodule Shophawk.Shopinfo do
       |> where([t], t.enddate <= ^end_date)
 
     Repo.all(query)
-    |> Enum.sort_by(&(&1.startdate))
+    |> Enum.sort_by(&{&1.employee, &1.startdate}, fn
+      {employee1, date1}, {employee2, date2} ->
+        case employee1 do
+          employee1 when employee1 < employee2 -> true
+          employee1 when employee1 > employee2 -> false
+          _ ->
+            case NaiveDateTime.compare(date1, date2) do
+              :lt -> true
+              :eq -> true
+              :gt -> false
+            end
+          false -> false
+        end
+    end)
   end
 
   defp parse_date(""), do: ""
