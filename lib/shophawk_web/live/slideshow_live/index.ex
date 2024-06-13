@@ -136,6 +136,8 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     all_time_off =
       Shophawk.Shopinfo.search_timeoff("", weekly_dates.monday, weekly_dates.next_friday)
       |> sort_time_off(weekly_dates, final_timeoff_map)
+
+
     order = [:m, :t, :w, :thur, :f, :s, :sun, :nm, :nt, :nw, :nthur, :nf]
     sorted_all_time_off = Enum.map(order, fn key -> {key, Map.get(all_time_off, key, [])} end)
     {week1_timeoff, tail} = Enum.split_while(sorted_all_time_off, fn {k, _v} -> k != :s end)
@@ -152,14 +154,13 @@ defmodule ShophawkWeb.SlideshowLive.Index do
       edate = NaiveDateTime.to_date(timeoff.enddate)
       stime = NaiveDateTime.to_time(timeoff.startdate)
       etime = NaiveDateTime.to_time(timeoff.enddate)
-
       if sdate == edate do
         key = day_key(Date.diff(sdate, List.first(dates_map)))
         if key != false do
           timeoff_string = set_timeoff_string(timeoff, stime, etime)
           Map.update!(acc, key, fn list -> [timeoff_string | list] end)
         else
-          final_timeoff_map
+          acc #SOMETHING HERE ISN'T WORKING. ACC WAS "FINAL_TIMEOFF_MAP", BUT IT WOULD RESULT IN AN EMPTY MAP.
         end
       else
         spread_across_days(timeoff, acc, dates_map, sdate, edate)

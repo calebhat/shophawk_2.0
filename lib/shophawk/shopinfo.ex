@@ -118,21 +118,21 @@ defmodule Shophawk.Shopinfo do
   end
 
   def search_timeoff(search_term, start_date, end_date) do
-
-    start_date = parse_date(start_date)
+    start_date = parse_date(start_date) |> NaiveDateTime.add(-30, :day)
     end_date = parse_date(end_date)
     end_date =
       if end_date == "" do
         {:ok, datetime} = DateTime.now("Etc/UTC")
         DateTime.add(datetime, 365, :day)
       else
-        end_date
+        NaiveDateTime.add(end_date, 30, :day)
       end
-
+      IO.inspect(start_date)
+      IO.inspect(end_date)
     query =
       Timeoff
       |> where([t], ilike(t.employee, ^"%#{search_term}%"))
-      |> where([t], t.enddate >= ^start_date)
+      |> where([t], t.startdate >= ^start_date)
       |> where([t], t.enddate <= ^end_date)
 
     Repo.all(query)
