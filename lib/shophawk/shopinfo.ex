@@ -145,7 +145,6 @@ defmodule Shophawk.Shopinfo do
               :eq -> true
               :gt -> false
             end
-          false -> false
         end
     end)
   end
