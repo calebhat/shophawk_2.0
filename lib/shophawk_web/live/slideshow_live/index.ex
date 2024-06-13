@@ -65,12 +65,13 @@ defmodule ShophawkWeb.SlideshowLive.Index do
       end)
     {slideshow, slides, next_slide} =
       if current_slide == next_slide do
+        slideshow = Shopinfo.get_slideshow!(1)
         {slideshow, slides} = {parse_hours(slideshow), [:hours]}
+        hot_jobs = Shophawk.Shop.get_hot_jobs()
+        {slideshow, slides} = if hot_jobs != [], do: {Map.put(slideshow, :hot_jobs, hot_jobs), slides ++ [:hot_jobs]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement1) != "", do: {Map.put(slideshow, :announcement1, slideshow.announcement1 |> String.replace("\n", "<br>")), slides ++ [:announcement1]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement2) != "", do: {Map.put(slideshow, :announcement2, slideshow.announcement2 |> String.replace("\n", "<br>")), slides ++ [:announcement2]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement3) != "", do: {Map.put(slideshow, :announcement3, slideshow.announcement3 |> String.replace("\n", "<br>")), slides ++ [:announcement3]}, else: {slideshow, slides}
-        slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
-        slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
 
         [weekly_dates: weekly_dates] = :ets.lookup(:weekly_dates, :weekly_dates)
         slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
@@ -78,11 +79,11 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         {slideshow, slides} = if Enum.all?(week1_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week1_timeoff, week1_timeoff), slides ++ [:week1_timeoff]}, else: {slideshow, slides}
         {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
 
-        hot_jobs = Shophawk.Shop.get_hot_jobs()
-        {slideshow, slides} = if hot_jobs != [], do: {Map.put(slideshow, :hot_jobs, hot_jobs), slides ++ [:hot_jobs]}, else: {slideshow, slides}
 
         [this_weeks_birthdays: birthdays] = :ets.lookup(:birthdays_cache, :this_weeks_birthdays)
         {slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
+        slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
+        slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
         {slideshow, slides, List.first(slides)}
       else
         {slideshow, slides, next_slide}

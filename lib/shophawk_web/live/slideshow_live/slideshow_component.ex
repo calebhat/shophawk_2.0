@@ -107,16 +107,16 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
                 <tr
                   :for={{dom_id, job} <- @streams.hot_jobs}
                   id={dom_id}
-                  class={"text-stone-950  border border-stone-800 " <> bg_class(job.dots)}
+                  class={["text-stone-950 border border-stone-800", bg_class(job.dots)]}
                 >
-                  <td class="px-4 py-2 truncate" style="font-size: 2vw"><%= job.job %></td>
+                  <td class="px-4 py-2 truncate font-bold" style="font-size: 2vw"><%= job.job %></td>
                   <td class="px-4 py-2 truncate"><img class="grid justify-items-start" src={display_dots(job.dots)} /></td>
-                  <td class="px-4 py-2 truncate" style="font-size: 2vw"><%= job.make_quantity %></td>
-                  <td class="px-4 py-2 truncate" style="font-size: 1.5vw"><%= job.part_number %></td>
-                  <td class="px-4 py-2 truncate" style="font-size: 1.5vw"><%= job.description %></td>
-                  <td class="px-4 py-2 truncate" style="font-size: 2vw"><%= Calendar.strftime(job.job_sched_end, "%m-%d-%y") %></td>
-                  <td class="px-4 py-2 truncate" style="font-size: 1.5vw"><%= job.customer %></td>
-                  <td class="px-4 py-2 truncate" style="font-size: 1.5vw"><%= job.currentop %></td>
+                  <td class="px-4 py-2 truncated font-bold" style="font-size: 2vw"><%= job.make_quantity %></td>
+                  <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= job.part_number %></td>
+                  <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= job.description %></td>
+                  <td class="px-4 py-2 truncate font-bold" style="font-size: 2vw"><%= Calendar.strftime(job.job_sched_end, "%m-%d-%y") %></td>
+                  <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= job.customer %></td>
+                  <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= job.currentop %></td>
                 </tr>
               </tbody>
             </table>
@@ -168,14 +168,14 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
             <div class="text-center text-6xl font-bold">
               This weeks Time Off
             </div>
-            <div class="text-center text-4xl border-b-4 border-stone-600 pb-2">
+            <div class="text-center text-4xl border-b-4 border-stone-600 pb-2  font-bold">
               <%= Calendar.strftime(@slideshow.weekly_dates.monday, "%m-%d") %> to <%= Calendar.strftime(@slideshow.weekly_dates.friday, "%m-%d") %>
             </div>
             <div class="grid grid-cols-5 text-6xl text-center">
               <%= for {key, values} <- @slideshow.week1_timeoff do %>
                 <div>
                   <h2 class="font-bold pb-4"><%= timeoff_header_rename(key) %></h2>
-                  <ul class="border-black border text-3xl">
+                  <ul class="border-black border text-4xl font-bold">
                     <%= for value <- values do %>
                       <li class="border border-y border-black py-4"><%= value %></li>
                     <% end %>
@@ -189,14 +189,14 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
             <div class="text-center text-6xl font-bold">
               Next weeks Time Off
             </div>
-            <div class="text-center text-4xl border-b-4 border-stone-600 pb-2">
+            <div class="text-center text-4xl border-b-4 border-stone-600 pb-2 font-bold">
               <%= Calendar.strftime(@slideshow.weekly_dates.next_monday, "%m-%d") %> to <%= Calendar.strftime(@slideshow.weekly_dates.next_friday, "%m-%d") %>
             </div>
             <div class="grid grid-cols-5 text-6xl text-center">
               <%= for {key, values} <- @slideshow.week2_timeoff do %>
                 <div>
                   <h2 class="font-bold pb-4"><%= timeoff_header_rename(key) %></h2>
-                  <ul class="border-black border text-3xl">
+                  <ul class="border-black border text-4xl font-bold">
                     <%= for value <- values do %>
                       <li class="border border-y border-black py-4"><%= value %></li>
                     <% end %>
@@ -218,7 +218,7 @@ end
     slide_time = if slide == nil, do: 800, else: 7000 #seconds to next slide
     socket = if slide == :hot_jobs, do: stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true), else: socket
     index = index + 1 #used to trigger css animations
-    index = if index == 10, do: 0, else: index #keeps number low after running for weeks/months nonstop.
+    index = if index == 20, do: 0, else: index #keeps number low after running for weeks/months nonstop.
     process = self()
     if rem(index, 2) == 0 do
       Task.start(fn ->
@@ -230,7 +230,7 @@ end
       end)
     end
 
-    {:ok, socket |> assign(assigns) |> assign(slide_index: index)}
+    {:ok, socket |> assign(slideshow: slideshow) |> assign(slide: slide) |> assign(assigns) |> assign(slide_index: index)}
   end
 
   defp transition(index) do

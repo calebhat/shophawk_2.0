@@ -82,14 +82,10 @@ defmodule ScheduledTasks do
       Enum.map(employees, fn emp ->
         normalized_birthday = %{emp.birthday | year: today.year} #changes the year to be this year for comparison
         if Date.before?(normalized_birthday, next_monday) and Date.after?(normalized_birthday, sunday) do
-          emp
+          Map.put(emp, :birthday, normalized_birthday)
         end
       end)
       |> Enum.filter(fn item -> is_map(item) end)
-
-    #TEST DATA
-    #this_weeks_birthdays = [%{employee: "GV", user_value: "2774", first_name: "Greg", last_name: "Vike", hire_date: ~D[2010-06-28], birthday: ~D[2024-05-06]}]
-
     birthday_lines =
       Enum.reduce(this_weeks_birthdays, [], fn bday, acc ->
         acc ++ ["#{bday.first_name} #{bday.last_name} on #{Calendar.strftime(bday.birthday, "%A")} (#{bday.birthday.month}-#{bday.birthday.day})"]
