@@ -216,7 +216,7 @@ end
 
   @impl true
   def update(%{slideshow: slideshow, slide: slide, slide_index: index, slides: slides} = assigns, socket) do
-    slide_time = if slide == nil, do: 800, else: 1000 #seconds to next slide
+    slide_time = if slide == nil, do: 800, else: 7000 #seconds to next slide
     process = self()
     if rem(index, 2) == 0 do
       Task.start(fn ->
