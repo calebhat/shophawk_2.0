@@ -15,9 +15,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   end
 
   defp apply_action(socket, :run_slideshow, %{"id" => id}) do
-    socket
-    |> assign(:page_title, "Running Slideshow")
-    |> assign(:slideshow, Shopinfo.get_slideshow!(id))
+    socket |> assign(:page_title, "Running Slideshow")
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -33,17 +31,37 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
+    {slideshow, slides, next_slide, index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])
+    slides = Enum.map(slides, fn x -> Atom.to_string(x) end) |> Jason.encode!()
     socket
+    |> assign(slideshow: slideshow)
+    |> assign(slide: :week1_timeoff)
+    |> assign(slide_index: 1)
+    |> assign(next_slide: next_slide)
+    |> assign(index: index)
+    |> assign(slides: slides)
     |> assign(:page_title, "Listing Slideshow")
-    |> assign(:slideshow, Shopinfo.get_slideshow!(1))
   end
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     slideshow = Shopinfo.get_slideshow!(id)
     {:ok, _} = Shopinfo.delete_slideshow(slideshow)
-
     {:noreply, stream_delete(socket, :slideshow_collection, slideshow)}
+  end
+
+  def handle_event("next_slide", %{"next-slide" => slide_to_load, "slides" => slides, "index" => index}, socket) do
+
+    slide_to_load = String.to_atom(slide_to_load)
+    slides = Jason.decode!(slides) |> Enum.map( fn x -> String.to_atom(x) end)
+    {slideshow, slides, _next_slide, _index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])
+    {_slideshow, _slides, next_slide, index} = prepare_slides(slideshow, slide_to_load, 0, slides)
+
+
+    slides = Enum.map(slides, fn x -> Atom.to_string(x) end) |> Jason.encode!()
+
+    socket = if slide_to_load == :hot_jobs, do: stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true), else: socket
+    {:noreply, socket |> assign(slide: slide_to_load) |> assign(next_slide: next_slide) |> assign(index: (index + 2)) |> assign(slides: slides)}
   end
 
   @impl true
@@ -52,6 +70,19 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   end
 
   def handle_info({:next_slide, slideshow, current_slide, index, slides}, socket) do
+    {slideshow, slides, next_slide, index} = prepare_slides(slideshow, current_slide, index, slides)
+    send_update(self(), ShophawkWeb.SlideshowLive.SlideshowComponent, id: 1, slideshow: slideshow, slide: next_slide, slide_index: index, slides: slides)
+    {:noreply, socket}
+  end
+
+  def handle_info({:next_slide_animation, slideshow, current_slide, index, slides}, socket) do
+    index = index + 1 #used to trigger css animations
+    index = if index == 20, do: 0, else: index #keeps number low after running for weeks/months nonstop.
+    send_update(self(), ShophawkWeb.SlideshowLive.SlideshowComponent, id: 1, slideshow: slideshow, slide: current_slide, slide_index: index, slides: slides)
+    {:noreply, socket}
+  end
+
+  def prepare_slides(slideshow, current_slide, index, slides) do
     {next_slide, _value} =
       Enum.reduce_while(slides, {nil, false}, fn slide, {_last_slide, found} = _acc ->
         case {slide == current_slide, found} do
@@ -66,35 +97,32 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     {slideshow, slides, next_slide} =
       if current_slide == next_slide do
         slideshow = Shopinfo.get_slideshow!(1)
-        {slideshow, slides} = {parse_hours(slideshow), [:hours]}
+        slides = []
+
+        [weekly_dates: weekly_dates] = :ets.lookup(:weekly_dates, :weekly_dates)
+        slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
+        {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
+        {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
+
+        {slideshow, slides} = {parse_hours(slideshow), slides ++ [:hours]}
+
         hot_jobs = Shophawk.Shop.get_hot_jobs()
         {slideshow, slides} = if hot_jobs != [], do: {Map.put(slideshow, :hot_jobs, hot_jobs), slides ++ [:hot_jobs]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement1) != "", do: {Map.put(slideshow, :announcement1, slideshow.announcement1 |> String.replace("\n", "<br>")), slides ++ [:announcement1]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement2) != "", do: {Map.put(slideshow, :announcement2, slideshow.announcement2 |> String.replace("\n", "<br>")), slides ++ [:announcement2]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement3) != "", do: {Map.put(slideshow, :announcement3, slideshow.announcement3 |> String.replace("\n", "<br>")), slides ++ [:announcement3]}, else: {slideshow, slides}
 
-        [weekly_dates: weekly_dates] = :ets.lookup(:weekly_dates, :weekly_dates)
-        slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
-        {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
-        {slideshow, slides} = if Enum.all?(week1_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week1_timeoff, week1_timeoff), slides ++ [:week1_timeoff]}, else: {slideshow, slides}
-        {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
-
-
         [this_weeks_birthdays: birthdays] = :ets.lookup(:birthdays_cache, :this_weeks_birthdays)
         {slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
         slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
         slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
+        {slideshow, slides} = if Enum.all?(week1_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week1_timeoff, week1_timeoff), slides ++ [:week1_timeoff]}, else: {slideshow, slides}
+
         {slideshow, slides, List.first(slides)}
       else
         {slideshow, slides, next_slide}
       end
-    send_update(self(), ShophawkWeb.SlideshowLive.SlideshowComponent, id: 1, slideshow: slideshow, slide: next_slide, slide_index: index, slides: slides)
-    {:noreply, socket}
-  end
-
-  def handle_info({:next_slide_animation, slideshow, current_slide, index, slides}, socket) do
-    send_update(self(), ShophawkWeb.SlideshowLive.SlideshowComponent, id: 1, slideshow: slideshow, slide: current_slide, slide_index: index, slides: slides)
-    {:noreply, socket}
+    {slideshow, slides, next_slide, (index + 1)}
   end
 
   defp parse_hours(slideshow) do
@@ -135,7 +163,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   def load_timeoff(weekly_dates) do
     final_timeoff_map = %{m: [], t: [], w: [], thur: [], f: [], s: [], sun: [], nm: [], nt: [], nw: [], nthur: [], nf: []}
     all_time_off =
-      Shophawk.Shopinfo.search_timeoff("", weekly_dates.monday, weekly_dates.next_friday)
+      Shophawk.Shopinfo.search_timeoff("", weekly_dates.monday, Date.add(weekly_dates.next_friday, 1))
       |> sort_time_off(weekly_dates, final_timeoff_map)
 
 
@@ -213,5 +241,51 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   defp day_key(10), do: :nthur
   defp day_key(11), do: :nf
   defp day_key(_), do: false
+
+  def transition(index) do
+    if rem(index, 2) == 0, do: "fade-out", else: "fade-in"
+  end
+
+  def calculate_cell_color(time) do
+    if time == "6:00" or time == "4:00" do
+      ""
+    else
+      "bg-stone-100 text-orange-700 border border-black"
+    end
+  end
+
+  def display_dots(dots) do
+    case dots do
+      1 -> ~p"/images/one_dot.svg"
+      2 -> ~p"/images/two_dots.svg"
+      3 -> ~p"/images/three_dots.svg"
+      _ -> ""
+    end
+  end
+
+  def bg_class(dots) do
+    case dots do
+      1 -> "bg-cyan-500/30"
+      2 -> "bg-amber-500/30"
+      3 -> "bg-red-600/30"
+      _ -> ""
+    end
+  end
+
+  def timeoff_header_rename(key) do
+    case key do
+      :m -> "Monday"
+      :t -> "Tuesday"
+      :w -> "Wednesday"
+      :thur -> "Thursday"
+      :f -> "Friday"
+      :nm -> "Monday"
+      :nt -> "Wednesday"
+      :nw -> "Thursday"
+      :nthur -> "Thursday"
+      :nf -> "Friday"
+      _ -> ""
+    end
+  end
 
 end

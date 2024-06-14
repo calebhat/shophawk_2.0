@@ -6,10 +6,14 @@ defmodule ShophawkWeb.TimeoffLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    today = DateTime.utc_now() |> DateTime.to_date()
+    weekday = Date.day_of_week(today)
+    # Calculate the date of this weeks Monday
+    monday_date = Date.add(today, -(weekday - 1))
     {:ok,
       socket
       |> assign(:search_term, "")
-      |> assign(:start_date, Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d"))
+      |> assign(:start_date, Calendar.strftime(monday_date, "%Y-%m-%d"))
       |> assign(:end_date, "")
       |> assign_timeoff_collection()
     }
@@ -53,7 +57,6 @@ defmodule ShophawkWeb.TimeoffLive.Index do
 
   @impl true
   def handle_event("search", %{"search_term" => search_term, "start_date" => start_date, "end_date" => end_date}, socket) do
-    IO.inspect(start_date)
     socket =
       socket
       |> assign(:search_term, search_term)
@@ -65,10 +68,14 @@ defmodule ShophawkWeb.TimeoffLive.Index do
   end
 
   def handle_event("clear_search", _params, socket) do
+    today = DateTime.utc_now() |> DateTime.to_date()
+    weekday = Date.day_of_week(today)
+    # Calculate the date of this weeks Monday
+    monday_date = Date.add(today, -(weekday - 1))
     {:noreply,
     socket
     |> assign(:search_term, "")
-    |> assign(:start_date, Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d"))
+    |> assign(:start_date, Calendar.strftime(monday_date, "%Y-%m-%d"))
     |> assign(:end_date, "")
     |> assign_timeoff_collection()
   }

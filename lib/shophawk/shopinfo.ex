@@ -118,22 +118,29 @@ defmodule Shophawk.Shopinfo do
   end
 
   def search_timeoff(search_term, start_date, end_date) do
-    start_date = parse_date(start_date) |> NaiveDateTime.add(-30, :day)
+    start_date = parse_date(start_date)
     end_date = parse_date(end_date)
     end_date =
       if end_date == "" do
         {:ok, datetime} = DateTime.now("Etc/UTC")
         DateTime.add(datetime, 365, :day)
       else
-        NaiveDateTime.add(end_date, 30, :day)
+        end_date
       end
-    query =
+    query1 =
       Timeoff
       |> where([t], ilike(t.employee, ^"%#{search_term}%"))
       |> where([t], t.startdate >= ^start_date)
-      |> where([t], t.enddate <= ^end_date)
+      |> where([t], t.startdate <= ^end_date)
 
-    Repo.all(query)
+      query2 =
+        Timeoff
+        |> where([t], ilike(t.employee, ^"%#{search_term}%"))
+        |> where([t], t.enddate >= ^start_date)
+        |> where([t], t.enddate <= ^end_date)
+
+    Repo.all(query1) ++ Repo.all(query2)
+    |> Enum.uniq
     |> Enum.sort_by(&{&1.employee, &1.startdate}, fn
       {employee1, date1}, {employee2, date2} ->
         case employee1 do
@@ -147,6 +154,7 @@ defmodule Shophawk.Shopinfo do
             end
         end
     end)
+    |> Enum.reverse
   end
 
   defp parse_date(""), do: ""
