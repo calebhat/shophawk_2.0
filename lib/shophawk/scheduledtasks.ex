@@ -1,7 +1,8 @@
 defmodule ScheduledTasks do
   use GenServer
-  alias Shophawk.Shop.Csvimport
-  alias Shophawk.JobbossExports
+  alias Shophawk.RunlistExports
+  alias Shophawk.RunlistImports
+  alias Shophawk.GeneralExports
   alias Shophawk.Shop
 
   # Client API
@@ -11,19 +12,17 @@ defmodule ScheduledTasks do
 
   # Server callbacks
   def init([]) do
+    #create all ets caches needed
     :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:birthdays_cache, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:weekly_dates, [:set, :named_table, :public, read_concurrency: true])
     ###  Can't run this while trying to update large chunks of data because the csv files over write each other at wrong times ###
     Process.send_after(self(), :update_from_jobboss, 1000) # Start the task after initialization
 
-    :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
     Process.send_after(self(), :update_all_runlist_loads, 5000)
-
-    :ets.new(:birthdays_cache, [:set, :named_table, :public, read_concurrency: true])
     Process.send_after(self(), :load_current_week_birthdays, 12000)
-
-    :ets.new(:weekly_dates, [:set, :named_table, :public, read_concurrency: true])
     Process.send_after(self(), :save_weekly_dates, 16000)
-
     Process.send_after(self(), :clear_deleted_jobs, 20000)
 
     {:ok, nil}
@@ -31,7 +30,7 @@ defmodule ScheduledTasks do
 
   #runs every 5 seconds
   def handle_info(:update_from_jobboss, _state) do
-    Csvimport.scheduled_runlist_update(self())
+    RunlistImports.scheduled_runlist_update(self())
     {:noreply, nil}
   end
 
@@ -60,7 +59,7 @@ defmodule ScheduledTasks do
   end
 
   def handle_info(:clear_deleted_jobs, _state) do
-    jobboss_active_jobs = MapSet.new(Enum.uniq(Csvimport.export_active_jobs()))
+    jobboss_active_jobs = MapSet.new(Enum.uniq(RunlistExports.export_active_jobs()))
     shophawk_active_jobs = MapSet.new(Enum.uniq(Shop.get_all_active_jobs_from_db()))
     MapSet.difference(shophawk_active_jobs, jobboss_active_jobs)
     |> MapSet.to_list
@@ -73,7 +72,7 @@ defmodule ScheduledTasks do
 
 #runs 4 times a days
   def handle_info(:load_current_week_birthdays, _state) do
-    employees = JobbossExports.export_employees
+    employees = GeneralExports.export_employees
     today = Date.utc_today()
     day_of_week = Date.day_of_week(today)
     sunday = Date.add(today, -day_of_week)

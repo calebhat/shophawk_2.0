@@ -3,9 +3,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   alias Shophawk.Shop
   alias Shophawk.Shop.Department
-  alias Shophawk.Shop.Csvimport
   alias Shophawk.Shop.Assignment
-  alias Shophawk.JobbossExports
+  alias Shophawk.GeneralExports
+  alias Shophawk.RunlistImports
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -53,13 +53,13 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :edit_department, _) do
-    Csvimport.update_workcenters()
+    RunlistImports.update_workcenters()
       socket
       |> assign(:page_title, "Edit Department")
   end
 
   defp apply_action(socket, :new_department, _) do
-    Csvimport.update_workcenters()
+    RunlistImports.update_workcenters()
     socket
     |> assign(:page_title, "New Department")
     |> assign(:department, %Department{})
@@ -115,7 +115,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_info({:load_attachments, job}, socket) do
-    :ets.insert(:job_attachments, {:data, JobbossExports.export_attachments(job)})  # Store the data in ETS
+    :ets.insert(:job_attachments, {:data, GeneralExports.export_attachments(job)})  # Store the data in ETS
     {:noreply, socket}
   end
 
@@ -210,7 +210,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("rework_to_do", _, socket) do
-    Csvimport.rework_to_do()
+    RunlistImports.rework_to_do()
     {:noreply, socket}
   end
 

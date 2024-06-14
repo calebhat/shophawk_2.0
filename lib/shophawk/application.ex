@@ -21,8 +21,8 @@ defmodule Shophawk.Application do
       # Start a worker by calling: Shophawk.Worker.start_link(arg)
       # {Shophawk.Worker, arg}
 
-      #runs CsvImport function for continuous imports every 5 seconds.
 
+      #Started app repeating functions
       ScheduledTasks
     ]
 

@@ -10,7 +10,7 @@ defmodule Shophawk.Shop do
  alias Shophawk.Shop.Department
  alias Shophawk.Shop.Workcenter
  alias Shophawk.Shop.Assignment
- alias Shophawk.Shop.Csvimport
+ alias Shophawk.RunlistImports
 
   def list_job(job) do #loads all operations for a job
     query =
@@ -72,7 +72,7 @@ defmodule Shophawk.Shop do
     |> Enum.each(fn chunk -> Repo.insert_all(Runlist, chunk) end)
   end
 
-  def find_matching_operations(operations_list) do #used in csvimport
+  def find_matching_operations(operations_list) do
     query =
       from r in Runlist,
       where: r.job_operation in ^operations_list
@@ -137,7 +137,7 @@ defmodule Shophawk.Shop do
       last_row = List.last(runlists)
       first_row_id = first_row.id
       last_row_id = last_row.id
-      blackout_dates = Csvimport.load_blackout_dates
+      blackout_dates = RunlistImports.load_blackout_dates
 
       #generate list of maps with just days with extra hours %{date: date, hours: hours, id: id}
       carryover_list =
