@@ -1,8 +1,3 @@
-sqlcmd -S GEARSERVER\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Last_Updated > DATEADD(MILLISECOND, -5823,GETDATE()) ORDER BY Job_Operation DESC" -o "c:/phoenixapps/shophawk/csv_files/operationtime.csv" -W -w 1024 -s "`" -f 65001 -h -1 
-sqlcmd -S GEARSERVER\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Material_Req] WHERE Last_Updated > DATEADD(MILLISECOND, -5823,GETDATE())" -o "c:/phoenixapps/shophawk/csv_files/material.csv" -W -w 1024 -s "`" -f 65001 -h -1 
-sqlcmd -S GEARSERVER\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job] WHERE Last_Updated > DATEADD(MILLISECOND, -5823,GETDATE())" -o "c:/phoenixapps/shophawk/csv_files/jobs.csv" -W -w 1024 -s "`" -f 65001 -h -1 
-sqlcmd -S GEARSERVER\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job] FROM [PRODUCTION].[dbo].[Job_Operation] WHERE Last_Updated > DATEADD(MILLISECOND,-5823,GETDATE())" -o "c:/phoenixapps/shophawk/csv_files/runlistops.csv" -W -w 1024 -s "`" -f 65001 -h -1
-
-
-
+sqlcmd -S GEARSERVER\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [User_Values] ,[Text1] FROM [PRODUCTION].[dbo].[User_Values] WHERE Text1 IS NOT NULL AND User_Values in false" -o "c:/phoenixapps/shophawkdev/csv_files/uservalues.csv" -W -w 1024 -s "`" -f 65001 -h -1 
+sqlcmd -S GEARSERVER\SQLEXPRESS -d PRODUCTION -E -Q "SELECT [Job_Operation] ,[Employee] ,[Work_Date] ,[Act_Setup_Hrs] ,[Act_Run_Hrs] ,[Act_Run_Qty] ,[Act_Scrap_Qty] ,[Note_Text] FROM [PRODUCTION].[dbo].[Job_Operation_Time] WHERE Job_Operation in (786735, 786734, 786733, 786732, 786731, 786730, 786729, 786728, 786727, 786726, 786724, 786723, 786722) ORDER BY Job_Operation DESC" -o "c:/phoenixapps/shophawkdev/csv_files/operationtime.csv" -W -w 1024 -s "`" -f 65001 -h -1
 

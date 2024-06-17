@@ -17,6 +17,7 @@
   </:actions>
 </.header>
 
+<div :if={@live_action not in [:new, :edit]}>
 <div class="flex items-center justify-center h-screen w-sceen">
   <div class="grid grid-cols-1">
   <div class={transition(@slide_index)} >
@@ -222,6 +223,7 @@
     <% end %>
     </div>
   </div>
+</div>
 </div>
 
 <br>
