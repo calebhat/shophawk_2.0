@@ -70,7 +70,7 @@ defmodule ScheduledTasks do
     {:noreply, nil}
   end
 
-#runs 4 times a days
+#runs once a day
   def handle_info(:load_current_week_birthdays, _state) do
     employees = GeneralExports.export_employees
     today = Date.utc_today()
@@ -105,7 +105,7 @@ defmodule ScheduledTasks do
     next_friday = Date.add(next_monday, 4)
     :ets.insert(:weekly_dates, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
     IO.puts("weekly dates updated")
-    Process.send_after(self(), :load_current_week_birthdays, 1440000)
+    Process.send_after(self(), :save_weekly_dates, 1440000)
     {:noreply, nil}
   end
 
