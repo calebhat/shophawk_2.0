@@ -6,6 +6,18 @@ defmodule ShophawkWeb.SlideshowLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    socket = assign(socket, :next_slide, nil)
+    {slideshow, slides, next_slide, index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])
+    slides = Enum.map(slides, fn x -> Atom.to_string(x) end) |> Jason.encode!()
+    socket =
+      socket
+      |> assign(slideshow: slideshow)
+      |> assign(slide: :week1_timeoff)
+      |> assign(slide_index: 1)
+      |> assign(next_slide: next_slide)
+      |> assign(index: index)
+      |> assign(slides: slides)
+      |> assign(:page_title, "Listing Slideshow")
     {:ok, stream(socket, :slideshow_collection, Shopinfo.list_slideshow())}
   end
 
@@ -246,11 +258,11 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     if rem(index, 2) == 0, do: "fade-out", else: "fade-in"
   end
 
-  def calculate_cell_color(time) do
-    if time == "6:00" or time == "4:00" do
-      ""
-    else
-      "bg-stone-100 text-orange-700 border border-black"
+  def calculate_cell_color(time, am) do
+    cond do
+    time == "6:00" and am == true -> ""
+    time == "4:00" and am == false -> ""
+    true -> "bg-stone-100 text-orange-700 border border-black"
     end
   end
 
