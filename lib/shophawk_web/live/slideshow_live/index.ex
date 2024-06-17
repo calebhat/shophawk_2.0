@@ -111,7 +111,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         slideshow = Shopinfo.get_slideshow!(1)
         slides = []
 
-        [weekly_dates: weekly_dates] = :ets.lookup(:weekly_dates, :weekly_dates)
+        [weekly_dates: weekly_dates] = :ets.lookup(:slideshow, :weekly_dates)
         slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
         {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
         {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
@@ -123,8 +123,11 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         {slideshow, slides} = if String.trim(slideshow.announcement1) != "", do: {Map.put(slideshow, :announcement1, slideshow.announcement1 |> String.replace("\n", "<br>")), slides ++ [:announcement1]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement2) != "", do: {Map.put(slideshow, :announcement2, slideshow.announcement2 |> String.replace("\n", "<br>")), slides ++ [:announcement2]}, else: {slideshow, slides}
         {slideshow, slides} = if String.trim(slideshow.announcement3) != "", do: {Map.put(slideshow, :announcement3, slideshow.announcement3 |> String.replace("\n", "<br>")), slides ++ [:announcement3]}, else: {slideshow, slides}
+        personal_time = personal_time?()
+        {slideshow, slides} = if personal_time != "", do: {Map.put(slideshow, :personal_time, personal_time), slides ++ [:personal_time]}, else: {slideshow, slides}
 
-        [this_weeks_birthdays: birthdays] = :ets.lookup(:birthdays_cache, :this_weeks_birthdays)
+
+        [this_weeks_birthdays: birthdays] = :ets.lookup(:slideshow, :this_weeks_birthdays)
         {slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
         slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
         slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
@@ -136,6 +139,21 @@ defmodule ShophawkWeb.SlideshowLive.Index do
       end
     {slideshow, slides, next_slide, (index + 1)}
   end
+
+  defp personal_time?() do #determines if personal time usage slide should be displayed
+    today = Date.utc_today()
+    current_year = today.year
+    {:ok, january} = Date.from_iso8601("#{current_year}-01-01")
+    {:ok, may} = Date.from_iso8601("#{current_year}-05-01")
+    {:ok, september} = Date.from_iso8601("#{current_year}-09-01")
+    cond do
+      Date.after?(Date.add(today, -20), january) and Date.before?(today, january) -> "01/01/#{current_year}"
+      Date.after?(Date.add(today, -20), may) and Date.before?(today, may) -> "05/01/#{current_year}"
+      Date.after?(Date.add(today, -20), september) and Date.before?(today, september) -> "09/01/#{current_year}"
+      true -> ""
+    end
+  end
+
 
   defp parse_hours(slideshow) do
     map_keys = [:mondayo1, :mondayc1, :tuesdayo1, :tuesdayc1, :wednesdayo1, :wednesdayc1, :thursdayo1, :thursdayc1, :fridayo1, :fridayc1, :saturdayo1, :saturdayc1, :mondayo2, :mondayc2, :tuesdayo2, :tuesdayc2, :wednesdayo2, :wednesdayc2, :thursdayo2, :thursdayc2, :fridayo2, :fridayc2, :saturdayo2, :saturdayc2, :showsaturday1, :showsaturday2]
@@ -163,7 +181,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
             Map.put(acc, key, value)
           end)
 
-        [weekly_dates: weekly_dates] = :ets.lookup(:weekly_dates, :weekly_dates)
+        [weekly_dates: weekly_dates] = :ets.lookup(:slideshow, :weekly_dates)
         monday_formatted = Date.to_string(weekly_dates.monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
         friday_formatted = Date.to_string(weekly_dates.friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
         next_monday_formatted = Date.to_string(weekly_dates.next_monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")

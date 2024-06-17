@@ -15,8 +15,7 @@ defmodule ScheduledTasks do
     #create all ets caches needed
     :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:birthdays_cache, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:weekly_dates, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
     ###  Can't run this while trying to update large chunks of data because the csv files over write each other at wrong times ###
     Process.send_after(self(), :update_from_jobboss, 1000) # Start the task after initialization
 
@@ -90,7 +89,7 @@ defmodule ScheduledTasks do
         acc ++ ["#{bday.first_name} #{bday.last_name} on #{Calendar.strftime(bday.birthday, "%A")} (#{bday.birthday.month}-#{bday.birthday.day})"]
       end)
 
-    :ets.insert(:birthdays_cache, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
+    :ets.insert(:slideshow, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
     Process.send_after(self(), :load_current_week_birthdays, 1440000)
     IO.puts("This Weeks Birthdays Updated")
     {:noreply, nil}
@@ -103,7 +102,7 @@ defmodule ScheduledTasks do
     friday = Date.add(monday, 4)
     next_monday = Date.add(monday, 7)
     next_friday = Date.add(next_monday, 4)
-    :ets.insert(:weekly_dates, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
+    :ets.insert(:slideshow, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
     IO.puts("weekly dates updated")
     Process.send_after(self(), :save_weekly_dates, 1440000)
     {:noreply, nil}

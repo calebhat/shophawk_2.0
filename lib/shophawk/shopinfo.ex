@@ -200,6 +200,7 @@ defmodule Shophawk.Shopinfo do
 
   """
   def create_timeoff(attrs \\ %{}) do
+    attrs = Map.update!(attrs, "employee", fn emp -> String.capitalize(emp) end)
     %Timeoff{}
     |> Timeoff.changeset(attrs)
     |> Repo.insert()

@@ -142,6 +142,16 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
               <div class="absolute top-0 left-0 m-8"><img src={~p"/images/announcement3.svg"} width="200" /></div>
             </div>
           </div>
+        <% :personal_time -> %>
+          <div class="relative w-[90vw] h-screen flex items-center justify-center">
+            <div class="container mx-auto py-4">
+              <div style="font-size: clamp(3vw, 5vw, 8vw)" class="text-center">
+              Personal Time is earned <%= @slideshow.personal_time %>. If you're total accrument will be more than 24 hours, make sure to use it before it gets paid out.
+              </div>
+              <div class="absolute bottom-0 left-0 m-8"><img src={~p"/images/island.svg"} width="200" /></div>
+              <div class="absolute bottom-0 right-0 m-8"><img src={~p"/images/drink.svg"} width="200" /></div>
+            </div>
+          </div>
         <% :quote -> %><img style="object-fit: cover;  height: 90vh" src={@slideshow.quote}>
         <% :photo -> %><img style="object-fit: cover;  height: 90vh" src={@slideshow.photo}>
         <% :birthdays -> %>
