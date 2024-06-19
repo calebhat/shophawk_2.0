@@ -23,6 +23,8 @@ defmodule ShophawkWeb.Router do
     get "/", PageController, :home
     get "/download/:file_path", DownloadController, :download
 
+    live "/information", InformationLive.Index, :index
+
     live "/tools", ToolLive.Index, :index
     live "/tools/new", ToolLive.Index, :new
     live "/tools/:id/edit", ToolLive.Index, :edit
