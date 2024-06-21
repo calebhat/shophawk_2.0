@@ -8,7 +8,7 @@
 import Config
 
 config :shophawk,
-  ecto_repos: [Shophawk.Repo]
+  ecto_repos: [Shophawk.Repo, Shophawk.Repo_jb]
 
 # Configures the endpoint
 config :shophawk, ShophawkWeb.Endpoint,

@@ -4,21 +4,6 @@ defmodule Shophawk.RunlistImports do
   alias Shophawk.RunlistExports
   alias Shophawk.GeneralCsvFunctions
 
-  alias Shophawk.MSSQL
-  def test do
-    IO.inspect("hello")
-    sql_query = "SELECT * FROM [PRODUCTION].[dbo].[Job] WHERE Job='134134'"
-    MSSQL.query(sql_query)
-    #case MSSQL.query(sql_query) do
-    #  {:ok, result} ->
-    #    result.rows
-
-    #  {:error, reason} ->
-    #    IO.puts("Failed to execute query: #{inspect(reason)}")
-    #    []
-    #end
-  end
-
   def refresh_active_jobs() do #refresh all active jobs
     update_operations(Enum.uniq(RunlistExports.export_active_jobs() ++ Shop.get_all_active_jobs_from_db()))
   end

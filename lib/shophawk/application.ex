@@ -12,6 +12,8 @@ defmodule Shophawk.Application do
       ShophawkWeb.Telemetry,
       # Start the Ecto repository
       Shophawk.Repo,
+      Shophawk.Repo_jb,
+
       # Start the PubSub system
       {Phoenix.PubSub, name: Shophawk.PubSub},
       # Start Finch

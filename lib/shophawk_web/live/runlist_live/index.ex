@@ -6,6 +6,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.Shop.Assignment
   alias Shophawk.GeneralExports
   alias Shophawk.RunlistImports
+  alias Shophawk.Jobboss
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -210,7 +211,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("test", _, socket) do
-    RunlistImports.test()
+
+    Jobboss.get_job("134134")
+    |> IO.inspect
+
     {:noreply, socket}
   end
 

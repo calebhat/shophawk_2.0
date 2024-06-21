@@ -17,6 +17,13 @@ import Config
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 
+  config :shophawk, Shophawk.Repo_jb,
+  hostname: "gearserver",
+  instance: "SQLEXPRESS",
+  username: "sa",
+  password: "job1!boss",
+  database: "PRODUCTION"
+
   env = System.get_env("MIX_ENV")
   #secret_key_base = System.get_env("SECRET_KEY_BASE")
   IO.inspect(env)
