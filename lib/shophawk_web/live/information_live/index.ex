@@ -3,12 +3,11 @@ defmodule ShophawkWeb.InformationLive.Index do
 
   def render(assigns) do
     ~H"""
-    <div>
+    <div class="grid place-content-center bg-cyan-800">
     Hello
     </div>
     """
   end
-
 
   @impl true
   def mount(_params, _session, socket) do

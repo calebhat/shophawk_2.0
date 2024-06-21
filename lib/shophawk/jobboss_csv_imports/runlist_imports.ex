@@ -4,12 +4,19 @@ defmodule Shophawk.RunlistImports do
   alias Shophawk.RunlistExports
   alias Shophawk.GeneralCsvFunctions
 
-  def rework_to_do do
-    #export_last_updated(0) #runs sql queries to only export jobs updated since last time it ran
-    #jobs_to_update = create_jobs_list()
-    #import_all_history()
-    refresh_active_jobs()
-    #scheduled_runlist_update(nil)
+  alias Shophawk.MSSQL
+  def test do
+    IO.inspect("hello")
+    sql_query = "SELECT * FROM [PRODUCTION].[dbo].[Job] WHERE Job='134134'"
+    MSSQL.query(sql_query)
+    #case MSSQL.query(sql_query) do
+    #  {:ok, result} ->
+    #    result.rows
+
+    #  {:error, reason} ->
+    #    IO.puts("Failed to execute query: #{inspect(reason)}")
+    #    []
+    #end
   end
 
   def refresh_active_jobs() do #refresh all active jobs

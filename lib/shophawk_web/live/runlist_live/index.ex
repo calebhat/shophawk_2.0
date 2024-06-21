@@ -209,8 +209,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("rework_to_do", _, socket) do
-    RunlistImports.rework_to_do()
+  def handle_event("test", _, socket) do
+    RunlistImports.test()
     {:noreply, socket}
   end
 
