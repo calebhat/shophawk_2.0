@@ -212,8 +212,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_event("test", _, socket) do
 
-    Jobboss.get_job("134134")
-    |> IO.inspect
+    jobs = Shophawk.RunlistMap.load_all_active_jobs
+    #IO.inspect(Enum.count(jobs))
 
     {:noreply, socket}
   end

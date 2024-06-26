@@ -17,8 +17,6 @@ defmodule Shophawk.Jb_job do
     field :extra_quantity, :integer
     field :pick_quantity, :integer
     field :make_quantity, :integer
-    field :open_operations, :integer
-    field :shipped_quantity, :integer
     field :customer_po, :string
     field :customer_po_ln, :string
     field :sched_end, :naive_datetime
@@ -32,7 +30,7 @@ defmodule Shophawk.Jb_job do
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :customer])
+    |> cast(attrs, [:job, :customer, :order_date, :part_number, :status, :rev, :description, :order_quantity, :extra_quantity, :pick_quantity, :make_quantity, :customer_po, :customer_po_ln, :sched_end, :sched_start, :note_text, :released_date, :user_values])
     |> validate_required([:job, :customer])
   end
 end

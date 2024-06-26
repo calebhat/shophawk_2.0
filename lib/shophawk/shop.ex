@@ -106,7 +106,9 @@ defmodule Shophawk.Shop do
 
   """
   def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist items for
-    query =
+
+  #REPLACE THIS SECTION WITH JOBBOSS DB QUERY AND MERGE
+  query =
       from r in Runlist,
         where: r.wc_vendor in ^workcenter_list,
         where: not is_nil(r.sched_start),
@@ -129,6 +131,14 @@ defmodule Shophawk.Shop do
         _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
       end
     end)
+    IO.inspect(List.first(runlists))
+
+    #NEW CODE
+    runlists = Shophawk.RunlistMap.create_runlist_map(workcenter_list, department)
+    #IO.inspect(List.first(runlists))
+    #leave below as is.
+    #IO.inspect(List.first(runlists))
+    #IO.inspect(List.first(runlistss))
 
     if Enum.empty?(runlists) do
       {[], [], []}

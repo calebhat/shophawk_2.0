@@ -12,5 +12,13 @@ defmodule Shophawk.Jobboss do
     Shophawk.Repo_jb.all(query)
   end
 
+  def get_active_jobs() do
+    query =
+      from r in Jb_job,
+      where: r.status == "Active"
+
+    Shophawk.Repo_jb.all(query)
+  end
+
 
 end

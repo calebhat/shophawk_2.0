@@ -17,12 +17,12 @@ defmodule ScheduledTasks do
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
     ###  Can't run this while trying to update large chunks of data because the csv files over write each other at wrong times ###
-    Process.send_after(self(), :update_from_jobboss, 1000) # Start the task after initialization
+    #Process.send_after(self(), :update_from_jobboss, 1000) # Start the task after initialization
 
     Process.send_after(self(), :update_all_runlist_loads, 5000)
-    Process.send_after(self(), :load_current_week_birthdays, 12000)
-    Process.send_after(self(), :save_weekly_dates, 16000)
-    Process.send_after(self(), :clear_deleted_jobs, 20000)
+    #Process.send_after(self(), :load_current_week_birthdays, 12000)
+    #Process.send_after(self(), :save_weekly_dates, 16000)
+    #Process.send_after(self(), :clear_deleted_jobs, 20000)
 
     {:ok, nil}
   end
@@ -51,7 +51,7 @@ defmodule ScheduledTasks do
         acc ++ [weekly_load]
       end)
     :ets.insert(:runlist_loads, {:data, department_loads})  # Store the data in ETS
-    Process.send_after(self(), :update_all_runlist_loads, 300000)
+    #Process.send_after(self(), :update_all_runlist_loads, 300000)
     IO.puts("Loads Updated")
 
     {:noreply, nil}
