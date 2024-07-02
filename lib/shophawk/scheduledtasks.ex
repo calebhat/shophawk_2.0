@@ -17,12 +17,15 @@ defmodule ScheduledTasks do
     :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
+    Shophawk.Jobboss_db.load_all_active_jobs
+    #IO.puts("active jobs loaded into cache")
+
     ###  Can't run this while trying to update large chunks of data because the csv files over write each other at wrong times ###
     #Process.send_after(self(), :update_from_jobboss, 1000) # Start the task after initialization
 
-    Process.send_after(self(), :update_all_runlist_loads, 5000)
-    #Process.send_after(self(), :load_current_week_birthdays, 12000)
-    #Process.send_after(self(), :save_weekly_dates, 16000)
+    Process.send_after(self(), :update_all_runlist_loads, 500)
+    Process.send_after(self(), :load_current_week_birthdays, 500)
+    Process.send_after(self(), :save_weekly_dates, 500)
     #Process.send_after(self(), :clear_deleted_jobs, 20000)
 
     {:ok, nil}
@@ -30,7 +33,7 @@ defmodule ScheduledTasks do
 
   #runs every 5 seconds
   def handle_info(:update_from_jobboss, _state) do
-    RunlistImports.scheduled_runlist_update(self())
+    #RunlistImports.scheduled_runlist_update(self())
     {:noreply, nil}
   end
 
@@ -78,7 +81,8 @@ defmodule ScheduledTasks do
     sunday = Date.add(today, -day_of_week)
     next_monday = Date.add(sunday, 8)
     this_weeks_birthdays =
-      Enum.map(employees, fn emp ->
+      Enum.reject(employees, fn e -> e.birthday == nil end)
+      |> Enum.map( fn emp ->
         normalized_birthday = %{emp.birthday | year: today.year} #changes the year to be this year for comparison
         if Date.before?(normalized_birthday, next_monday) and Date.after?(normalized_birthday, sunday) do
           Map.put(emp, :birthday, normalized_birthday)

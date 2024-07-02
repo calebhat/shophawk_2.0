@@ -44,4 +44,11 @@ defmodule Shophawk.RunlistCache do
     |> Enum.sort_by(&(&1.sequence))
   end
 
+  def operation(operation) do
+    [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+    runlists
+    |> List.flatten
+    |> Enum.find(fn op -> op.job_operation == operation end)
+  end
+
 end

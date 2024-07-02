@@ -431,11 +431,7 @@ defmodule Shophawk.Shop do
   end
 
   def load_job_operations(job) do #loads all operations for a job
-    query =
-      from r in Runlist,
-      where: r.job == ^job,
-      order_by: [asc: r.sequence]
-    Repo.all(query)
+    Shophawk.RunlistCache.job(job)
   end
 
   def get_all_active_jobs_from_db() do #loads all operations for a job

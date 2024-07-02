@@ -40,7 +40,6 @@ defmodule Shophawk.Jobboss_db do
       Enum.chunk_every(job_numbers, 50)
       |> Enum.map(fn x -> merge_jobboss_job_info(x, jobs) end)
 
-
     :ets.insert(:runlist, {:active_jobs, active_jobs})  # Store the data in ETS
   end
 
@@ -125,13 +124,11 @@ defmodule Shophawk.Jobboss_db do
         |> Map.put(:material_waiting, false)
         |> Map.put(:runner, false)
       end)
+      |> merge_shophawk_runlist_db
       |> Enum.group_by(&{&1.job})
       |> Map.values
       |> set_current_op()
-
-      |> set_material_waiting()#make this update in the db as well
-
-      |> List.flatten
+      |> set_material_waiting() #This function flattens the grouped ops as well.
       |> set_assignment_from_note_text_if_op_started
 
   end
@@ -187,24 +184,59 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
-  defp set_material_waiting(grouped_ops) do
+  defp set_current_op_excluding_started(grouped_ops) do #used for set_material_waiting only
     Enum.reduce(grouped_ops, [], fn group, acc ->
-      {updated_maps, _, _} =
-        Enum.reduce(group, {[], nil, false}, fn op, {acc, last_op, turn_off_mat_waiting} ->
+      {updated_maps, _} =
+        Enum.reduce(group, {[], nil}, fn op, {acc, last_open_op} ->
           cond do
-            op.currentop == "IN" ->
-              {[Map.put(op, :material_waiting, true) | acc], op.wc_vendor, false}
+            op.status in ["O"] and last_open_op == nil ->
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor}
 
-            op.currentop != "IN" and last_op == "IN" ->
-              {[Map.put(op, :material_waiting, false) | acc], op.wc_vendor, true}
+            op.status in ["O"] and last_open_op != nil ->
+              {[%{op | currentop: last_open_op} | acc], last_open_op}
 
-            op.currentop != "IN" and turn_off_mat_waiting == true ->
-              {[Map.put(op, :material_waiting, false) | acc], op.wc_vendor, true}
+            op.status == "C" ->
+              {[%{op | currentop: nil} | acc], nil}
 
-            true -> {[op | acc], op.wc_vendor, false}
+            true -> {[%{op | currentop: nil} | acc], nil}
           end
         end)
+
       [Enum.reverse(updated_maps) | acc]
+    end)
+  end
+
+  defp set_material_waiting(grouped_ops) do
+    list = set_current_op_excluding_started(grouped_ops)
+    material_waiting_data = #creates list of maps of just the material_waiting and job_operation data
+      Enum.reduce(list, [], fn group, acc ->
+        {updated_maps, _, _} =
+          Enum.reduce(group, {[], nil, false}, fn op, {acc, last_op, turn_off_mat_waiting} ->
+            cond do
+              op.currentop == "IN" ->
+                case Shophawk.Shop.get_runlist_by_job_operation(op.job_operation) do
+                  nil -> Shophawk.Shop.create_runlist(%{job_operation: op.job_operation, material_waiting: true})
+                  op -> Shophawk.Shop.update_runlist(op, %{material_waiting: !op.material_waiting})
+                end
+                {[Map.put(op, :material_waiting, true) | acc], op.wc_vendor, false}
+
+              op.currentop != "IN" and last_op == "IN" ->
+                {[Map.put(op, :material_waiting, false) | acc], op.wc_vendor, true}
+
+              op.currentop != "IN" and turn_off_mat_waiting == true ->
+                {[Map.put(op, :material_waiting, false) | acc], op.wc_vendor, true}
+
+              true -> {[op | acc], op.wc_vendor, false}
+            end
+          end)
+        [Enum.reverse(updated_maps) | acc]
+      end)
+      |> List.flatten
+      |> Enum.map(fn map -> Map.take(map, [:job_operation, :material_waiting]) end)
+
+    Enum.map(List.flatten(grouped_ops), fn map -> #Merges material_waiting data with runlist
+      matching_material_data = Enum.find(material_waiting_data, fn x -> x.job_operation == map.job_operation end)
+      Map.merge(map, matching_material_data)
     end)
   end
 
@@ -222,6 +254,20 @@ defmodule Shophawk.Jobboss_db do
       else
         op
       end
+    end)
+  end
+
+  def merge_shophawk_runlist_db(ops) do
+    Enum.map(ops, fn op ->
+      db_data =
+        case Shophawk.Shop.get_runlist_by_job_operation(op.job_operation) do
+          nil -> %{}
+          found ->
+            Map.from_struct(found)
+            |> Map.drop([:__meta__, :id, :inserted_at, :updated_at, :job_operation])
+            |> sanitize_map()
+        end
+      Map.merge(op, db_data)
     end)
   end
 

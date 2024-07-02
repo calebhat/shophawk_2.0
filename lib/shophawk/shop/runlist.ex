@@ -14,6 +14,6 @@ defmodule Shophawk.Shop.Runlist do
   def changeset(runlist, attrs) do
     runlist
     |> cast(attrs, [:job_operation, :material_waiting, :assignment])
-    |> validate_required([:job_operation, :material_waiting, :assignment])
+    |> validate_required([:job_operation])
   end
 end
