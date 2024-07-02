@@ -13,13 +13,7 @@ defmodule Shophawk.Shop do
  alias Shophawk.RunlistImports
 
   def list_job(job) do #loads all operations for a job
-    query =
-      from r in Runlist,
-      where: r.job == ^job,
-      order_by: [asc: r.sequence]
-
     job_ops =
-    #Repo.all(query)
     Shophawk.RunlistCache.job(job)
     |> Enum.map(fn map ->
       map = case map do
@@ -112,34 +106,34 @@ defmodule Shophawk.Shop do
   def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist items for
 
   #REPLACE THIS SECTION WITH JOBBOSS DB QUERY AND MERGE
-  query =
-      from r in Runlist,
-        where: r.wc_vendor in ^workcenter_list,
-        where: not is_nil(r.sched_start),
-        where: not is_nil(r.job_sched_end),
-        order_by: [asc: r.sched_start, asc: r.job],
-        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
+  #query =
+  #    from r in Runlist,
+  #      where: r.wc_vendor in ^workcenter_list,
+  #      where: not is_nil(r.sched_start),
+  #      where: not is_nil(r.job_sched_end),
+  #      order_by: [asc: r.sched_start, asc: r.job],
+  #      select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
-    query = #checks if "show jobs started is checked and load them.
-      if department.show_jobs_started do
-      query |> where([r], r.status == "O" or r.status == "S")
-      else
-        query |> where([r], r.status == "O")
-    end
+#    query = #checks if "show jobs started is checked and load them.
+ #     if department.show_jobs_started do
+ #     query |> where([r], r.status == "O" or r.status == "S")
+ #     else
+ #       query |> where([r], r.status == "O")
+ #   end
 
-    runlists = Repo.all(query)
-    |> Enum.map(fn row ->
-      case row.operation_service do #combines wc_vendor and operation_service if needed
-        nil -> row
-        "" -> row
-        _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
-      end
-    end)
-    IO.inspect(Enum.count(runlists))
+ #   runlists = Repo.all(query)
+ #   |> Enum.map(fn row ->
+ #     case row.operation_service do #combines wc_vendor and operation_service if needed
+ #       nil -> row
+ #       "" -> row
+ #       _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
+ #     end
+ #   end)
+ #   IO.inspect(Enum.count(runlists))
 
     #NEW CODE
     #Shophawk.Jobboss_db.load_all_active_jobs()
-    runlists = Shophawk.RunlistCache.load_department_runlist(workcenter_list, department)
+    runlists = Shophawk.RunlistCache.load_runlist(workcenter_list, department)
     IO.inspect(Enum.count(runlists))
 
 
@@ -305,24 +299,26 @@ defmodule Shophawk.Shop do
 
   def list_workcenter(workcenter_name) do #takes in a list of workcenters to load runlist items for
     workcenter_name = [workcenter_name]
-    query =
-      from r in Runlist,
-        where: r.wc_vendor in ^workcenter_name,
-        where: not is_nil(r.sched_start),
-        where: not is_nil(r.job_sched_end),
-        order_by: [asc: r.sched_start, asc: r.job],
-        select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
+    #query =
+    #  from r in Runlist,
+    #    where: r.wc_vendor in ^workcenter_name,
+    #    where: not is_nil(r.sched_start),
+    #    where: not is_nil(r.job_sched_end),
+    #    order_by: [asc: r.sched_start, asc: r.job],
+    #    select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
 
-    query = query |> where([r], r.status == "O" or r.status == "S")
+    #query = query |> where([r], r.status == "O" or r.status == "S")
 
-    runlists = Repo.all(query)
-    |> Enum.map(fn row ->
-      case row.operation_service do #combines wc_vendor and operation_service if needed
-        nil -> row
-        "" -> row
-        _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
-      end
-    end)
+    #runlists = Repo.all(query)
+    #|> Enum.map(fn row ->
+    ##  case row.operation_service do #combines wc_vendor and operation_service if needed
+    #    nil -> row
+    #    "" -> row
+    #    _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
+    #  end
+    #end)
+
+    runlists = Shophawk.RunlistCache.load_runlist(workcenter_name, %{show_jobs_started: true})
 
     if Enum.empty?(runlists) do
       []

@@ -9,6 +9,7 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_user_values
     alias Shophawk.Jb_employees
     alias Shophawk.Jb_holiday
+    alias Shophawk.Jb_attachment
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
   def load_all_active_jobs() do
@@ -127,9 +128,12 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.group_by(&{&1.job})
       |> Map.values
       |> set_current_op()
-      |> set_material_waiting()
+
+      |> set_material_waiting()#make this update in the db as well
+
       |> List.flatten
       |> set_assignment_from_note_text_if_op_started
+
   end
 
   def rename_key(map, old_key, new_key) do
@@ -300,6 +304,21 @@ defmodule Shophawk.Jobboss_db do
     |> Enum.each(fn workcenter ->
       Shophawk.Shop.create_workcenter(%{"workcenter" => workcenter})
     end)
+  end
+
+  def export_attachments(job) do
+    query =
+      from r in Jb_attachment,
+      where: r.owner_id == ^job
+
+    Shophawk.Repo_jb.all(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> sanitize_map()
+        |> rename_key(:attach_path, :path)
+        |> rename_key(:owner_id, :job)
+      end)
   end
 
 end

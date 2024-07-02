@@ -47,11 +47,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
     end
   end
 
-  defp apply_action(socket, :edit, %{"id" => id}) do
-    socket
-    |> assign(:page_title, "Edit Runlist")
-    |> assign(:runlist, Shop.get_runlist!(id))
-  end
+  #defp apply_action(socket, :edit, %{"id" => id}) do
+  #  socket
+  #  |> assign(:page_title, "Edit Runlist")
+  #  |> assign(:runlist, Shop.get_runlist!(id))
+  #end
 
   defp apply_action(socket, :edit_department, _) do
     Shophawk.Jobboss_db.update_workcenters()
@@ -80,9 +80,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
     socket = load_runlist(socket, Shop.get_department_by_name(department.department).id)
-
-
-
     {:noreply, apply_action(socket, :index, nil)}
   end
 
@@ -116,7 +113,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_info({:load_attachments, job}, socket) do
-    :ets.insert(:job_attachments, {:data, GeneralExports.export_attachments(job)})  # Store the data in ETS
+    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
     {:noreply, socket}
   end
 
