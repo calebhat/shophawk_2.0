@@ -8,13 +8,14 @@ defmodule Shophawk.Jb_user_values do
   schema "user_values" do
     field :user_values, :integer
     field :text1, :string
+    field :date1, :naive_datetime
     #timestamps()
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:user_values, :user_values])
+    |> cast(attrs, [:user_values, :text1, :date1])
     |> validate_required([:user_values])
   end
 end

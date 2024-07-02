@@ -54,13 +54,13 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   defp apply_action(socket, :edit_department, _) do
-    RunlistImports.update_workcenters()
-      socket
-      |> assign(:page_title, "Edit Department")
+    Shophawk.Jobboss_db.update_workcenters()
+    socket
+    |> assign(:page_title, "Edit Department")
   end
 
   defp apply_action(socket, :new_department, _) do
-    RunlistImports.update_workcenters()
+    Shophawk.Jobboss_db.update_workcenters()
     socket
     |> assign(:page_title, "New Department")
     |> assign(:department, %Department{})
@@ -211,8 +211,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("test", _, socket) do
-
-    jobs = Shophawk.RunlistMap.load_all_active_jobs
+    #Shophawk.Jobboss_db.convert_binary_to_string(<<75, 214, 82, 66, 69, 82, 32, 84, 69, 67>>) |> IO.inspect
+    #Shophawk.Jobboss_db.update_workcenters
+    jobs = Shophawk.Jobboss_db.load_all_active_jobs
     #IO.inspect(Enum.count(jobs))
 
     {:noreply, socket}

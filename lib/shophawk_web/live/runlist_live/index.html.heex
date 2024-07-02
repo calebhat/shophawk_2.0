@@ -120,7 +120,7 @@
     row_click={fn {_id, _runlist} -> "show_job" end}
   >
     <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
-    <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.order_quantity %></:col>
+    <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.make_quantity %></:col>
     <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-16 text-center" cellstyle="text-center"><%= runlist.est_total_hrs %></:col>
     <:col :let={{_id, runlist}} label="Material" headerstyle="w-32 2xl:w-44" cellstyle=""><%= runlist.material %></:col>
     <:col :let={{_id, runlist}} label="Part number" headerstyle="2xl:w-fit" cellstyle=""><%= runlist.part_number %></:col>

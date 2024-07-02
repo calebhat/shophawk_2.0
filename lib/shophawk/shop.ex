@@ -19,7 +19,8 @@ defmodule Shophawk.Shop do
       order_by: [asc: r.sequence]
 
     job_ops =
-    Repo.all(query)
+    #Repo.all(query)
+    Shophawk.RunlistCache.job(job)
     |> Enum.map(fn map ->
       map = case map do
         %{operation_service: nil} -> Map.put(map, :operation_service, nil)
@@ -39,11 +40,14 @@ defmodule Shophawk.Shop do
     job_manager = case job.note_text do
       nil -> ""
       _ ->
-      String.split(job.note_text, " ")
-      |> Enum.slice(-2, 2)
-      |> Enum.map(&(String.capitalize(&1, :ascii)))
-      |> Enum.join(" ")
-      |> String.trim()
+        job.note_text
+        |> String.replace("\r", " ")
+        |> String.replace("\n", " ")
+        |> String.split(" ")
+        |> Enum.slice(-2, 2)
+        |> Enum.map(&(String.capitalize(&1, :ascii)))
+        |> Enum.join(" ")
+        |> String.trim()
     end
     %{}
     |> Map.put(:part_number, job.part_number <> job.rev)
@@ -131,14 +135,13 @@ defmodule Shophawk.Shop do
         _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
       end
     end)
-    IO.inspect(List.first(runlists))
+    IO.inspect(Enum.count(runlists))
 
     #NEW CODE
-    runlists = Shophawk.RunlistMap.create_runlist_map(workcenter_list, department)
-    #IO.inspect(List.first(runlists))
-    #leave below as is.
-    #IO.inspect(List.first(runlists))
-    #IO.inspect(List.first(runlistss))
+    #Shophawk.Jobboss_db.load_all_active_jobs()
+    runlists = Shophawk.RunlistCache.load_department_runlist(workcenter_list, department)
+    IO.inspect(Enum.count(runlists))
+
 
     if Enum.empty?(runlists) do
       {[], [], []}
@@ -147,9 +150,8 @@ defmodule Shophawk.Shop do
       last_row = List.last(runlists)
       first_row_id = first_row.id
       last_row_id = last_row.id
-      blackout_dates = RunlistImports.load_blackout_dates
+      blackout_dates = Shophawk.Jobboss_db.load_blackout_dates
 
-      #generate list of maps with just days with extra hours %{date: date, hours: hours, id: id}
       carryover_list =
         runlists
         |> Enum.reduce([], fn row, acc ->
@@ -216,12 +218,7 @@ defmodule Shophawk.Shop do
 
       complete_runlist =
         Enum.reduce(date_rows_list, [], fn date_row, acc ->
-          runners_list =
-            Enum.filter(carryover_list, fn %{date: date, index: index} -> date == date_row.sched_start and index > 0 end)
-            |> Enum.map(fn row -> row.id end)
-            |> Enum.uniq
-            |> Enum.sort
-          dot_sorter = fn map ->
+            dot_sorter = fn map ->
             case Map.get(map, :dots) do
               4 -> 0
               3 -> 1
@@ -238,31 +235,46 @@ defmodule Shophawk.Shop do
               _ -> 2
             end
           end
+
           main_ops =
             Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
             |> Enum.sort_by(dot_sorter)
             |> Enum.sort_by(at_location_sorter)
+
           started_ops =
             Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
+
+          runners_list =
+            Enum.filter(carryover_list, fn %{date: date, index: index} -> date == date_row.sched_start and index > 0 end)
+            |> Enum.map(&(&1.id))
+            |> Enum.uniq()
+
           runner_ops =
             Enum.filter(runlists, fn %{id: id} -> id in runners_list end)
             |> Enum.map(fn row -> Map.put(row, :runner, true) end)
+
           acc ++ [date_row] ++ main_ops ++ runner_ops ++ started_ops #add runner rows after [row] here
         end)
 
-
       jobs_that_ship_today =
-        Enum.filter(runlists, fn op -> op.job_sched_end == Date.utc_today() end)
-        #|> Enum.filter(fn op ->
-        #  has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
-        #  if has_ship_op == true, do: true, else: false
-        #end)
+        Enum.filter(runlists, fn op ->
+          case Date.compare(Date.utc_today, op.job_sched_end) do
+            :lt -> false
+            :eq -> true
+            :gt -> true
+          end
+        end)
+        |> Enum.filter(fn op ->
+          has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
+          if has_ship_op == true, do: true, else: false
+        end)
         |> Enum.uniq()
         |> Enum.map(fn op ->
-          Map.from_struct(op)
+          op
           |> Map.put(:ships_today, true)
           |> Map.put(:dots, 3)
-          |> Map.reject(fn {key, _value} -> key == :__meta__ end) end)
+          |> Map.reject(fn {key, _value} -> key == :__meta__ end)
+        end)
 
 
       jobs_that_ship_today=
@@ -285,6 +297,7 @@ defmodule Shophawk.Shop do
             end)
           jobs_that_ship_today ++ complete_runlist
         end
+
 
       {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
     end
@@ -379,11 +392,17 @@ defmodule Shophawk.Shop do
         end)
 
       jobs_that_ship_today =
-        Enum.filter(runlists, fn op -> op.job_sched_end == Date.utc_today() end)
-        #|> Enum.filter(fn op -> #filter for only jobs with "A-SHIP"
-        #  has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
-        #  if has_ship_op == true, do: true, else: false
-        #end)
+        Enum.filter(runlists, fn op ->
+          case Date.compare(Date.utc_today, op.job_sched_end) do
+            :lt -> false
+            :eq -> true
+            :gt -> true
+          end
+        end)
+        |> Enum.filter(fn op -> #filter for only jobs with "A-SHIP"
+          has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
+          if has_ship_op == true, do: true, else: false
+        end)
         |> Enum.uniq()
         |> Enum.map(fn op ->
           Map.from_struct(op)

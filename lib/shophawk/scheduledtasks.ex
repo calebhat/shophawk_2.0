@@ -13,6 +13,7 @@ defmodule ScheduledTasks do
   # Server callbacks
   def init([]) do
     #create all ets caches needed
+    :ets.new(:runlist, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
@@ -71,7 +72,7 @@ defmodule ScheduledTasks do
 
 #runs once a day
   def handle_info(:load_current_week_birthdays, _state) do
-    employees = GeneralExports.export_employees
+    employees = Shophawk.Jobboss_db.employee_data
     today = Date.utc_today()
     day_of_week = Date.day_of_week(today)
     sunday = Date.add(today, -day_of_week)

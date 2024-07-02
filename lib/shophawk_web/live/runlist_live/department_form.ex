@@ -128,8 +128,8 @@ defmodule ShophawkWeb.RunlistLive.DepartmentForm do
             |> put_flash(:info, "Department Destroyed successfully")
             |> push_navigate(to: "/runlists", replace: true)}
 
-         {:error, %Ecto.Changeset{} = changeset} ->
-          {:noreply, assign_form(socket, changeset)}
+      {:error, %Ecto.Changeset{} = changeset} ->
+      {:noreply, assign_form(socket, changeset)}
       end
   end
 
