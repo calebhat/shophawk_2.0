@@ -17,6 +17,7 @@ defmodule ScheduledTasks do
     :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
+    :ets.insert(:runlist_loads, {:refresh_time, NaiveDateTime.utc_now()}) #set start time
     Shophawk.Jobboss_db.load_all_active_jobs
     #IO.puts("active jobs loaded into cache")
 
@@ -33,6 +34,9 @@ defmodule ScheduledTasks do
 
   #runs every 5 seconds
   def handle_info(:update_from_jobboss, _state) do
+    [{:refresh_time, previous_check}] = :ets.lookup(:runlist, :refresh_time)
+    :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
+    Shophawk.Jobboss_db.recently_updated_jobs(previous_check)
     #RunlistImports.scheduled_runlist_update(self())
     {:noreply, nil}
   end

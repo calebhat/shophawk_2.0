@@ -216,7 +216,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_event("test", _, socket) do
     #Shophawk.Jobboss_db.convert_binary_to_string(<<75, 214, 82, 66, 69, 82, 32, 84, 69, 67>>) |> IO.inspect
     #Shophawk.Jobboss_db.update_workcenters
-    jobs = Shophawk.Jobboss_db.load_all_active_jobs
+
+    [{:refresh_time, previous_check}] = :ets.lookup(:runlist, :refresh_time)
+    :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
+    jobs = Shophawk.Jobboss_db.recently_updated_jobs(previous_check)
+
     #IO.inspect(Enum.count(jobs))
 
     {:noreply, socket}

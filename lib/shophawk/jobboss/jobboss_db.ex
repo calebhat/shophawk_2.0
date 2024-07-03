@@ -367,4 +367,34 @@ defmodule Shophawk.Jobboss_db do
       end)
   end
 
+  def recently_updated_jobs(previous_check) do
+
+
+      milliseconds_since_last_check = NaiveDateTime.diff(previous_check, NaiveDateTime.utc_now(), :millisecond)
+      milliseconds_since_last_check = -1000000
+
+      duration_to_check = NaiveDateTime.add(NaiveDateTime.utc_now(), milliseconds_since_last_check, :millisecond)
+      |> NaiveDateTime.add(-5, :hour) #convert to local time that jobboss DB uses
+
+    jobs =
+      Jb_job
+      |> where([j], j.last_updated >= ^duration_to_check)
+      |> select([j], j.job)
+      |> distinct(true)
+      |> Shophawk.Repo_jb.all()
+      |> Enum.sort
+      |> IO.inspect
+
+    job_operation_jobs =
+      Jb_job_operation
+      |> where([j], j.last_updated >= ^duration_to_check)
+      |> select([j], j.job)
+      |> distinct(true)
+      |> Shophawk.Repo_jb.all()
+      |> Enum.sort
+      |> IO.inspect
+
+      #Load in rest of jobs that have last updated data, then feed into update function
+  end
+
 end
