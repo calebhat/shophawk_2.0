@@ -822,54 +822,36 @@ defmodule ShophawkWeb.CoreComponents do
       <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
         <%= if @dots != %{} do %>
           <div class={[@dots.dot_columns, "grid text-center pt-3 px-3"]}>
-            <%= if Map.has_key?(@dots, :one) do %>
-              <div class={[@dots.one, "m-1 rounded"]}>
-                <div class="text-lg font-semibold underline">
-                Single Dots
-                </div>
-                <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 1))}>
-                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %></div>
-                </div>
-              </div>
-            <% end %>
-            <%= if Map.has_key?(@dots, :two) do %>
-              <div class={[@dots.two, "m-1 rounded"]}>
-                <div class="text-lg font-semibold underline">
-                Double Dots
-                </div>
-                <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 2))}>
-                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+            <%= for {key, title, dot_count} <- [{:one, "Single Dots", 1}, {:two, "Double Dots", 2}, {:three, "Triple Dots", 3}] do %>
+              <%= if Map.has_key?(@dots, key) do %>
+                <div class={[@dots[key], "m-1 rounded"]}>
+                  <div class="text-lg font-semibold underline">
+                    <%= title %>
+                  </div>
+                  <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == dot_count))}>
+                    <div>
+                      <%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+                    </div>
                   </div>
                 </div>
-              </div>
-            <% end %>
-            <%= if Map.has_key?(@dots, :three) do %>
-              <div class={[@dots.three, "m-1 rounded"]}>
-                <div class="text-lg font-semibold underline">
-                Triple Dots
-                </div>
-                <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == 3))}>
-                  <div><%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
-                  </div>
-                </div>
-              </div>
+              <% end %>
             <% end %>
           </div>
         <% end %>
-        <%= if @weekly_load != nil do %>
+
+        <%= if @weekly_load do %>
           <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
-            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekone), "p-1 rounded-t-md border-2 border-black"]}>
-              Load for coming week: <%= @weekly_load.weekone %>%
-            </div>
-            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weektwo), "p-1 rounded-t-md border-2 border-black"]}>
-              Week Two Load: <%= @weekly_load.weektwo %>%
-            </div>
-            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekthree), "p-1 rounded-t-md border-2 border-black"]}>
-              Week Three Load: <%= @weekly_load.weekthree %>%
-            </div>
-            <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(@weekly_load.weekfour), "p-1 rounded-t-md border-2 border-black"]}>
-              Week Four Load: <%= @weekly_load.weekfour %>%
-            </div>
+          <% IO.inspect(Enum.with_index([@weekly_load.weekone, @weekly_load.weektwo, @weekly_load.weekthree, @weekly_load.weekfour])) %>
+            <%= for {value, week} <- Enum.with_index([@weekly_load.weekone, @weekly_load.weektwo, @weekly_load.weekthree, @weekly_load.weekfour]) do %>
+              <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(value), "p-1 rounded-t-md border-2 border-black"]}>
+                <%= case week do %>
+                  <% 0 -> %> Load for coming week: <%= value %>%
+                  <% 1 -> %> Week Two Load: <%= value %>%
+                  <% 2 -> %> Week Three Load: <%= value %>%
+                  <% 3 -> %> Week Four Load: <%= value %>%
+                <% end %>
+              </div>
+            <% end %>
           </div>
         <% end %>
       </div>
@@ -910,7 +892,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={[ "h-12 text-center block" ]}>
                     <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                      <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
+                      <input phx-click="mat_waiting_toggle" phx-value-={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                     </span>
                   </div>
                 </td>
@@ -1025,7 +1007,7 @@ defmodule ShophawkWeb.CoreComponents do
                 <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                   <div class={[ "h-12 text-center block" ]}>
                     <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                      <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
+                      <input phx-click="mat_waiting_toggle" phx-value-={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                     </span>
                   </div>
                 </td>
@@ -1165,7 +1147,7 @@ defmodule ShophawkWeb.CoreComponents do
                   <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                     <div class={[ "h-12 text-center block" ]}>
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                        <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
+                        <input phx-click="mat_waiting_toggle" phx-value-={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                       </span>
                     </div>
                   </td>
@@ -1285,7 +1267,7 @@ defmodule ShophawkWeb.CoreComponents do
                     <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
                       <div class={[ "h-12 text-center block" ]}>
                         <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                          <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
+                          <input phx-click="mat_waiting_toggle" phx-value-={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={"operation-" <> Integer.to_string(elem(row, 1).id)} checked={elem(row, 1).material_waiting}>
                         </span>
                       </div>
                     </td>

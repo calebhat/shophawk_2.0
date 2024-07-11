@@ -21,6 +21,8 @@ defmodule ScheduledTasks do
     #Initial ETS Table settings
     :ets.insert(:runlist_loads, {:refresh_time, NaiveDateTime.utc_now()})
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
+    :ets.insert(:runlist_loads, {:data, [%{department: "ShopHawk Restarting, refresh in 1 minute", department_id: 0, weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}]})  # Store the data in ETS
+
 
     #inital Loading of Active jobs into cache
     Shophawk.Jobboss_db.load_all_active_jobs
@@ -30,7 +32,7 @@ defmodule ScheduledTasks do
     Process.send_after(self(), :update_all_runlist_loads, 100)
     Process.send_after(self(), :load_current_week_birthdays,100)
     Process.send_after(self(), :save_weekly_dates, 100)
-    Process.send_after(self(), :update_from_jobboss, 100) # Start the task after initialization
+    #Process.send_after(self(), :update_from_jobboss, 100)
 
     {:ok, nil}
   end

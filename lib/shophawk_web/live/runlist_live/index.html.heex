@@ -77,22 +77,30 @@
 <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
   <br>
   <div :if={@show_department_loads}>
-    <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
-    <%= for department <- @department_loads do %>      
-        <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
-            <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
-            <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
-            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
-            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
-            <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
-            <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
+    <%= if List.first(@department_loads).department_id == 0 do %>
+      <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in"> 
+        <div class="pt-2 pb-2 px-2 text-center text-3xl border-b-2 border-black" >
+          <div class="grid grid-cols-1 gap-3" >
+            <div class="bg-stone-200 p-1 rounded-md border-2 border-black">Shophawk is Restarting. Please Refresh the page in 1 minute </div>
           </div>    
         </div>  
+      </div>
+    <%= else %>
+      <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
+        <%= for department <- @department_loads do %>      
+          <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
+            <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
+              <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
+              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
+              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
+              <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
+              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
+            </div>    
+          </div>  
+        <% end %>
+      </div>
     <% end %>
-    </div>
   </div>
-
-
 </div>
 <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
   <%= if @streams.runlists.inserts == [] do %>
