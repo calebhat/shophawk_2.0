@@ -12,13 +12,14 @@ defmodule Shophawk.Jb_material do
     field :description, :string
     field :pick_buy_indicator, :string
     field :status, :string
+    field :last_updated, :naive_datetime
     #timestamps()
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :material, :vendor, :description, :pick_buy_indicator, :status])
+    |> cast(attrs, [:job, :material, :vendor, :description, :pick_buy_indicator, :status, :last_updated])
     |> validate_required([:job, :material])
   end
 end

@@ -1,5 +1,4 @@
 defmodule Shophawk.RunlistCache do
-
   #Used for all loading of ETS Caches related to the runlist
 
   def load_runlist(workcenter_list, department) do
@@ -15,8 +14,7 @@ defmodule Shophawk.RunlistCache do
     runlists =
       runlists
       |> Enum.filter(fn op -> op.wc_vendor in workcenter_list end)
-      |> Enum.filter(fn op -> op.sched_start != nil end)
-      |> Enum.filter(fn op -> op.job_sched_end != nil end)
+      |> Enum.reject(fn op -> op.sched_start == nil end)
       |> Enum.uniq()
       |> Enum.map(fn row ->
         case row.operation_service do #combines wc_vendor and operation_service if needed

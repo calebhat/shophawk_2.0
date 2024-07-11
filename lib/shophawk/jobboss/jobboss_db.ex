@@ -13,37 +13,32 @@ defmodule Shophawk.Jobboss_db do
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
   def load_all_active_jobs() do
-    query =
-      from r in Jb_job,
-      where: r.status == "Active",
-      order_by: [asc: r.job]
+    job_numbers =
+      Jb_job
+      |> where([j], j.status == "Active")
+      |> select([j], j.job)
+      |> distinct(true)
+      |> Shophawk.Repo_jb.all()
 
-    jobs =
-      Shophawk.Repo_jb.all(query)
+    runlist =
+      Enum.chunk_every(job_numbers, 50)
+      |> Enum.map(fn x -> merge_jobboss_job_info(x) end)
+
+    :ets.insert(:runlist, {:active_jobs, runlist})  # Store the data in ETS
+  end
+
+  def merge_jobboss_job_info(job_numbers) do
+    jobs_map =
+      Jb_job
+      |> where([j], j.job in ^job_numbers)
+      |> Shophawk.Repo_jb.all()
       |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__])
       |> rename_key(:sched_end, :job_sched_end)
       |> rename_key(:sched_start, :job_sched_start)
       |> rename_key(:status, :job_status)
       |> rename_key(:customer_po_ln, :customer_po_line)
-    end)
-    job_numbers = Enum.map(jobs, fn op -> op.job end)
+      end)
 
-    #TESTING
-    #test_job = [[List.first(job_numbers)]]
-    #|> Enum.map(fn x -> merge_jobboss_job_info(x, jobs) end)
-    #|> Enum.each(fn maps ->
-    #  Enum.each(maps, fn op -> IO.inspect(op) end)
-    #end)
-    #TESTING
-
-    active_jobs =
-      Enum.chunk_every(job_numbers, 50)
-      |> Enum.map(fn x -> merge_jobboss_job_info(x, jobs) end)
-
-    :ets.insert(:runlist, {:active_jobs, active_jobs})  # Store the data in ETS
-  end
-
-  def merge_jobboss_job_info(job_numbers, jobs_map) do
     operations_map =
       Shophawk.Repo_jb.all(from r in Jb_job_operation, where: r.job in ^job_numbers)
       |> Enum.map(fn op ->
@@ -118,19 +113,19 @@ defmodule Shophawk.Jobboss_db do
       end)
       |> Enum.map(fn map -> #add in extra keys used for runlist
         sanitize_map(map) #checks for strings with the wrong encoding for special characters. also converts naivedatetime to date format.
-        |>Map.put(:id, map.job_operation)
+        |> Map.put(:id, map.job_operation)
         |> Map.put(:assignment, nil)
         |> Map.put(:currentop, nil)
         |> Map.put(:material_waiting, false)
         |> Map.put(:runner, false)
       end)
+      |> Enum.reject(fn op -> op.job_sched_end == nil end)
       |> merge_shophawk_runlist_db
       |> Enum.group_by(&{&1.job})
       |> Map.values
       |> set_current_op()
       |> set_material_waiting() #This function flattens the grouped ops as well.
       |> set_assignment_from_note_text_if_op_started
-
   end
 
   def rename_key(map, old_key, new_key) do
@@ -367,34 +362,57 @@ defmodule Shophawk.Jobboss_db do
       end)
   end
 
-  def recently_updated_jobs(previous_check) do
-
-
-      milliseconds_since_last_check = NaiveDateTime.diff(previous_check, NaiveDateTime.utc_now(), :millisecond)
-      milliseconds_since_last_check = -1000000
-
-      duration_to_check = NaiveDateTime.add(NaiveDateTime.utc_now(), milliseconds_since_last_check, :millisecond)
-      |> NaiveDateTime.add(-5, :hour) #convert to local time that jobboss DB uses
-
+  def sync_recently_updated_jobs(previous_check) do
+    previous_check = NaiveDateTime.add(previous_check, -5, :hour) #convert to local time that jobboss DB uses
     jobs =
       Jb_job
-      |> where([j], j.last_updated >= ^duration_to_check)
+      |> where([j], j.last_updated >= ^previous_check)
       |> select([j], j.job)
       |> distinct(true)
       |> Shophawk.Repo_jb.all()
-      |> Enum.sort
-      |> IO.inspect
-
     job_operation_jobs =
       Jb_job_operation
-      |> where([j], j.last_updated >= ^duration_to_check)
+      |> where([j], j.last_updated >= ^previous_check)
       |> select([j], j.job)
       |> distinct(true)
       |> Shophawk.Repo_jb.all()
-      |> Enum.sort
-      |> IO.inspect
-
-      #Load in rest of jobs that have last updated data, then feed into update function
+    material_jobs =
+      Jb_material
+      |> where([j], j.last_updated >= ^previous_check)
+      |> select([j], j.job)
+      |> distinct(true)
+      |> Shophawk.Repo_jb.all()
+    job_operation_time_ops =
+      Jb_job_operation_time
+      |> where([j], j.last_updated >= ^previous_check)
+      |> select([j], j.job_operation)
+      |> distinct(true)
+      |> Shophawk.Repo_jb.all()
+    job_operation_time_jobs =
+      Jb_job_operation
+      |> where([j], j.job_operation in ^job_operation_time_ops)
+      |> select([j], j.job)
+      |> distinct(true)
+      |> Shophawk.Repo_jb.all()
+    jobs_to_update = jobs ++ job_operation_jobs ++ material_jobs ++ job_operation_time_jobs
+      |> Enum.uniq
+    operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
+    [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
+    runlist = List.flatten(runlist)
+    new_runlist = Enum.reduce(operations, runlist, fn op, acc ->
+      if op.job_status == "Active" do
+        case Enum.find_index(acc, &(&1.job_operation == op.job_operation)) do
+          nil -> [op | acc]
+          index -> List.replace_at(acc, index, op)
+        end
+      else
+        Enum.reject(acc, &(&1.job_operation == op.job_operation))
+      end
+    end)
+    :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
+    IO.inspect(previous_check)
+    IO.puts("#{Enum.count(jobs_to_update)} Jobs updated")
+    IO.inspect(jobs_to_update)
   end
 
 end
