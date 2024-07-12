@@ -964,7 +964,7 @@ defmodule ShophawkWeb.CoreComponents do
                   </span>
                 </div>
               </td>
-            <% elem(row, 1).id == 0 -> %> <.render_date_row row={elem(row, 1)} col={@col} />
+            <% elem(row, 1).date_row_identifer == 0 -> %> <.render_date_row row={elem(row, 1)} col={@col} />
             <% elem(row, 1).runner == true -> %> <!-- normal operation row -->
               <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
               <div :for={{col, i} <- Enum.with_index(@col)}>
@@ -1272,7 +1272,7 @@ defmodule ShophawkWeb.CoreComponents do
                   </div>
                 </td>
 
-              <% elem(row, 1).id == 0 -> %>
+              <% elem(row, 1).date_row_identifer == 0 -> %>
 
                 <td :for={{_col, i} <- Enum.with_index(@col)}
                 class={["bg-stone-300"]}

@@ -118,6 +118,7 @@ defmodule Shophawk.Jobboss_db do
         |> Map.put(:currentop, nil)
         |> Map.put(:material_waiting, false)
         |> Map.put(:runner, false)
+        |> Map.put(:date_row_identifer, nil)
       end)
       |> Enum.reject(fn op -> op.job_sched_end == nil end)
       |> merge_shophawk_runlist_db
@@ -247,8 +248,7 @@ defmodule Shophawk.Jobboss_db do
           |> List.last
           |> String.split(":")
           |> List.first
-          |> IO.inspect
-        employee = Enum.find(employees, fn e -> e.employee == employee_initial end) |> IO.inspect
+        employee = Enum.find(employees, fn e -> e.employee == employee_initial end)
         name = if employee == nil, do: "", else: "#{employee.first_name} #{String.first(employee.last_name)}"
         Map.put(op, :assignment, name)
       else

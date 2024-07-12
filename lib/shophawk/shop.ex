@@ -104,34 +104,6 @@ defmodule Shophawk.Shop do
 
   """
   def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist items for
-
-  #REPLACE THIS SECTION WITH JOBBOSS DB QUERY AND MERGE
-  #query =
-  #    from r in Runlist,
-  #      where: r.wc_vendor in ^workcenter_list,
-  #      where: not is_nil(r.sched_start),
-  #      where: not is_nil(r.job_sched_end),
-  #      order_by: [asc: r.sched_start, asc: r.job],
-  #      select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
-
-#    query = #checks if "show jobs started is checked and load them.
- #     if department.show_jobs_started do
- #     query |> where([r], r.status == "O" or r.status == "S")
- #     else
- #       query |> where([r], r.status == "O")
- #   end
-
- #   runlists = Repo.all(query)
- #   |> Enum.map(fn row ->
- #     case row.operation_service do #combines wc_vendor and operation_service if needed
- #       nil -> row
- #       "" -> row
- #       _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
- #     end
- #   end)
- #   IO.inspect(Enum.count(runlists))
-
-    #NEW CODE
     #Shophawk.Jobboss_db.load_all_active_jobs()
     runlists = Shophawk.RunlistCache.load_runlist(workcenter_list, department)
     IO.inspect(Enum.count(runlists))
@@ -172,7 +144,7 @@ defmodule Shophawk.Shop do
               end
 
               if row.id == last_row_id do #checks for last row
-                date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #last day
+                date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #last day
                 new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil, daily_capacity)
                 {:halt, {new_acc, sched_start, Float.round(new_daily_hours, 2)}}
               else
@@ -196,14 +168,14 @@ defmodule Shophawk.Shop do
                 {:cont, {acc, sched_start, new_daily_hours}}
 
               ^last_row_id ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #2nd to last day
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #2nd to last day
                 new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
-                date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((new_daily_hours/daily_capacity)*100)), 0..-3)}] #last day
+                date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((new_daily_hours/daily_capacity)*100)), 0..-3)}] #last day
                 new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil, daily_capacity)
                 {:halt, {new_acc, sched_start, new_daily_hours}}
 
               _ ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}]
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}]
                 new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
                 {:cont, {new_acc, sched_start, new_daily_hours}}
             end
@@ -275,7 +247,7 @@ defmodule Shophawk.Shop do
         if Enum.empty?(jobs_that_ship_today) do
           jobs_that_ship_today
         else
-          [%{ships_today_header: true, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, id: -1}]
+          [%{ships_today_header: true, date_row_identifer: -1, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: -1}]
         end
 
       complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
@@ -286,7 +258,7 @@ defmodule Shophawk.Shop do
             Enum.map(complete_runlist, fn op ->
               case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
                 nil -> op
-                _found_ships_today -> %{id: op.id, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
+                _found_ships_today -> %{id: op.id, date_row_identifer: nil, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
               end
             end)
           jobs_that_ship_today ++ complete_runlist
@@ -302,24 +274,6 @@ defmodule Shophawk.Shop do
 
   def list_workcenter(workcenter_name) do #takes in a list of workcenters to load runlist items for
     workcenter_name = [workcenter_name]
-    #query =
-    #  from r in Runlist,
-    #    where: r.wc_vendor in ^workcenter_name,
-    #    where: not is_nil(r.sched_start),
-    #    where: not is_nil(r.job_sched_end),
-    #    order_by: [asc: r.sched_start, asc: r.job],
-    #    select: %Runlist{id: r.id, job: r.job, description: r.description, wc_vendor: r.wc_vendor, operation_service: r.operation_service, sched_start: r.sched_start, job_sched_end: r.job_sched_end, customer: r.customer, part_number: r.part_number, order_quantity: r.make_quantity, material: r.material, dots: r.dots, currentop: r.currentop, material_waiting: r.material_waiting, est_total_hrs: r.est_total_hrs, assignment: r.assignment, status: r.status, act_run_hrs: r.act_run_hrs}
-
-    #query = query |> where([r], r.status == "O" or r.status == "S")
-
-    #runlists = Repo.all(query)
-    #|> Enum.map(fn row ->
-    ##  case row.operation_service do #combines wc_vendor and operation_service if needed
-    #    nil -> row
-    #    "" -> row
-    #    _ -> Map.put(row, :wc_vendor, "#{row.wc_vendor} -#{row.operation_service}")
-    #  end
-    #end)
 
     runlists = Shophawk.RunlistCache.load_runlist(workcenter_name, %{show_jobs_started: true})
 
@@ -338,7 +292,7 @@ defmodule Shophawk.Shop do
           if prev_sched_start == sched_start do #for 2nd row and beyond
             new_daily_hours = Float.round(daily_hours + row.est_total_hrs, 2)
               if row.id == last_row_id do #checks for last row
-              date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: 0}] #last day
+              date_row = acc ++ [%{est_total_hrs: Float.round(new_daily_hours, 2), sched_start: sched_start, id: Date.to_string(sched_start), date_row_identifer: 0}] #last day
                 {:halt, {date_row, sched_start, daily_hours}}
               else
                 {:cont, {acc, sched_start, new_daily_hours}}
@@ -351,12 +305,12 @@ defmodule Shophawk.Shop do
                 {:cont, {acc, sched_start, new_daily_hours}}
 
               ^last_row_id ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}] #2nd to last day
-                date_row = date_row ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: 0}] #last day
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0}] #2nd to last day
+                date_row = date_row ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: Date.to_string(sched_start), date_row_identifer: 0}] #last day
                 {:halt, {date_row, sched_start, daily_hours}}
 
               _ ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: 0}]
+                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0}]
                 {:cont, {date_row, sched_start, new_daily_hours}}
             end
           end
@@ -414,7 +368,7 @@ defmodule Shophawk.Shop do
         if Enum.empty?(jobs_that_ship_today) do
           jobs_that_ship_today
         else
-          [%{ships_today_header: true, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, id: -1}]
+          [%{ships_today_header: true, date_row_identifer: -1, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: -1}]
         end
 
       #adds shipping today if needed and removes ops furthur down list if found

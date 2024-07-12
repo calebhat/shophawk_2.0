@@ -303,7 +303,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
         dots =
           runlist
-          |> Enum.reject(fn %{id: id} -> id in  [0, -1] end)
+          |> Enum.reject(fn %{date_row_identifer: date_row_identifer} -> date_row_identifer in  [0, -1] end)
           |> Enum.reduce(%{}, fn row, acc ->
             case row.dots do
               1 -> Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)
@@ -392,7 +392,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
         dots =
           runlist
-          |> Enum.reject(fn %{id: id} -> id in  [0, -1] end)
+          |> Enum.reject(fn %{date_row_identifer: date_row_identifer} -> date_row_identifer in  [0, -1] end)
           |> Enum.reduce(%{}, fn row, acc ->
             case row.dots do
               1 -> Map.put_new(acc, :one, "bg-cyan-500 text-stone-950")  |> Map.update(:ops, [row], fn list -> list ++ [row] end)
