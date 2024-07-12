@@ -180,14 +180,20 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("mat_waiting_toggle", %{"job-operation" => job_operation}, socket) do
+
     case Shop.get_runlist_by_job_operation(String.to_integer(job_operation)) do
-      nil -> Shop.create_runlist(%{job_operation: job_operation, material_waiting: true})
-      op -> Shop.update_runlist(op, %{material_waiting: !op.material_waiting})
+      nil ->
+        Shophawk.RunlistCache.update_key_value(String.to_integer(job_operation), :material_waiting, true)
+        Shop.create_runlist(%{job_operation: job_operation, material_waiting: true})
+      op ->
+        Shophawk.RunlistCache.update_key_value(String.to_integer(job_operation), :material_waiting, !op.material_waiting)
+        Shop.update_runlist(op, %{material_waiting: !op.material_waiting})
     end
     {:noreply, socket}
   end
 
-  def handle_event("change_assignment", %{"job-operation" => job_operation, "selection" => selection } = _params, socket) do
+  def handle_event("change_assignment", %{"job-operation" => job_operation, "selection" => selection} = _params, socket) do
+    Shophawk.RunlistCache.update_key_value(String.to_integer(job_operation), :assignment, selection)
     case Shop.get_runlist_by_job_operation(String.to_integer(job_operation)) do
       nil -> Shop.create_runlist(%{job_operation: job_operation, assignment: selection})
       op -> Shop.update_runlist(op, %{assignment: selection})

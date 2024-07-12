@@ -236,16 +236,21 @@ defmodule Shophawk.Jobboss_db do
   end
 
   defp set_assignment_from_note_text_if_op_started(operations) do
+    [{:data, employees}] = :ets.lookup(:employees, :data)
+
     Enum.map(operations, fn op ->
       if op.status == "S" do
-        employee =
+        employee_initial =
           op.employee
           |> String.split("|")
           |> Enum.map(&String.trim/1)
           |> List.last
           |> String.split(":")
           |> List.first
-        Map.put(op, :assignment, employee)
+          |> IO.inspect
+        employee = Enum.find(employees, fn e -> e.employee == employee_initial end) |> IO.inspect
+        name = if employee == nil, do: "", else: "#{employee.first_name} #{String.first(employee.last_name)}"
+        Map.put(op, :assignment, name)
       else
         op
       end

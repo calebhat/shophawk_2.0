@@ -28,11 +28,6 @@ defmodule Shophawk.RunlistCache do
     runlists
   end
 
-  def status_check(list) do
-    Enum.each(list, fn x -> if Map.has_key?(x, :status) == false, do: IO.inspect(x) end )
-    list
-  end
-
   def job(job) do
     [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
     runlists
@@ -47,6 +42,17 @@ defmodule Shophawk.RunlistCache do
     runlists
     |> List.flatten
     |> Enum.find(fn op -> op.job_operation == operation end)
+  end
+
+  def update_key_value(job_operation, key, value) do
+    [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+    updated_runlist =
+      runlists
+      |> List.flatten
+      |> Enum.map(fn op ->
+        if op.job_operation == job_operation, do: Map.replace(op, key, value), else: op
+      end)
+    :ets.insert(:runlist, {:active_jobs, updated_runlist})  # Store the data in ETS
   end
 
 end

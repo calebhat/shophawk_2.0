@@ -17,12 +17,13 @@ defmodule ScheduledTasks do
     :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:employees, [:set, :named_table, :public, read_concurrency: true])
 
     #Initial ETS Table settings
     :ets.insert(:runlist_loads, {:refresh_time, NaiveDateTime.utc_now()})
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     :ets.insert(:runlist_loads, {:data, [%{department: "ShopHawk Restarting, refresh in 1 minute", department_id: 0, weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}]})  # Store the data in ETS
-
+    :ets.insert(:employees, {:data, Shophawk.Jobboss_db.employee_data})
 
     #inital Loading of Active jobs into cache
     Shophawk.Jobboss_db.load_all_active_jobs
@@ -68,6 +69,7 @@ defmodule ScheduledTasks do
 #runs once a day
   def handle_info(:load_current_week_birthdays, _state) do
     employees = Shophawk.Jobboss_db.employee_data
+    :ets.insert(:employees, {:data, employees})
     today = Date.utc_today()
     day_of_week = Date.day_of_week(today)
     sunday = Date.add(today, -day_of_week)
