@@ -1,8 +1,8 @@
 defmodule Shophawk.RunlistCache do
   #Used for all loading of ETS Caches related to the runlist
 
-  def load_runlist(workcenter_list, department) do
-    IO.inspect(department.show_jobs_started)
+  def get_runlist_ops(workcenter_list, department) do
+    #IO.inspect(department.show_jobs_started)
     [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
     runlists = List.flatten(runlists)
     runlists = if department.show_jobs_started == true do

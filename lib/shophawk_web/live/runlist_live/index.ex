@@ -43,7 +43,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         socket
         |> assign(:page_title, "Listing Runlists")
         |> assign(:runlist, nil)
-        |> load_runlist(socket.assigns.department_id)
+        |> finalize_runlist_stream_runlist(socket.assigns.department_id)
     end
   end
 
@@ -75,11 +75,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
   defp apply_action(socket, :assignments, %{"id" => id}) do
       socket
       |> assign(:page_title, "View Assignments")
-      |> load_runlist(id)
+      |> finalize_runlist_stream_runlist(id)
   end
 
   def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
-    socket = load_runlist(socket, Shop.get_department_by_name(department.department).id)
+    socket = finalize_runlist_stream_runlist(socket, Shop.get_department_by_name(department.department).id)
     {:noreply, apply_action(socket, :index, nil)}
   end
 
@@ -90,7 +90,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_info({ShophawkWeb.RunlistLive.AssignmentForm, {:saved, _assignment}}, socket) do
     case socket.assigns.department_id do
       nil -> socket
-      _ -> load_runlist(socket, socket.assigns.department_id)
+      _ -> finalize_runlist_stream_runlist(socket, socket.assigns.department_id)
     end
     {:noreply, socket}
   end
@@ -139,7 +139,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         process = self()
         Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
           :timer.sleep(300)
-          Process.send(process, {:send_runlist, load_runlist(socket, Shop.get_department_by_name(department).id)}, [])
+          Process.send(process, {:send_runlist, finalize_runlist_stream_runlist(socket, Shop.get_department_by_name(department).id)}, [])
         end)
         update_number = socket.assigns.updated + 1
         {:noreply, assign(socket, :updated, update_number)}
@@ -168,7 +168,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         process = self()
         Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
           :timer.sleep(300)
-          Process.send(process, {:send_runlist, load_workcenter(socket, Shop.get_workcenter_by_name(workcenter))}, [])
+          Process.send(process, {:send_runlist, finalize_workcenter_stream(socket, Shop.get_workcenter_by_name(workcenter))}, [])
         end)
         update_number = socket.assigns.updated + 1
         {:noreply, assign(socket, :updated, update_number)}
@@ -235,7 +235,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     process = self()
     Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
       :timer.sleep(300)
-      Process.send(process, {:send_runlist, load_runlist(socket, socket.assigns.department_id)}, [])
+      Process.send(process, {:send_runlist, finalize_runlist_stream_runlist(socket, socket.assigns.department_id)}, [])
     end)
     update_number = socket.assigns.updated + 1
     {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
@@ -245,7 +245,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     process = self()
     Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
       :timer.sleep(300)
-      Process.send(process, {:send_runlist, load_workcenter(socket, Shop.get_workcenter_by_name(socket.assigns.name))}, [])
+      Process.send(process, {:send_runlist, finalize_workcenter_stream(socket, Shop.get_workcenter_by_name(socket.assigns.name))}, [])
     end)
     update_number = socket.assigns.updated + 1
     {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
@@ -277,7 +277,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, assign(socket, live_action: :show_job)}
   end
 
-  defp load_runlist(socket, department_id) do
+  defp finalize_runlist_stream_runlist(socket, department_id) do
     case department_id do
       nil ->
           socket
@@ -368,7 +368,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     end
   end
 
-  defp load_workcenter(socket, workcenter) do
+  defp finalize_workcenter_stream(socket, workcenter) do
     workcenter_name = workcenter.workcenter
     case workcenter do
       nil ->

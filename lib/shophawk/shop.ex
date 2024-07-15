@@ -105,9 +105,8 @@ defmodule Shophawk.Shop do
   """
   def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist items for
     #Shophawk.Jobboss_db.load_all_active_jobs()
-    runlists = Shophawk.RunlistCache.load_runlist(workcenter_list, department)
+    runlists = Shophawk.RunlistCache.get_runlist_ops(workcenter_list, department)
     IO.inspect(Enum.count(runlists))
-
 
     if Enum.empty?(runlists) do
       {[], [], []}
@@ -242,7 +241,6 @@ defmodule Shophawk.Shop do
           |> Map.reject(fn {key, _value} -> key == :__meta__ end)
         end)
 
-
       jobs_that_ship_today=
         if Enum.empty?(jobs_that_ship_today) do
           jobs_that_ship_today
@@ -267,7 +265,6 @@ defmodule Shophawk.Shop do
           Map.put_new(op, :runner, false)
         end)
 
-
       {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
     end
   end
@@ -275,7 +272,7 @@ defmodule Shophawk.Shop do
   def list_workcenter(workcenter_name) do #takes in a list of workcenters to load runlist items for
     workcenter_name = [workcenter_name]
 
-    runlists = Shophawk.RunlistCache.load_runlist(workcenter_name, %{show_jobs_started: true})
+    runlists = Shophawk.RunlistCache.get_runlist_ops(workcenter_name, %{show_jobs_started: true})
 
     if Enum.empty?(runlists) do
       []
