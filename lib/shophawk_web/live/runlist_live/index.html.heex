@@ -74,7 +74,7 @@
   </:actions>    
 </.header>
 
-<div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
+<div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}> 
   <br>
   <div :if={@show_department_loads}>
     <%= if List.first(@department_loads).department_id == 0 do %>

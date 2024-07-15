@@ -113,7 +113,7 @@ defmodule Shophawk.Jobboss_db do
       end)
       |> Enum.map(fn map -> #add in extra keys used for runlist
         sanitize_map(map) #checks for strings with the wrong encoding for special characters. also converts naivedatetime to date format.
-        |> Map.put(:id, map.job_operation)
+        |> Map.put(:id, "op-#{map.job_operation}")
         |> Map.put(:assignment, nil)
         |> Map.put(:currentop, nil)
         |> Map.put(:material_waiting, false)

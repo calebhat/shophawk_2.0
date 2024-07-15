@@ -238,6 +238,7 @@ defmodule Shophawk.Shop do
           op
           |> Map.put(:ships_today, true)
           |> Map.put(:dots, 3)
+          |> Map.put(:id, "op-#{op.job_operation}")
           |> Map.reject(fn {key, _value} -> key == :__meta__ end)
         end)
 
@@ -245,7 +246,7 @@ defmodule Shophawk.Shop do
         if Enum.empty?(jobs_that_ship_today) do
           jobs_that_ship_today
         else
-          [%{ships_today_header: true, date_row_identifer: -1, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: -1}]
+          [%{ships_today_header: true, date_row_identifer: -1, id: "ships_today_header"}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: "ships_today_footer"}]
         end
 
       complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
@@ -365,7 +366,7 @@ defmodule Shophawk.Shop do
         if Enum.empty?(jobs_that_ship_today) do
           jobs_that_ship_today
         else
-          [%{ships_today_header: true, date_row_identifer: -1, id: -1}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: -1}]
+          [%{ships_today_header: true, date_row_identifer: -1, id: "ships_today_header"}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: "ships_today_footer"}]
         end
 
       #adds shipping today if needed and removes ops furthur down list if found
@@ -497,12 +498,18 @@ defmodule Shophawk.Shop do
   end
 
   def get_hot_jobs() do
-    query =
-      from r in Runlist,
-      where: r.dots > 0 and r.status == "O",
-      order_by: [desc: r.id],
-      select: %Runlist{id: r.id, job: r.job, description: r.description, customer: r.customer, part_number: r.part_number, make_quantity: r.make_quantity, dots: r.dots, currentop: r.currentop, job_sched_end: r.job_sched_end}
-    hot_jobs = Repo.all(query)
+    #query =
+    #  from r in Runlist,
+    #  where: r.dots > 0 and r.status == "O",
+    #  order_by: [desc: r.id],
+    #  select: %Runlist{id: r.id, job: r.job, description: r.description, customer: r.customer, part_number: r.part_number, make_quantity: r.make_quantity, dots: r.dots, currentop: r.currentop, job_sched_end: r.job_sched_end}
+    #hot_jobs = Repo.all(query)
+
+    [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+    hot_jobs =
+      List.flatten(runlists)
+      |> Enum.filter(fn op -> op.dots > 0 end)
+
     grouped_ops = Enum.group_by(hot_jobs, &(&1.job))
     keys_to_keep = [:id, :job,:description, :customer, :part_number, :make_quantity, :dots, :currentop, :job_sched_end]
     Enum.map(grouped_ops, fn {_job, operations} ->

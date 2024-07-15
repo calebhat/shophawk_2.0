@@ -114,6 +114,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         [weekly_dates: weekly_dates] = :ets.lookup(:slideshow, :weekly_dates)
         slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
         {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
+        IO.inspect(week1_timeoff)
         {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
 
         {slideshow, slides} = {parse_hours(slideshow), slides ++ [:hours]}
@@ -131,7 +132,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         {slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
         slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
         slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
-        {slideshow, slides} = if Enum.all?(week1_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week1_timeoff, week1_timeoff), slides ++ [:week1_timeoff]}, else: {slideshow, slides}
+        {slideshow, slides} = if Enum.all?(week1_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week1_timeoff, week1_timeoff), slides ++ [:week1_timeoff]}, else: {Map.put(slideshow, :week1_timeoff, [m: [], t: [], w: [], thur: [], f: []]), slides}
 
         {slideshow, slides, List.first(slides)}
       else

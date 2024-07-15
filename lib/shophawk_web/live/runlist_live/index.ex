@@ -7,7 +7,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.GeneralExports
   alias Shophawk.RunlistImports
   alias Shophawk.Jobboss
-
   def mount(_params, _session, socket) do
     if connected?(socket) do
       department_loads = get_runlist_loads()
@@ -43,7 +42,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         socket
         |> assign(:page_title, "Listing Runlists")
         |> assign(:runlist, nil)
-        |> finalize_runlist_stream_runlist(socket.assigns.department_id)
+        |> finalize_department_stream(socket.assigns.department_id)
     end
   end
 
@@ -75,11 +74,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
   defp apply_action(socket, :assignments, %{"id" => id}) do
       socket
       |> assign(:page_title, "View Assignments")
-      |> finalize_runlist_stream_runlist(id)
+      |> finalize_department_stream(id)
   end
 
   def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
-    socket = finalize_runlist_stream_runlist(socket, Shop.get_department_by_name(department.department).id)
+    socket = finalize_department_stream(socket, Shop.get_department_by_name(department.department).id)
     {:noreply, apply_action(socket, :index, nil)}
   end
 
@@ -90,7 +89,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_info({ShophawkWeb.RunlistLive.AssignmentForm, {:saved, _assignment}}, socket) do
     case socket.assigns.department_id do
       nil -> socket
-      _ -> finalize_runlist_stream_runlist(socket, socket.assigns.department_id)
+      _ -> finalize_department_stream(socket, socket.assigns.department_id)
     end
     {:noreply, socket}
   end
@@ -136,10 +135,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
         update_number = socket.assigns.updated + 1
         {:noreply, assign(socket, :updated, update_number)}
       _ ->
+        department_id = Shop.get_department_by_name(department).id
         process = self()
         Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
           :timer.sleep(300)
-          Process.send(process, {:send_runlist, finalize_runlist_stream_runlist(socket, Shop.get_department_by_name(department).id)}, [])
+          Process.send(process, {:send_runlist, finalize_department_stream(socket, department_id)}, [])
         end)
         update_number = socket.assigns.updated + 1
         {:noreply, assign(socket, :updated, update_number)}
@@ -225,17 +225,27 @@ defmodule ShophawkWeb.RunlistLive.Index do
     [{:refresh_time, previous_check}] = :ets.lookup(:runlist, :refresh_time)
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     jobs = Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
-
     #IO.inspect(Enum.count(jobs))
 
     {:noreply, socket}
+  end
+
+  #TESTING PURPOSES
+  def handle_info({:refresh_department, socket}, _sock) do
+    process = self()
+    Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
+      :timer.sleep(300)
+      Process.send(process, {:send_runlist, finalize_department_stream(socket, socket.assigns.department_id)}, [])
+    end)
+    update_number = socket.assigns.updated + 1
+    {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
   end
 
   def handle_event("refresh_department", _, socket) do
     process = self()
     Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
       :timer.sleep(300)
-      Process.send(process, {:send_runlist, finalize_runlist_stream_runlist(socket, socket.assigns.department_id)}, [])
+      Process.send(process, {:send_runlist, finalize_department_stream(socket, socket.assigns.department_id)}, [])
     end)
     update_number = socket.assigns.updated + 1
     {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
@@ -277,7 +287,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, assign(socket, live_action: :show_job)}
   end
 
-  defp finalize_runlist_stream_runlist(socket, department_id) do
+  defp finalize_department_stream(socket, department_id) do
     case department_id do
       nil ->
           socket
@@ -335,6 +345,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
             dots
           end
         socket
+        |> assign(runlist_id_list: Enum.map(runlist, fn op -> op.id end))
         |> assign(show_runlist_table: true)
         |> assign(show_workcenter_table: false)
         |> assign(show_department_loads: false)
@@ -351,6 +362,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         |> stream(:runlists, runlist, reset: true)
       else
         socket
+        |> assign(runlist_id_list: [])
         |> assign(show_runlist_table: false)
         |> assign(show_workcenter_table: false)
         |> assign(show_department_loads: false)
