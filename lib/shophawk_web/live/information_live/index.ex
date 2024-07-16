@@ -3,8 +3,142 @@ defmodule ShophawkWeb.InformationLive.Index do
 
   def render(assigns) do
     ~H"""
-    <div class="grid place-content-center bg-cyan-800">
-    Hello
+    <div class="grid grid-cols-3 place-content-center text-stone-100">
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
+        <div class="text-2xl underline">
+          Vacation
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          Earned by full time employees after every hire anniversay date
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          <table class="w-full">
+            <tr>
+              <th>Years of Service</th>
+              <th>Vacation Days Earned</th>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">1 Year</td>
+              <td class="border border-stone-400">5 Days</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">2 Years</td>
+              <td class="border border-stone-400">10 Days</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">5 Years</td>
+              <td class="border border-stone-400">15 Days</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">10 Years</td>
+              <td class="border border-stone-400">16 Days</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">15 Years</td>
+              <td class="border border-stone-400">17 Days</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">20 Years</td>
+              <td class="border border-stone-400">18 Days</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">25 Years</td>
+              <td class="border border-stone-400">19 Days</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">30 Years</td>
+              <td class="border border-stone-400">20 Days</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
+        <div class="text-2xl underline">
+          Personal Time
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          Earned by full time employees with no unexcused absenses within each four month time period
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          Any hours earned after 24 will be paid out as a bonus
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          Can be used in 15 minutes increments
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          <table class="w-full table-fixed">
+            <tr>
+              <th>Date</th>
+              <th>Personal Hours Earned</th>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">1/1</td>
+              <td class="border border-stone-400">8 Hours</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">5/1</td>
+              <td class="border border-stone-400">8 Hours</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">9/1</td>
+              <td class="border border-stone-400">8 Hours</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
+        <div class="text-2xl underline">
+          Miscellaneous
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          Insurance Payout Dates are 3/1, 6/1, 9/1, 12/1
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          <div>Full Time employees earn 20 hours yearly of paid Volunteer Time.</div>
+          <div>ask managment for approval.</div>
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          <div class="text-xl underline mb-2">Paid Holidays</div>
+          <div class=" grid grid-cols-3">
+            <div class="border border-stone-400">New Years Eve</div>
+            <div class="border border-stone-400">New Years Day</div>
+            <div class="border border-stone-400">Good Friday</div>
+            <div class="border border-stone-400">Memorial Day</div>
+            <div class="border border-stone-400">Independance Day</div>
+            <div class="border border-stone-400">Labor Day</div>
+          </div>
+          <div class="grid grid-cols-2">
+            <div class="border border-stone-400">Thanksgiving Day</div>
+            <div class="border border-stone-400">Day After Thanksgiving</div>
+            <div class="border border-stone-400">Christmas Eve</div>
+            <div class="border border-stone-400">Christmas Day</div>
+          </div>
+        </div>
+      </div>
+
+      <div></div>
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
+        <div class="text-2xl underline">
+          Human Resources
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+          <div class="text-lg">Primary Contact:</div>
+          <div class="grid grid-cols-2">
+            <div>Emily Smith</div>
+            <div>O: 262-376-3236</div>
+            <div>M: 608-769-6031</div>
+            <div>E: emily.smith@ansay.com</div>
+          </div>
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3 underline">
+          <a class="hover:text-stone-900" href="https://access.paylocity.com/" target="_blank">Paylocity Company ID: 177394</a>
+        </div>
+        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3 underline ">
+          <a class="hover:text-stone-900" href="https://accounts.principal.com" target="_blank">Principal Retirement Login</a>
+        </div>
+      </div>
+      <div></div>
+
     </div>
     """
   end
