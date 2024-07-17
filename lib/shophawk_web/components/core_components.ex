@@ -841,7 +841,6 @@ defmodule ShophawkWeb.CoreComponents do
 
         <%= if @weekly_load do %>
           <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
-          <% IO.inspect(Enum.with_index([@weekly_load.weekone, @weekly_load.weektwo, @weekly_load.weekthree, @weekly_load.weekfour])) %>
             <%= for {value, week} <- Enum.with_index([@weekly_load.weekone, @weekly_load.weektwo, @weekly_load.weekthree, @weekly_load.weekfour]) do %>
               <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(value), "p-1 rounded-t-md border-2 border-black"]}>
                 <%= case week do %>

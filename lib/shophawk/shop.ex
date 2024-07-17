@@ -218,7 +218,8 @@ defmodule Shophawk.Shop do
             Enum.filter(runlists, fn %{id: id} -> id in runners_list end)
             |> Enum.map(fn row -> Map.put(row, :runner, true) end)
 
-          acc ++ [date_row] ++ main_ops ++ runner_ops ++ started_ops #add runner rows after [row] here
+
+          acc ++ [date_row] ++ main_ops ++ started_ops ++ runner_ops #add runner rows after [row] here
         end)
 
       jobs_that_ship_today =
@@ -257,7 +258,7 @@ defmodule Shophawk.Shop do
             Enum.map(complete_runlist, fn op ->
               case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
                 nil -> op
-                _found_ships_today -> %{id: op.id, date_row_identifer: nil, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
+                _found_ships_today -> %{id: op.id, date_row_identifer: 0, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
               end
             end)
           jobs_that_ship_today ++ complete_runlist
@@ -265,6 +266,7 @@ defmodule Shophawk.Shop do
         |> Enum.map(fn op -> #add extra keys to each map if needed
           Map.put_new(op, :runner, false)
           |> Map.put_new(:status, "O")
+          |> Map.put_new(:date_row_identifer, 1)
         end)
 
       {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
@@ -438,11 +440,11 @@ defmodule Shophawk.Shop do
       {start, nil} ->
         filtered_rows = Enum.filter(carryover_list, fn map -> if Date.compare(map.date, start) == :gt, do: true end)
         Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
-        %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil(hours/capacity*100)), 0..-3)} end)
+        %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0, date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil(hours/capacity*100)), 0..-3)} end)
       {start, stop} ->
         filtered_rows = Enum.filter(carryover_list, fn map -> Date.compare(map.date, start) == :gt and Date.compare(map.date, stop) == :lt end)
         Enum.map(Enum.uniq_by(filtered_rows, &(&1.date)), fn %{date: date, hours: hours} ->
-        %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0, hour_percentage: String.slice(Float.to_string(Float.ceil(hours/capacity*100)), 0..-3)} end)
+        %{sched_start: date, est_total_hrs: get_date_sum(filtered_rows, date), id: 0, date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil(hours/capacity*100)), 0..-3)} end)
     end
   end
 
@@ -498,13 +500,15 @@ defmodule Shophawk.Shop do
     Repo.get_by(Runlist, job_operation: job_operation)
   end
 
+  def load_all_ops_in_job_operation_list(list) do
+    query =
+      from r in Runlist,
+      where: r.job_operation in ^list
+    Repo.all(query)
+
+  end
+
   def get_hot_jobs() do
-    #query =
-    #  from r in Runlist,
-    #  where: r.dots > 0 and r.status == "O",
-    #  order_by: [desc: r.id],
-    #  select: %Runlist{id: r.id, job: r.job, description: r.description, customer: r.customer, part_number: r.part_number, make_quantity: r.make_quantity, dots: r.dots, currentop: r.currentop, job_sched_end: r.job_sched_end}
-    #hot_jobs = Repo.all(query)
 
     [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
     hot_jobs =

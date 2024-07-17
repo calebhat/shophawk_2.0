@@ -121,7 +121,7 @@ defmodule Shophawk.Jobboss_db do
         |> Map.put(:date_row_identifer, nil)
       end)
       |> Enum.reject(fn op -> op.job_sched_end == nil end)
-      |> merge_shophawk_runlist_db
+      |> merge_shophawk_runlist_db(job_operation_numbers)
       |> Enum.group_by(&{&1.job})
       |> Map.values
       |> set_current_op()
@@ -257,10 +257,11 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
-  def merge_shophawk_runlist_db(ops) do
+  def merge_shophawk_runlist_db(ops, job_operation_numbers) do
+    shophawk_runlist = Shophawk.Shop.load_all_ops_in_job_operation_list(job_operation_numbers)
     Enum.map(ops, fn op ->
       db_data =
-        case Shophawk.Shop.get_runlist_by_job_operation(op.job_operation) do
+        case Enum.find(shophawk_runlist, fn shophawk_op -> shophawk_op.job_operation == op.job_operation end) do
           nil -> %{}
           found ->
             Map.from_struct(found)
