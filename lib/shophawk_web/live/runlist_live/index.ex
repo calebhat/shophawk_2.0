@@ -262,7 +262,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("attachments", _, socket) do
-    IO.inspect(socket.assigns.id)
     job = socket.assigns.id
     [{:data, attachments}] = :ets.lookup(:job_attachments, :data)
     socket =

@@ -1024,9 +1024,7 @@ defmodule ShophawkWeb.CoreComponents do
                   <div class={[ "block" ]} >
                     <form phx-change="change_assignment" phx-value-job-operation={elem(row, 1).job_operation}>
                       <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
-                        <%= if elem(row, 1).runner != true do %>
-                        <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}  />
-                        <% end %>
+                        <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}/>
                       </span>
                     </form>
                   </div>
@@ -1076,8 +1074,9 @@ defmodule ShophawkWeb.CoreComponents do
 
   def calc_row_height(row) do
     cond do
-      elem(row, 1).id == 0 -> "h-6"
+      elem(row, 1).date_row_identifer == 0 -> "h-6"
       elem(row, 1).runner == true -> "h-6"
+      elem(row, 1).status == "S" -> "h-6"
       Map.has_key?(elem(row, 1), :ships_today_footer) -> "h-2"
       true -> "h-12"
     end

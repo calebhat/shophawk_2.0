@@ -33,7 +33,7 @@ defmodule ScheduledTasks do
     Process.send_after(self(), :update_all_runlist_loads, 100)
     Process.send_after(self(), :load_current_week_birthdays,100)
     Process.send_after(self(), :save_weekly_dates, 100)
-    #Process.send_after(self(), :update_from_jobboss, 100)
+    Process.send_after(self(), :update_from_jobboss, 100)
 
     {:ok, nil}
   end
@@ -89,7 +89,7 @@ defmodule ScheduledTasks do
       end)
 
     :ets.insert(:slideshow, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
-    Process.send_after(self(), :load_current_week_birthdays, 1440000)
+    Process.send_after(self(), :load_current_week_birthdays, 86400000)
     IO.puts("This Weeks Birthdays Updated")
     {:noreply, nil}
   end
@@ -103,7 +103,7 @@ defmodule ScheduledTasks do
     next_friday = Date.add(next_monday, 4)
     :ets.insert(:slideshow, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
     IO.puts("weekly dates updated")
-    Process.send_after(self(), :save_weekly_dates, 1440000)
+    Process.send_after(self(), :save_weekly_dates, 86400000)
     {:noreply, nil}
   end
 

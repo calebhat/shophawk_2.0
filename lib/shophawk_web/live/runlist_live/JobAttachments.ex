@@ -52,6 +52,7 @@ defmodule ShophawkWeb.RunlistLive.JobAttachments do
   end
 
   def update(assigns, socket) do
+    IO.inspect(assigns.attachments)
     {:ok,
     socket
     |> assign(job: assigns.id)

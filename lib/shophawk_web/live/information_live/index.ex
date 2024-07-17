@@ -4,14 +4,51 @@ defmodule ShophawkWeb.InformationLive.Index do
   def render(assigns) do
     ~H"""
     <div class="grid grid-cols-3 place-content-center text-stone-100">
-      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-900 m-4">
+        <div class="text-2xl underline">
+          Personal Time
+        </div>
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
+          Earned by full time employees with no unexcused absenses within each four month time period
+        </div>
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
+          Any hours earned after 24 will be paid out as a bonus
+        </div>
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
+          Can be used in 15 minutes increments
+        </div>
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
+          <table class="w-full table-fixed">
+            <tr>
+              <th>Date</th>
+              <th>Personal Hours Earned</th>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">1/1</td>
+              <td class="border border-stone-400">8 Hours</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">5/1</td>
+              <td class="border border-stone-400">8 Hours</td>
+            </tr>
+            <tr>
+              <td class="border border-stone-400">9/1</td>
+              <td class="border border-stone-400">8 Hours</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-900 m-4">
         <div class="text-2xl underline">
           Vacation
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
           Earned by full time employees after every hire anniversay date
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
+          Can be used in 30 minute increments
+        </div>
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
           <table class="w-full">
             <tr>
               <th>Years of Service</th>
@@ -52,52 +89,18 @@ defmodule ShophawkWeb.InformationLive.Index do
           </table>
         </div>
       </div>
-      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
-        <div class="text-2xl underline">
-          Personal Time
-        </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
-          Earned by full time employees with no unexcused absenses within each four month time period
-        </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
-          Any hours earned after 24 will be paid out as a bonus
-        </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
-          Can be used in 15 minutes increments
-        </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
-          <table class="w-full table-fixed">
-            <tr>
-              <th>Date</th>
-              <th>Personal Hours Earned</th>
-            </tr>
-            <tr>
-              <td class="border border-stone-400">1/1</td>
-              <td class="border border-stone-400">8 Hours</td>
-            </tr>
-            <tr>
-              <td class="border border-stone-400">5/1</td>
-              <td class="border border-stone-400">8 Hours</td>
-            </tr>
-            <tr>
-              <td class="border border-stone-400">9/1</td>
-              <td class="border border-stone-400">8 Hours</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-900 m-4">
         <div class="text-2xl underline">
           Miscellaneous
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
           Insurance Payout Dates are 3/1, 6/1, 9/1, 12/1
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
           <div>Full Time employees earn 20 hours yearly of paid Volunteer Time.</div>
           <div>ask managment for approval.</div>
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
           <div class="text-xl underline mb-2">Paid Holidays</div>
           <div class=" grid grid-cols-3">
             <div class="border border-stone-400">New Years Eve</div>
@@ -117,11 +120,11 @@ defmodule ShophawkWeb.InformationLive.Index do
       </div>
 
       <div></div>
-      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-800 m-4">
+      <div class="text-center justify-center rounded-2xl p-4 bg-cyan-900 m-4">
         <div class="text-2xl underline">
           Human Resources
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
           <div class="text-lg">Primary Contact:</div>
           <div class="grid grid-cols-2">
             <div>Emily Smith</div>
@@ -130,11 +133,18 @@ defmodule ShophawkWeb.InformationLive.Index do
             <div>E: emily.smith@ansay.com</div>
           </div>
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3 underline">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2 underline">
           <a class="hover:text-stone-900" href="https://access.paylocity.com/" target="_blank">Paylocity Company ID: 177394</a>
         </div>
-        <div class="text-md bg-cyan-700 rounded-2xl m-3 p-3 underline ">
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2 underline ">
           <a class="hover:text-stone-900" href="https://accounts.principal.com" target="_blank">Principal Retirement Login</a>
+        </div>
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2 underline hover:text-stone-900">
+          <div phx-click="download" phx-value-file-path="\\gearserver\General Share folder\shophawk_downloads\Employee Handbook_EG.pdf">
+            <a class="" href="" target="" >
+              Download Employee Handbook
+            </a>
+          </div>
         </div>
       </div>
       <div></div>
@@ -158,6 +168,11 @@ defmodule ShophawkWeb.InformationLive.Index do
   defp apply_action(socket, :index, _params) do
     socket
     |> assign(:page_title, "Information")
+  end
+
+  def handle_event("download", %{"file-path" => file_path}, socket) do
+    #URL leads to router where I have a JS listener setup to push a file download from the path
+    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
   end
 
 end

@@ -264,6 +264,7 @@ defmodule Shophawk.Shop do
         end
         |> Enum.map(fn op -> #add extra keys to each map if needed
           Map.put_new(op, :runner, false)
+          |> Map.put_new(:status, "O")
         end)
 
       {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
