@@ -114,7 +114,6 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         [weekly_dates: weekly_dates] = :ets.lookup(:slideshow, :weekly_dates)
         slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
         {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
-        IO.inspect(week1_timeoff)
         {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
 
         {slideshow, slides} = {parse_hours(slideshow), slides ++ [:hours]}

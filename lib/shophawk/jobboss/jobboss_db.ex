@@ -37,6 +37,7 @@ defmodule Shophawk.Jobboss_db do
       |> rename_key(:sched_start, :job_sched_start)
       |> rename_key(:status, :job_status)
       |> rename_key(:customer_po_ln, :customer_po_line)
+
       end)
 
     operations_map =
@@ -54,10 +55,11 @@ defmodule Shophawk.Jobboss_db do
     operations =
       operations_map
       |> Enum.map(fn %{job: job} = op -> Map.merge(op, Enum.find(jobs_map, &(&1.job == job))) end) #merge job info
+
       |> Enum.map(fn %{job: job} = op -> #merge material info
         matching_maps = Enum.filter(mats_map, fn mat -> mat.job == job end)
         case Enum.count(matching_maps) do #case if multiple maps found in the list, ie multiple materials
-          0 -> Map.merge(op, Map.from_struct(%Jb_material{}) |> Map.drop([:__meta__])) #in case no material
+          0 -> Map.merge(op, Map.from_struct(%Jb_material{}) |> Map.drop([:__meta__]) |> Map.drop([:job]) |> Map.drop([:status]) |> Map.drop([:description])) |> Map.put(:material, "Customer Supplied") #in case no material
           1 -> Map.merge(op, Enum.at(matching_maps, 0))
           _ ->
             merged_matching_maps = Enum.reduce(matching_maps, %{}, fn map, acc ->
@@ -83,7 +85,7 @@ defmodule Shophawk.Jobboss_db do
                 case row.employee do
                   "" -> acc.employee
                   nil -> acc.employee
-                  _ -> new_string = acc.employee <> " | " <> row.employee <> ": " <> Calendar.strftime(row.work_date, "%m-%d-%y")
+                  _ -> acc.employee <> " | " <> row.employee <> ": " <> Calendar.strftime(row.work_date, "%m-%d-%y")
                 end)
             end)
           else

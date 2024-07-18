@@ -220,11 +220,19 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("test", _, socket) do
+    Shophawk.Jobboss_db.merge_jobboss_job_info(["135480"])
     #Shophawk.Jobboss_db.update_workcenters
 
-    [{:refresh_time, previous_check}] = :ets.lookup(:runlist, :refresh_time)
-    :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
-    jobs = Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
+    #[{:refresh_time, previous_check}] = :ets.lookup(:runlist, :refresh_time)
+    #:ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
+    #jobs = Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
+
+    #[{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+    #Enum.each(runlists, fn op ->
+    #if op.job =="135480" do
+    #  IO.inspect(op)
+    #end
+    #end)
     #IO.inspect(Enum.count(jobs))
 
     {:noreply, socket}

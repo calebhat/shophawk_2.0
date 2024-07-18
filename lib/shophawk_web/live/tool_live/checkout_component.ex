@@ -76,7 +76,7 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
     case Inventory.update_tool(socket.assigns.tool, tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
-        IO.inspect(socket)
+        #IO.inspect(socket)
         {:noreply,
          socket
          |> put_flash(:info, "Tool updated successfully")

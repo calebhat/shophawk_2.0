@@ -359,8 +359,7 @@ defmodule Shophawk.Shop do
         end)
         |> Enum.uniq()
         |> Enum.map(fn op ->
-          Map.from_struct(op)
-          |> Map.put(:ships_today, true)
+          Map.put(op, :ships_today, true)
           |> Map.put(:dots, 3)
           |> Map.reject(fn {key, _value} -> key == :__meta__ end)
         end)
@@ -380,7 +379,7 @@ defmodule Shophawk.Shop do
           Enum.map(complete_runlist, fn op ->
             case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
               nil -> op
-              _found_ships_today -> %{id: op.id, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
+              _found_ships_today -> %{id: op.id, date_row_identifer: 0, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
             end
           end)
         jobs_that_ship_today ++ complete_runlist
