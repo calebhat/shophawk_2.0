@@ -513,16 +513,17 @@ defmodule Shophawk.Shop do
     [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
     hot_jobs =
       List.flatten(runlists)
-      |> Enum.filter(fn op -> op.dots > 0 end)
+      |> Enum.reject(fn op -> op.dots == nil end)
 
     grouped_ops = Enum.group_by(hot_jobs, &(&1.job))
     keys_to_keep = [:id, :job,:description, :customer, :part_number, :make_quantity, :dots, :currentop, :job_sched_end]
     Enum.map(grouped_ops, fn {_job, operations} ->
-      Enum.max_by(operations, &(&1.id))
+      Enum.max_by(operations, &(&1.sequence))
     end)
     |> Enum.map(&Map.take(&1, keys_to_keep))
     |> Enum.sort_by(&(&1.job_sched_end), Date)
-    |> Enum.slice(0..9)
+    |> Enum.slice(0..9) #displays the first 9 entries
+
   end
 
   @doc """
