@@ -1,10 +1,8 @@
 defmodule Shophawk.Jobboss_db do
-    alias Shophawk.Repo
     import Ecto.Query, warn: false
     alias Shophawk.Jb_job
     alias Shophawk.Jb_job_operation
     alias Shophawk.Jb_material
-    alias Shophawk.Runlist
     alias Shophawk.Jb_job_operation_time
     alias Shophawk.Jb_user_values
     alias Shophawk.Jb_employees
@@ -52,83 +50,81 @@ defmodule Shophawk.Jobboss_db do
     operation_time_map = Shophawk.Repo_jb.all(from r in Jb_job_operation_time, where: r.job_operation in ^job_operation_numbers) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) end)
     user_values_map = Shophawk.Repo_jb.all(from r in Jb_user_values, where: r.user_values in ^user_values_list) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.put(:text1, dots_calc(op.text1)) |> rename_key(:text1, :dots) end)
 
-    operations =
-      operations_map
-      |> Enum.map(fn %{job: job} = op -> Map.merge(op, Enum.find(jobs_map, &(&1.job == job))) end) #merge job info
-
-      |> Enum.map(fn %{job: job} = op -> #merge material info
-        matching_maps = Enum.filter(mats_map, fn mat -> mat.job == job end)
-        case Enum.count(matching_maps) do #case if multiple maps found in the list, ie multiple materials
-          0 -> Map.merge(op, Map.from_struct(%Jb_material{}) |> Map.drop([:__meta__]) |> Map.drop([:job]) |> Map.drop([:status]) |> Map.drop([:description])) |> Map.put(:material, "Customer Supplied") #in case no material
-          1 -> Map.merge(op, Enum.at(matching_maps, 0))
-          _ ->
-            merged_matching_maps = Enum.reduce(matching_maps, %{}, fn map, acc ->
-              map_without_job = Map.drop(map, [:job])
-              Map.merge(acc, map_without_job, fn _, value1, value2 ->
-                "#{value1} | #{value2}"
+    operations_map
+    |> Enum.map(fn %{job: job} = op -> Map.merge(op, Enum.find(jobs_map, &(&1.job == job))) end) #merge job info
+    |> Enum.map(fn %{job: job} = op -> #merge material info
+      matching_maps = Enum.filter(mats_map, fn mat -> mat.job == job end)
+      case Enum.count(matching_maps) do #case if multiple maps found in the list, ie multiple materials
+        0 -> Map.merge(op, Map.from_struct(%Jb_material{}) |> Map.drop([:__meta__]) |> Map.drop([:job]) |> Map.drop([:status]) |> Map.drop([:description])) |> Map.put(:material, "Customer Supplied") #in case no material
+        1 -> Map.merge(op, Enum.at(matching_maps, 0))
+        _ ->
+          merged_matching_maps = Enum.reduce(matching_maps, %{}, fn map, acc ->
+            map_without_job = Map.drop(map, [:job])
+            Map.merge(acc, map_without_job, fn _, value1, value2 ->
+              "#{value1} | #{value2}"
+            end)
+          end)
+          Map.merge(op, merged_matching_maps)
+      end
+    end)
+    |> Enum.map(fn %{job_operation: job_operation} = op -> #Merge Job Operation Time
+      matching_data = Enum.filter(operation_time_map, &((&1.job_operation) == job_operation))
+      starting_map =  Map.from_struct(%Jb_job_operation_time{}) |> Map.drop([:__meta__]) |> Map.drop([:job_operation])
+      combined_data_collection = #merge all matching data together before merging with operations
+        if matching_data != [] do
+          Enum.reduce(matching_data, starting_map, fn row, acc ->
+            acc
+            |> Map.put(:act_run_hrs, (row.act_run_hrs || 0) + acc.act_run_hrs)
+            |> Map.put(:act_run_qty, (row.act_run_qty || 0) + acc.act_run_qty)
+            |> Map.put(:act_scrap_qty, (row.act_scrap_qty || 0) + acc.act_scrap_qty)
+            |> Map.put(:employee,
+              case row.employee do
+                "" -> acc.employee
+                nil -> acc.employee
+                _ -> acc.employee <> " | " <> row.employee <> ": " <> Calendar.strftime(row.work_date, "%m-%d-%y")
               end)
-            end)
-            Map.merge(op, merged_matching_maps)
-        end
-      end)
-      |> Enum.map(fn %{job_operation: job_operation} = op -> #Merge Job Operation Time
-        matching_data = Enum.filter(operation_time_map, &((&1.job_operation) == job_operation))
-        starting_map =  Map.from_struct(%Jb_job_operation_time{}) |> Map.drop([:__meta__]) |> Map.drop([:job_operation])
-        combined_data_collection = #merge all matching data together before merging with operations
-          if matching_data != [] do
-            Enum.reduce(matching_data, starting_map, fn row, acc ->
-              acc
-              |> Map.put(:act_run_hrs, (row.act_run_hrs || 0) + acc.act_run_hrs)
-              |> Map.put(:act_run_qty, (row.act_run_qty || 0) + acc.act_run_qty)
-              |> Map.put(:act_scrap_qty, (row.act_scrap_qty || 0) + acc.act_scrap_qty)
-              |> Map.put(:employee,
-                case row.employee do
-                  "" -> acc.employee
-                  nil -> acc.employee
-                  _ -> acc.employee <> " | " <> row.employee <> ": " <> Calendar.strftime(row.work_date, "%m-%d-%y")
-                end)
-            end)
-          else
-            starting_map
-          end
-        new_map = Map.merge(op, combined_data_collection)
-        trimmed_employee =
-          if new_map.employee != nil do
-            new_map.employee
-            |> String.split("|")
-            |> Enum.map(&String.trim/1)
-            |> Enum.filter(fn x -> x != "" end)
-            |> Enum.uniq
-            |> Enum.join(" | ")
-          else
-            op.employee
-          end
-        Map.put(new_map, :employee, trimmed_employee)
-      end)
-      |> Enum.map(fn %{user_values: user_value} = op -> #Merge User Values
-        new_user_data = Enum.find(user_values_map, &(&1.user_values == user_value))
-        if new_user_data do
-          Map.merge(op, new_user_data)
+          end)
         else
-          Map.merge(op, Map.from_struct(%Jb_user_values{}) |> Map.drop([:__meta__]) |> Map.put(:text1, nil) |> rename_key(:text1, :dots))
+          starting_map
         end
-      end)
-      |> Enum.map(fn map -> #add in extra keys used for runlist
-        sanitize_map(map) #checks for strings with the wrong encoding for special characters. also converts naivedatetime to date format.
-        |> Map.put(:id, "op-#{map.job_operation}")
-        |> Map.put(:assignment, nil)
-        |> Map.put(:currentop, nil)
-        |> Map.put(:material_waiting, false)
-        |> Map.put(:runner, false)
-        |> Map.put(:date_row_identifer, nil)
-      end)
-      |> Enum.reject(fn op -> op.job_sched_end == nil end)
-      |> merge_shophawk_runlist_db(job_operation_numbers)
-      |> Enum.group_by(&{&1.job})
-      |> Map.values
-      |> set_current_op()
-      |> set_material_waiting() #This function flattens the grouped ops as well.
-      |> set_assignment_from_note_text_if_op_started
+      new_map = Map.merge(op, combined_data_collection)
+      trimmed_employee =
+        if new_map.employee != nil do
+          new_map.employee
+          |> String.split("|")
+          |> Enum.map(&String.trim/1)
+          |> Enum.filter(fn x -> x != "" end)
+          |> Enum.uniq
+          |> Enum.join(" | ")
+        else
+          op.employee
+        end
+      Map.put(new_map, :employee, trimmed_employee)
+    end)
+    |> Enum.map(fn %{user_values: user_value} = op -> #Merge User Values
+      new_user_data = Enum.find(user_values_map, &(&1.user_values == user_value))
+      if new_user_data do
+        Map.merge(op, new_user_data)
+      else
+        Map.merge(op, Map.from_struct(%Jb_user_values{}) |> Map.drop([:__meta__]) |> Map.put(:text1, nil) |> rename_key(:text1, :dots))
+      end
+    end)
+    |> Enum.map(fn map -> #add in extra keys used for runlist
+      sanitize_map(map) #checks for strings with the wrong encoding for special characters. also converts naivedatetime to date format.
+      |> Map.put(:id, "op-#{map.job_operation}")
+      |> Map.put(:assignment, nil)
+      |> Map.put(:currentop, nil)
+      |> Map.put(:material_waiting, false)
+      |> Map.put(:runner, false)
+      |> Map.put(:date_row_identifer, nil)
+    end)
+    |> Enum.reject(fn op -> op.job_sched_end == nil end)
+    |> merge_shophawk_runlist_db(job_operation_numbers)
+    |> Enum.group_by(&{&1.job})
+    |> Map.values
+    |> set_current_op()
+    |> set_material_waiting() #This function flattens the grouped ops as well.
+    |> set_assignment_from_note_text_if_op_started
   end
 
   def rename_key(map, old_key, new_key) do
@@ -150,7 +146,7 @@ defmodule Shophawk.Jobboss_db do
   def convert_binary_to_string(value) when is_binary(value) do
     case :unicode.characters_to_binary(value, :latin1, :utf8) do
       {:error, _, _} ->
-        Logger.error("Failed to convert string to UTF-8: #{inspect(value)}")
+        #Logger.error("Failed to convert string to UTF-8: #{inspect(value)}")
         :unicode.characters_to_binary(value, :latin1, :utf8)
       string -> string
     end

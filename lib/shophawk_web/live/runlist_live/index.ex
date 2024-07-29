@@ -4,9 +4,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.Shop
   alias Shophawk.Shop.Department
   alias Shophawk.Shop.Assignment
-  alias Shophawk.GeneralExports
-  alias Shophawk.RunlistImports
-  alias Shophawk.Jobboss
+
   def mount(_params, _session, socket) do
     if connected?(socket) do
       department_loads = get_runlist_loads()
@@ -114,6 +112,17 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_info({:load_attachments, job}, socket) do
     :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
     {:noreply, socket}
+  end
+
+  #TESTING PURPOSES
+  def handle_info({:refresh_department, socket}, _sock) do
+    process = self()
+    Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
+      :timer.sleep(300)
+      Process.send(process, {:send_runlist, finalize_department_stream(socket, socket.assigns.department_id)}, [])
+    end)
+    update_number = socket.assigns.updated + 1
+    {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
   end
 
   def handle_event("select_department", %{"selection" => department}, socket) do
@@ -234,17 +243,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     #end)
 
     {:noreply, socket}
-  end
-
-  #TESTING PURPOSES
-  def handle_info({:refresh_department, socket}, _sock) do
-    process = self()
-    Task.start(fn -> #runs asyncronously so loading animation gets sent to socket first
-      :timer.sleep(300)
-      Process.send(process, {:send_runlist, finalize_department_stream(socket, socket.assigns.department_id)}, [])
-    end)
-    update_number = socket.assigns.updated + 1
-    {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
   end
 
   def handle_event("refresh_department", _, socket) do

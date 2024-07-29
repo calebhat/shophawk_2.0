@@ -26,7 +26,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
-  defp apply_action(socket, :run_slideshow, %{"id" => id}) do
+  defp apply_action(socket, :run_slideshow, _params) do
     socket |> assign(:page_title, "Running Slideshow")
   end
 
@@ -62,8 +62,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     {:noreply, stream_delete(socket, :slideshow_collection, slideshow)}
   end
 
-  def handle_event("next_slide", %{"next-slide" => slide_to_load, "slides" => slides, "index" => index}, socket) do
-
+  def handle_event("next_slide", %{"next-slide" => slide_to_load, "slides" => slides}, socket) do
     slide_to_load = String.to_atom(slide_to_load)
     slides = Jason.decode!(slides) |> Enum.map( fn x -> String.to_atom(x) end)
     {slideshow, slides, _next_slide, _index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])

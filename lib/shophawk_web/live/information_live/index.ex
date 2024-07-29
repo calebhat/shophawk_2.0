@@ -1,6 +1,7 @@
 defmodule ShophawkWeb.InformationLive.Index do
   use ShophawkWeb, :live_view
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="grid grid-cols-3 place-content-center text-stone-100">
@@ -168,6 +169,7 @@ defmodule ShophawkWeb.InformationLive.Index do
     |> assign(:page_title, "Information")
   end
 
+  @impl true
   def handle_event("download", %{"file-path" => file_path}, socket) do
     #URL leads to router where I have a JS listener setup to push a file download from the path
     {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}

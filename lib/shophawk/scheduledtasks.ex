@@ -1,8 +1,5 @@
 defmodule ScheduledTasks do
   use GenServer
-  alias Shophawk.RunlistExports
-  alias Shophawk.RunlistImports
-  alias Shophawk.GeneralExports
   alias Shophawk.Shop
 
   # Client API

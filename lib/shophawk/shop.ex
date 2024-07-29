@@ -5,12 +5,10 @@ defmodule Shophawk.Shop do
 
   import Ecto.Query, warn: false
   alias Shophawk.Repo
-
- alias Shophawk.Shop.Runlist
- alias Shophawk.Shop.Department
- alias Shophawk.Shop.Workcenter
- alias Shophawk.Shop.Assignment
- alias Shophawk.RunlistImports
+  alias Shophawk.Shop.Runlist
+  alias Shophawk.Shop.Department
+  alias Shophawk.Shop.Workcenter
+  alias Shophawk.Shop.Assignment
 
   def list_job(job) do #loads all operations for a job
     job_ops =

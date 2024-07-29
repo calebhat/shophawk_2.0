@@ -1,5 +1,4 @@
 defmodule Shophawk.Jobboss do
-  alias Shophawk.Repo
   import Ecto.Query, warn: false
 
   alias Shophawk.Jb_job
