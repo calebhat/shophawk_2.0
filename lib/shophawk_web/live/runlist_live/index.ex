@@ -230,10 +230,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
     #[{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
     #Enum.each(runlists, fn op ->
     #if op.job =="135480" do
-    #  IO.inspect(op)
     #end
     #end)
-    #IO.inspect(Enum.count(jobs))
 
     {:noreply, socket}
   end

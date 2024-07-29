@@ -63,9 +63,10 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
         _ -> #if empty or not convertable to an integer, set balance to original balance
             Map.update!(tool_params, "balance", fn _value -> String.to_integer(Map.get(tool_params, "original_balance", "0")) end)
       end
+
     changeset =
       socket.assigns.tool
-      |> Inventory.change_tool(tool_params)
+      |> Inventory.change_tool(tool_params) #get nil here
       |> Map.put(:action, :validate)
     socket = assign_form(socket, changeset)
     {:noreply, socket}

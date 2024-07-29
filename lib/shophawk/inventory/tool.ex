@@ -49,6 +49,8 @@ defmodule Shophawk.Inventory.Tool do
     checkout_amount = get_field(changeset, :checkout_amount)
     if checkout_amount == 0 do
       put_change(changeset, :checkout_amount, "")
+    else
+      changeset
     end
   end
 
