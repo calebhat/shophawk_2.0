@@ -346,7 +346,7 @@ defmodule ShophawkWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "hx-submit-loading:opacity-75 rounded-lg bg-cyan-800 hover:bg-cyan-600 py-1.5 px-3",
+        "hx-submit-loading:opacity-75 rounded-lg bg-cyan-900 hover:bg-cyan-600 py-1.5 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
@@ -1371,7 +1371,7 @@ defmodule ShophawkWeb.CoreComponents do
       3 -> "bg-red-600 text-stone-950"
       _ -> color
     end
-    if runner == true, do: "bg-cyan-950", else: color
+    if runner == true, do: "bg-cyan-900", else: color
   end
 
   defp hover_color(date, dots, runner, status) do
@@ -1389,7 +1389,7 @@ defmodule ShophawkWeb.CoreComponents do
       3 -> "group-hover:bg-red-500"
       _ -> color
     end
-    if runner == true, do: "group-hover:bg-cyan-900", else: color
+    if runner == true, do: "group-hover:bg-cyan-950", else: color
   end
 
   @doc """

@@ -55,7 +55,6 @@ defmodule ShophawkWeb.ToolLive.CheckinComponent do
       |> Inventory.change_tool(tool_params)
       |> Map.put(:action, :validate)
     socket = assign_form(socket, changeset)
-      #IO.inspect(socket)
     {:noreply, socket}
   end
 

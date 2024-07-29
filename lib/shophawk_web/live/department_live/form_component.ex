@@ -144,7 +144,6 @@ defmodule ShophawkWeb.DepartmentLive.FormComponent do
     case Shop.create_department(department_params) do
       {:ok, department} ->
         notify_parent({:saved, department})
-        #IO.inspect()
         {:noreply,
          socket
          |> put_flash(:info, "Department created successfully")

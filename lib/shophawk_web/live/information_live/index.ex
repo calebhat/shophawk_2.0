@@ -155,13 +155,11 @@ defmodule ShophawkWeb.InformationLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-      #IO.inspect(socket)
     {:ok, socket}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-    #IO.inspect(params)
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 

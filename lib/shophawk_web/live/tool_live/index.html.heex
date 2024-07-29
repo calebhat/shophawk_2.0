@@ -1,6 +1,6 @@
-<div class="mx-auto max-w-fit" >
+<div class="mx-auto w-5/6 bg-cyan-800 rounded-lg p-4 text-stone-100" >
 <.header>
-  Listing Tools 
+  Tools 
   <:actions>
     <%= if @restock != [] do  %>
       <.link patch={~p"/tools/restock"}>
@@ -16,9 +16,13 @@
  
 </.header>
 
-<form phx-change="search" phx-submit="search">
-  <input type="text" name="query" placeholder="Scan barcode or search" autofocus phx-debounce="200">
-  <button type="submit">Search</button>
+<form phx-change="search">
+  <div class="grid grid-cols-6">
+    <div class="col-span-5 m-4">
+      <.input type="text" name="query" id="inv_search" value={@search_term || ""} placeholder="Scan barcode or search" autofocus phx-debounce="200"></.input>
+    </div>
+    <div class="flex-none self-center pt-3 content-center" phx-click="clear_search"><.info_button>Clear Search</.info_button></div>
+  </div>
 </form>
 
 <%= if @results != [] do %>

@@ -106,7 +106,6 @@ defmodule Shophawk.Shop do
   def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist items for
     #Shophawk.Jobboss_db.load_all_active_jobs()
     runlists = Shophawk.RunlistCache.get_runlist_ops(workcenter_list, department)
-    IO.inspect(Enum.count(runlists))
 
     if Enum.empty?(runlists) do
       {[], [], []}

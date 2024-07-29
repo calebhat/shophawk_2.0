@@ -10,16 +10,14 @@ defmodule ShophawkWeb.ToolLive.Index do
       socket
       |> assign(results: [])
       |> assign(restock: Inventory.check_status())
+      |> assign(search_term: "")
       |> stream(:tools, Inventory.list_tools())
-
-      #IO.inspect(socket)
     {:ok, socket}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
     socket = assign(socket, restock: Inventory.check_status())
-    #IO.inspect(params)
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
@@ -33,7 +31,6 @@ defmodule ShophawkWeb.ToolLive.Index do
   end
 
   defp apply_action(socket, :checkout, %{"id" => id}) do
-    #IO.inspect(socket)
     socket =
       socket
       |> assign(:page_title, "Checkout")
@@ -57,7 +54,6 @@ defmodule ShophawkWeb.ToolLive.Index do
       |> assign(:page_title, "Restock")
       |> assign(:tool, nil)
       |> assign(:tools, Inventory.list_tools())
-      #IO.inspect(socket)
       socket
   end
 
@@ -116,6 +112,10 @@ defmodule ShophawkWeb.ToolLive.Index do
     else
       {:noreply, stream(socket, :tools, Inventory.list_tools(), reset: true)}
     end
+  end
+
+  def handle_event("clear_search", _params, socket) do
+    {:noreply, socket |> assign(:search_term, "")}
   end
 
 

@@ -33,7 +33,7 @@ defmodule ScheduledTasks do
     Process.send_after(self(), :update_all_runlist_loads, 100)
     Process.send_after(self(), :load_current_week_birthdays,100)
     Process.send_after(self(), :save_weekly_dates, 100)
-    Process.send_after(self(), :update_from_jobboss, 100)
+    #Process.send_after(self(), :update_from_jobboss, 100)
 
     {:ok, nil}
   end

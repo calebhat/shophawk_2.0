@@ -49,7 +49,6 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
 
   @impl true
   def handle_event("validate", %{"tool" => tool_params}, socket) do
-    #IO.inspect(tool_params)
     changeset =
       socket.assigns.tool
       |> Inventory.change_tool(tool_params)

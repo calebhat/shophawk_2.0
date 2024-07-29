@@ -418,9 +418,9 @@ defmodule Shophawk.Jobboss_db do
       end
     end)
     :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
-    IO.inspect(previous_check)
+    #IO.inspect(previous_check)
     IO.puts("#{Enum.count(jobs_to_update)} Jobs updated")
-    IO.inspect(jobs_to_update)
+    #IO.inspect(jobs_to_update)
   end
 
 end

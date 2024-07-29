@@ -68,7 +68,6 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
       |> Inventory.change_tool(tool_params)
       |> Map.put(:action, :validate)
     socket = assign_form(socket, changeset)
-      #IO.inspect(socket)
     {:noreply, socket}
   end
 
@@ -76,7 +75,6 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
     case Inventory.update_tool(socket.assigns.tool, tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
-        #IO.inspect(socket)
         {:noreply,
          socket
          |> put_flash(:info, "Tool updated successfully")
