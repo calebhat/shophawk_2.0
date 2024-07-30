@@ -55,10 +55,14 @@ defmodule Shophawk.Inventory.Tool do
   end
 
   defp set_status(changeset) do
-    if get_field(changeset, :balance) >= get_field(changeset, :minimum) do
-      put_change(changeset, :status, "stocked")
+    if get_field(changeset, :status) != "ordered" do
+      if get_field(changeset, :balance) >= get_field(changeset, :minimum) do
+        put_change(changeset, :status, "stocked")
+      else
+        put_change(changeset, :status, "needs restock")
+      end
     else
-      put_change(changeset, :status, "needs restock")
+      changeset
     end
   end
 

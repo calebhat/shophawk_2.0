@@ -22,7 +22,10 @@ import Config
   instance: "SQLEXPRESS",
   username: "sa",
   password: "job1!boss",
-  database: "PRODUCTION"
+  database: "PRODUCTION",
+  pool_size: 10,
+  timeout: 10_000,
+  pool_timeout: 10_000
 
   env = System.get_env("MIX_ENV")
   #secret_key_base = System.get_env("SECRET_KEY_BASE")

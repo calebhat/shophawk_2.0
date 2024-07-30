@@ -9,7 +9,7 @@ defmodule ShophawkWeb.ToolLive.Index do
     socket =
       socket
       |> assign(results: [])
-      |> assign(restock: Inventory.check_status())
+      |> assign(restock: Inventory.needs_restock?())
       |> assign(search_term: "")
       |> stream(:tools, Inventory.list_tools())
     {:ok, socket}
@@ -17,7 +17,7 @@ defmodule ShophawkWeb.ToolLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
-    socket = assign(socket, restock: Inventory.check_status())
+    socket = assign(socket, restock: Inventory.needs_restock?() ++ Inventory.ordered?())
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
@@ -53,7 +53,7 @@ defmodule ShophawkWeb.ToolLive.Index do
       socket
       |> assign(:page_title, "Restock")
       |> assign(:tool, nil)
-      |> assign(:tools, Inventory.list_tools())
+      |> stream(:tools, Inventory.list_tools(), reset: true)
       socket
   end
 
@@ -79,6 +79,11 @@ defmodule ShophawkWeb.ToolLive.Index do
   end
 
   def handle_info({ShophawkWeb.ToolLive.CheckinComponent, {:saved, tool}}, socket) do
+    socket = if Inventory.needs_restock?() == [] do
+      socket
+    else
+      assign(socket, :live_action, :restock)
+    end
     {:noreply, stream_insert(socket, :tools, tool)}
   end
 
@@ -118,6 +123,24 @@ defmodule ShophawkWeb.ToolLive.Index do
     {:noreply, socket |> assign(:search_term, "")}
   end
 
+  def handle_event("ordered", %{"id" => id}, socket) do
+    Inventory.update_tool(Inventory.get_tool!(id), %{status: "ordered"})
+    send_update(self(), ShophawkWeb.ToolLive.RestockComponent, id: "restock")
+
+    {:noreply, socket}
+  end
+
+  def handle_event("needs_restock", %{"id" => id}, socket) do
+    Inventory.update_tool(Inventory.get_tool!(id), %{status: "needs_restock"})
+    send_update(self(), ShophawkWeb.ToolLive.RestockComponent, id: "restock")
+    {:noreply, socket}
+  end
+
+  def handle_event("in_cart", %{"id" => id}, socket) do
+    Inventory.update_tool(Inventory.get_tool!(id), %{status: "in cart"})
+    send_update(self(), ShophawkWeb.ToolLive.RestockComponent, id: "restock")
+    {:noreply, socket}
+  end
 
 
 end
