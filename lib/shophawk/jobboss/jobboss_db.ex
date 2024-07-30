@@ -151,7 +151,7 @@ defmodule Shophawk.Jobboss_db do
   def convert_binary_to_string(value) when is_binary(value) do
     case :unicode.characters_to_binary(value, :latin1, :utf8) do
       {:error, _, _} ->
-        #Logger.error("Failed to convert string to UTF-8: #{inspect(value)}")
+        ##IO.puts("Failed to convert string to UTF-8: #{inspect(value)}")
         :unicode.characters_to_binary(value, :latin1, :utf8)
       string -> string
     end
@@ -440,14 +440,24 @@ defmodule Shophawk.Jobboss_db do
       }
     catch
       :exit, {:timeout, _reason} ->
-        #IO.puts("Query timed out. Retries left: #{retries}")
+        IO.puts("Query timed out. Retries left: #{retries}")
         handle_retry(previous_check, retries, delay, :timeout)
       :exit, reason ->
-        #IO.puts("Query failed with reason: #{inspect(reason)}. Retries left: #{retries}")
+        IO.puts("Query failed with reason: #{inspect(reason)}. Retries left: #{retries}")
         handle_retry(previous_check, retries, delay, reason)
       error ->
-        #IO.puts("Query failed with error: #{inspect(error)}. Retries left: #{retries}")
+        IO.puts("Query failed with error: #{inspect(error)}. Retries left: #{retries}")
         handle_retry(previous_check, retries, delay, error)
+    rescue
+      e in DBConnection.ConnectionError ->
+        IO.puts("Database connection error: #{inspect(e)}. Retries left: #{retries}")
+        handle_retry(previous_check, retries, delay, :connection_error)
+      e in Ecto.QueryError ->
+        IO.puts("Query error: #{inspect(e)}. Retries left: #{retries}")
+        handle_retry(previous_check, retries, delay, :query_error)
+      e ->
+        IO.puts("Unexpected error: #{inspect(e)}. Retries left: #{retries}")
+        handle_retry(previous_check, retries, delay, :unexpected_error)
     end
   end
 
