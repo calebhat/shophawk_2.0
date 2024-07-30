@@ -26,10 +26,9 @@ defmodule Shophawk.Jobboss_db do
   end
 
   def merge_jobboss_job_info(job_numbers) do
+    query = from r in Jb_job, where: r.job in ^job_numbers
     jobs_map =
-      Jb_job
-      |> where([j], j.job in ^job_numbers)
-      |> Shophawk.Repo_jb.all()
+      failsafed_query(query)
       |> Enum.map(fn op ->
         Map.from_struct(op)
         |> Map.drop([:__meta__])
@@ -40,8 +39,9 @@ defmodule Shophawk.Jobboss_db do
       end)
       #IO.puts("job map loaded")
 
+    query = from r in Jb_job_operation, where: r.job in ^job_numbers
     operations_map =
-      Shophawk.Repo_jb.all(from r in Jb_job_operation, where: r.job in ^job_numbers)
+      failsafed_query(query)
       |> Enum.map(fn op ->
         Map.from_struct(op)
         |> Map.drop([:__meta__])
@@ -49,11 +49,15 @@ defmodule Shophawk.Jobboss_db do
       #IO.puts("job ops map loaded")
     job_operation_numbers = Enum.map(operations_map, fn op -> op.job_operation end)
     user_values_list = Enum.map(jobs_map, fn job -> job.user_values end)
-    mats_map = Shophawk.Repo_jb.all(from r in Jb_material, where: r.job in ^job_numbers) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> rename_key(:status, :mat_status) |> rename_key(:description, :mat_description) end)
+
+    query = from r in Jb_material, where: r.job in ^job_numbers
+    mats_map = failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> rename_key(:status, :mat_status) |> rename_key(:description, :mat_description) end)
     #IO.puts("mat map loaded")
-    operation_time_map = Shophawk.Repo_jb.all(from r in Jb_job_operation_time, where: r.job_operation in ^job_operation_numbers) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) end)
+    query = from r in Jb_job_operation_time, where: r.job_operation in ^job_operation_numbers
+    operation_time_map = failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) end)
     #IO.puts("operation time map loaded")
-    user_values_map = Shophawk.Repo_jb.all(from r in Jb_user_values, where: r.user_values in ^user_values_list) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.put(:text1, dots_calc(op.text1)) |> rename_key(:text1, :dots) end)
+    query = from r in Jb_user_values, where: r.user_values in ^user_values_list
+    user_values_map = failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.put(:text1, dots_calc(op.text1)) |> rename_key(:text1, :dots) end)
     #IO.puts("user value map loaded")
     operations_map
     |> Enum.map(fn %{job: job} = op -> Map.merge(op, Enum.find(jobs_map, &(&1.job == job))) end) #merge job info
@@ -376,43 +380,19 @@ defmodule Shophawk.Jobboss_db do
 
   def sync_recently_updated_jobs(previous_check) do
     previous_check = NaiveDateTime.add(previous_check, -5, :hour) #convert to local time that jobboss DB uses
-    jobs =
-      Jb_job
-      |> where([j], j.last_updated >= ^previous_check)
-      |> select([j], j.job)
-      |> distinct(true)
-      |> Shophawk.Repo_jb.all()
-    #IO.puts("Job jobs loaded")
-    {:ok, job_operation_jobs} = fetch_job_operation_jobs(previous_check)
-      #Jb_job_operation
-      #|> where([j], j.last_updated >= ^previous_check)
-      #|> select([j], j.job)
-      #|> distinct(true)
-      #|> Shophawk.Repo_jb.all()
-      IO.puts("Job operation jobs loaded")
-    material_jobs =
-      Jb_material
-      |> where([j], j.last_updated >= ^previous_check)
-      |> select([j], j.job)
-      |> distinct(true)
-      |> Shophawk.Repo_jb.all()
-      #IO.puts("mat jobs loaded")
-    job_operation_time_ops =
-      Jb_job_operation_time
-      |> where([j], j.last_updated >= ^previous_check)
-      |> select([j], j.job_operation)
-      |> distinct(true)
-      |> Shophawk.Repo_jb.all()
-      #IO.puts("job operation time job ops loaded")
-    job_operation_time_jobs =
-      Jb_job_operation
-      |> where([j], j.job_operation in ^job_operation_time_ops)
-      |> select([j], j.job)
-      |> distinct(true)
-      |> Shophawk.Repo_jb.all()
-      #IO.puts("job op jobs loaded")
+    query = from r in Jb_job, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
+    jobs = failsafed_query(query)
+    query = from r in Jb_job_operation, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
+    job_operation_jobs = failsafed_query(query)
+    query = from r in Jb_material, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
+    material_jobs = failsafed_query(query)
+    query = from r in Jb_job_operation_time, where: r.last_updated >= ^previous_check, select: r.job_operation, distinct: true
+    job_operation_time_ops = failsafed_query(query)
+    query = from r in Jb_job_operation, where: r.job_operation in ^job_operation_time_ops, select: r.job, distinct: true
+    job_operation_time_jobs = failsafed_query(query)
+
     jobs_to_update = jobs ++ job_operation_jobs ++ material_jobs ++ job_operation_time_jobs
-      |> Enum.uniq
+    |> Enum.uniq
     operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
     [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
     runlist = List.flatten(runlist)
@@ -429,45 +409,31 @@ defmodule Shophawk.Jobboss_db do
     :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
   end
 
-  def fetch_job_operation_jobs(previous_check, retries \\ 3, delay \\ 1000) do
+  def failsafed_query(query, retries \\ 3, delay \\ 500) do
+
     try do
-      {:ok,
-        Jb_job_operation
-        |> where([j], j.last_updated >= ^previous_check)
-        |> select([j], j.job)
-        |> distinct(true)
-        |> Shophawk.Repo_jb.all()
-      }
-    catch
-      :exit, {:timeout, _reason} ->
-        IO.puts("Query timed out. Retries left: #{retries}")
-        handle_retry(previous_check, retries, delay, :timeout)
-      :exit, reason ->
-        IO.puts("Query failed with reason: #{inspect(reason)}. Retries left: #{retries}")
-        handle_retry(previous_check, retries, delay, reason)
-      error ->
-        IO.puts("Query failed with error: #{inspect(error)}. Retries left: #{retries}")
-        handle_retry(previous_check, retries, delay, error)
+      {:ok, result} = {:ok, Shophawk.Repo_jb.all(query)}
+      result
     rescue
       e in DBConnection.ConnectionError ->
-        IO.puts("Database connection error: #{inspect(e)}. Retries left: #{retries}")
-        handle_retry(previous_check, retries, delay, :connection_error)
+        IO.puts("Database connection error. Retries left: #{retries}")
+        handle_retry(query, retries, delay, :connection_error)
       e in Ecto.QueryError ->
         IO.puts("Query error: #{inspect(e)}. Retries left: #{retries}")
-        handle_retry(previous_check, retries, delay, :query_error)
+        handle_retry(query, retries, delay, :query_error)
       e ->
         IO.puts("Unexpected error: #{inspect(e)}. Retries left: #{retries}")
-        handle_retry(previous_check, retries, delay, :unexpected_error)
+        handle_retry(query, retries, delay, :unexpected_error)
     end
   end
 
-  defp handle_retry(previous_check, 0, _delay, reason) do
+  defp handle_retry(query, 0, _delay, reason) do
     {:error, reason}
   end
 
-  defp handle_retry(previous_check, retries, delay, reason) do
+  defp handle_retry(query, retries, delay, reason) do
     :timer.sleep(delay)
-    fetch_job_operation_jobs(previous_check, retries - 1, delay)
+    failsafed_query(query, retries - 1, delay)
   end
 
 end
