@@ -37,7 +37,11 @@ defmodule ScheduledTasks do
 
   #runs every 7 seconds
   def handle_info(:update_from_jobboss, _state) do
-    [{:refresh_time, previous_check}] = :ets.lookup(:runlist, :refresh_time)
+    previous_check =
+      case :ets.lookup(:runlist, :refresh_time) do
+        [{:refresh_time, previous_check}] -> previous_check
+        [] -> NaiveDateTime.add(NaiveDateTime.utc_now(), -20) #syncs previous 20 seconds if no previos time found.
+      end
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
     Process.send_after(self(), :update_from_jobboss, 7000)
