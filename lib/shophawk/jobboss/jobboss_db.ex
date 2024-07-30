@@ -158,19 +158,22 @@ defmodule Shophawk.Jobboss_db do
 
   defp set_current_op(grouped_ops) do
     Enum.reduce(grouped_ops, [], fn group, acc ->
-      {updated_maps, _} =
-        Enum.reduce(group, {[], nil}, fn op, {acc, last_open_op} ->
+      {updated_maps, _, _} =
+        Enum.reduce(group, {[], nil, ""}, fn op, {acc, last_open_op, last_job} ->
           cond do
             op.status in ["O", "S"] and last_open_op == nil ->
-              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor}
+              {[%{op | currentop: op.wc_vendor} | acc], op.wc_vendor, op.job}
 
             op.status in ["O", "S"] and last_open_op != nil ->
-              {[%{op | currentop: last_open_op} | acc], last_open_op}
+              {[%{op | currentop: last_open_op} | acc], last_open_op, op.job}
 
-            op.status == "C" ->
-              {[%{op | currentop: nil} | acc], nil}
+              op.status == "C" and op.job == last_job ->
+                {[%{op | currentop: last_open_op} | acc], last_open_op, op.job}
 
-            true -> {[%{op | currentop: nil} | acc], nil}
+              op.status == "C" ->
+              {[%{op | currentop: nil} | acc], nil, op.job}
+
+            true -> {[%{op | currentop: nil} | acc], nil, op.job}
           end
         end)
 
