@@ -28,9 +28,9 @@ defmodule ScheduledTasks do
 
     #repeating scheduled functions
     Process.send_after(self(), :update_all_runlist_loads, 100)
-    Process.send_after(self(), :load_current_week_birthdays,100)
-    Process.send_after(self(), :save_weekly_dates, 100)
-    Process.send_after(self(), :update_from_jobboss, 100)
+    Process.send_after(self(), :load_current_week_birthdays,2000)
+    Process.send_after(self(), :save_weekly_dates, 2000)
+    Process.send_after(self(), :update_from_jobboss, 2000)
 
     {:ok, nil}
   end
@@ -100,7 +100,7 @@ defmodule ScheduledTasks do
     next_friday = Date.add(next_monday, 4)
     :ets.insert(:slideshow, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
     IO.puts("weekly dates updated")
-    Process.send_after(self(), :save_weekly_dates, 86400000)
+    Process.send_after(self(), :save_weekly_dates, 86500000)
     {:noreply, nil}
   end
 
