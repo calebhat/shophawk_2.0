@@ -10,6 +10,13 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_attachment
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
+
+  def rename_key(map, old_key, new_key) do
+    map
+    |> Map.put(new_key, Map.get(map, old_key))  # Add the new key with the old key's value
+    |> Map.delete(old_key)  # Remove the old key
+  end
+
   def load_all_active_jobs() do
     job_numbers =
       Jb_job
@@ -136,13 +143,7 @@ defmodule Shophawk.Jobboss_db do
     |> set_assignment_from_note_text_if_op_started
   end
 
-  def rename_key(map, old_key, new_key) do
-    map
-    |> Map.put(new_key, Map.get(map, old_key))  # Add the new key with the old key's value
-    |> Map.delete(old_key)  # Remove the old key
-  end
-
-  def sanitize_map(map) do
+  def sanitize_map(map) do #makes sure all values are in correct formats for the app.
     Enum.reduce(map, %{}, fn {key, value}, acc ->
       value =
         value
@@ -396,21 +397,17 @@ defmodule Shophawk.Jobboss_db do
     operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
     [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
     runlist = List.flatten(runlist)
-    new_runlist = Enum.reduce(operations, runlist, fn op, acc ->
-      if op.job_status == "Active" do
-        case Enum.find_index(acc, &(&1.job_operation == op.job_operation)) do
-          nil -> [op | acc]
-          index -> List.replace_at(acc, index, op)
-        end
-      else
-        Enum.reject(acc, &(&1.job_operation == op.job_operation))
-      end
+    skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc -> #removes all operations that have a job that gets updated
+      Enum.reject(acc, fn op -> job == op.job end)
+    end)
+    new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
+      if op.job_status == "Active", do: [op | acc]
     end)
     :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
   end
 
-  def failsafed_query(query, retries \\ 3, delay \\ 500) do
-
+  def failsafed_query(query, retries \\ 3, delay \\ 100) do #For jobboss db queries
+    Process.sleep(delay)
     try do
       {:ok, result} = {:ok, Shophawk.Repo_jb.all(query)}
       result
@@ -427,13 +424,31 @@ defmodule Shophawk.Jobboss_db do
     end
   end
 
-  defp handle_retry(query, 0, _delay, reason) do
+  defp handle_retry(_query, 0, delay, reason) do #For jobboss db queries
+    Process.sleep(delay)
     {:error, reason}
   end
 
-  defp handle_retry(query, retries, delay, reason) do
+  defp handle_retry(query, retries, delay, _reason) do #For jobboss db queries
     :timer.sleep(delay)
     failsafed_query(query, retries - 1, delay)
   end
+
+  ######
+  #STATS PAGE FUNCTIONS
+  ######
+
+  def bank_statements do #monthly bank statements
+  ten_years_ago = NaiveDateTime.add(DateTime.now(), -3650, :day)
+    query =
+      from r in Jb_BankHistory,
+      where: r.statement_date > ^ten_years_ago,
+      where: r.bank == "Johnson Bank"
+      #order_by: [asc: r.employee]
+
+    bank_statements = Shophawk.Repo_jb.all(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.drop([:bank]) end)
+    |> IO.inspect()
+  end
+
 
 end

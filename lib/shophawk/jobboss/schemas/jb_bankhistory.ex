@@ -9,6 +9,7 @@ defmodule Shophawk.Jb_BankHistory do
     field :statement_date, :naive_datetime
     field :beginning_balance, :float
     field :ending_balance, :float
+    field :bank, :string
     #timestamps()
   end
 
