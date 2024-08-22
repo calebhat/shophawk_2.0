@@ -44,7 +44,8 @@ defmodule ScheduledTasks do
       end
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
-    Process.send_after(self(), :update_from_jobboss, 7000)
+
+    #Process.send_after(self(), :update_from_jobboss, 7000)
     {:noreply, nil}
   end
 

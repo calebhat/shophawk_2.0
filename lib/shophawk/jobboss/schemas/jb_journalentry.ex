@@ -10,7 +10,7 @@ defmodule Shophawk.Jb_JournalEntry do
     field :amount, :float
     field :transaction_date, :naive_datetime
     field :last_updated, :naive_datetime
-    field :reference, :integer
+    field :reference, :string
     field :type, :string
     field :gl_account, :string
     #timestamps()

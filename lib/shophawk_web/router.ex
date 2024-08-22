@@ -63,7 +63,7 @@ defmodule ShophawkWeb.Router do
     live "/timeoff/:id", TimeoffLive.Show, :show
     live "/timeoff/:id/show/edit", TimeoffLive.Show, :edit
 
-
+    live "/dashboard", DashboardLive.Index, :index
 
   end
 

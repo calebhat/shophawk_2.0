@@ -6,14 +6,14 @@ defmodule Shophawk.Jb_InvoiceHeader do
   @schema_prefix "dbo"  # Explicitly setting the schema if needed
 
   schema "invoice_header" do
-    field :document, :integer
+    field :document, :string
     field :customer, :string
     field :ship_via, :string
     field :terms, :string
     field :document_date, :naive_datetime
     field :due_date, :naive_datetime
-    field :orig_invoice_amount, :float
-    field :open_invoice_amount, :float
+    field :orig_invoice_amt, :float
+    field :open_invoice_amt, :float
     field :last_updated, :naive_datetime
     field :invoiced_by, :string
     #timestamps()
