@@ -62,7 +62,35 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def get_open_invoices(socket) do
     open_invoices = Jobboss_db.open_invoices
-    socket = assign(socket, :open_invoices, open_invoices)
+
+    open_invoice_values = Enum.reduce(open_invoices, %{zero_to_thirty: 0, thirty_to_sixty: 0, sixty_to_ninety: 0, ninety_plus: 0, late: 0, all: 0}, fn inv, acc ->
+        days_open = Date.diff(Date.utc_today(), inv.document_date)
+        cond do
+          days_open <= 0 -> Map.put(acc, :all, acc.all + inv.open_invoice_amount)
+          days_open > 0 and days_open <= 30 ->
+            acc = Map.put(acc, :zero_to_thirty, acc.zero_to_thirty + inv.open_invoice_amount)
+            |> Map.put(:late, acc.late + inv.open_invoice_amount)
+            |> Map.put(:all, acc.all + inv.open_invoice_amount)
+          days_open > 30 and days_open <= 60 ->
+            acc = Map.put(acc, :thirty_to_sixty, acc.thirty_to_sixty + inv.open_invoice_amount)
+            |> Map.put(:late, acc.late + inv.open_invoice_amount)
+            |> Map.put(:all, acc.all + inv.open_invoice_amount)
+          days_open > 60 and days_open <= 90 ->
+            acc = Map.put(acc, :sixty_to_ninety, acc.sixty_to_ninety + inv.open_invoice_amount)
+            |> Map.put(:late, acc.late + inv.open_invoice_amount)
+            |> Map.put(:all, acc.all + inv.open_invoice_amount)
+          days_open > 90 ->
+            acc = Map.put(acc, :ninety_plus, acc.ninety_plus + inv.open_invoice_amount)
+            |> Map.put(:late, acc.late + inv.open_invoice_amount)
+            |> Map.put(:all, acc.all + inv.open_invoice_amount)
+        end
+      end)
+
+    IO.inspect(open_invoice_values)
+    socket =
+      assign(socket, :open_invoices, open_invoices)
+      |> assign(:open_invoice_storage, open_invoices) #used when changing range of invoices viewed
+      |> assign(:open_invoice_values, open_invoice_values)
   end
 
   defp change_bg_color_if_late(is_late, column, actual_column) do
@@ -78,6 +106,25 @@ defmodule ShophawkWeb.DashboardLive.Index do
     socket = get_open_invoices(socket)
 
     {:noreply, socket}
+  end
+
+  def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
+    IO.inspect(range)
+    open_invoices = socket.assigns.open_invoice_storage
+    ranged_open_invoices =
+      Enum.filter(open_invoices, fn inv ->
+        case range do
+          "0-30" -> inv.days_open > 0 and inv.days_open <= 30
+          "31-60" -> inv.days_open > 30 and inv.days_open <= 60
+          "61-90" -> inv.days_open > 60 and inv.days_open <= 90
+          "90+" -> inv.days_open > 90
+          "late" -> inv.late == true
+          "all" -> true
+        end
+      end)
+
+    IO.inspect(Enum.count(ranged_open_invoices))
+    {:noreply, assign(socket, :open_invoices, ranged_open_invoices)}
   end
 
 end

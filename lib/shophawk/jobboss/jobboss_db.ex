@@ -1,5 +1,6 @@
 defmodule Shophawk.Jobboss_db do
     import Ecto.Query, warn: false
+    import Number.Currency
     alias DateTime
     alias Shophawk.Jb_job
     alias Shophawk.Jb_job_operation
@@ -463,39 +464,38 @@ defmodule Shophawk.Jobboss_db do
   end
 
   def open_invoices() do #start_date and end_date are naive Time format
-  query =
-    from r in Jb_InvoiceHeader,
-    where: r.open_invoice_amt > 0.0
+    query =
+      from r in Jb_InvoiceHeader,
+      where: r.open_invoice_amt > 0.0
 
-  Shophawk.Repo_jb.all(query)
-    |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
-    |> Enum.sort_by(&(&1.customer), :desc)
-    |> Enum.reverse
-    |> Enum.map(fn inv ->
-      inv =
-        cond do
-          inv.terms in ["Net 30 days", "1% 10 Net 30", "2% 10 Net 30", "Due On Receipt"] -> Map.put(inv, :terms, 30)
-          inv.terms in ["Net 45 Days", "2% 10 NET 45", "NET 40 DAYS"] -> Map.put(inv, :terms, 45)
-          inv.terms in ["NET 60 DAYS"] -> Map.put(inv, :terms, 60)
-          inv.terms in ["Net 75 Days", "Net 60 mth end"] -> Map.put(inv, :terms, 75)
-          inv.terms in ["NET 90 DAYS"] -> Map.put(inv, :terms, 90)
-          true -> inv
-        end
-      inv = Map.put(inv, :open_invoice_amount, Float.round(inv.open_invoice_amt, 2))
-      inv = Map.put(inv, :days_open, Date.diff(Date.utc_today(), inv.document_date))
-      inv = if Date.diff(inv.due_date, Date.utc_today()) < 0, do: Map.put(inv, :late, true), else: Map.put(inv, :late, false)
+    Shophawk.Repo_jb.all(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+      |> Enum.sort_by(&(&1.customer), :desc)
+      |> Enum.with_index()
+      |> Enum.map(fn {inv, index} -> Map.put(inv, :id, index) end)
+      |> Enum.reverse
+      |> Enum.map(fn inv ->
+        inv =
+          cond do
+            inv.terms in ["Net 30 days", "1% 10 Net 30", "2% 10 Net 30", "Due On Receipt"] -> Map.put(inv, :terms, 30)
+            inv.terms in ["Net 45 Days", "2% 10 NET 45", "NET 40 DAYS"] -> Map.put(inv, :terms, 45)
+            inv.terms in ["NET 60 DAYS"] -> Map.put(inv, :terms, 60)
+            inv.terms in ["Net 75 Days", "Net 60 mth end"] -> Map.put(inv, :terms, 75)
+            inv.terms in ["NET 90 DAYS"] -> Map.put(inv, :terms, 90)
+            true -> inv
+          end
+        inv = Map.put(inv, :open_invoice_amount, Float.round(inv.open_invoice_amt, 2))
+        inv = Map.put(inv, :days_open, Date.diff(Date.utc_today(), inv.document_date))
+        inv = if Date.diff(inv.due_date, Date.utc_today()) < 0, do: Map.put(inv, :late, true), else: Map.put(inv, :late, false)
 
-      inv =
-        cond do
-          inv.days_open > 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
-          inv.days_open > 60 and inv.days_open <= 90 -> Map.put(inv, :column, 3)
-          inv.days_open > 90 -> Map.put(inv, :column, 4)
-          true -> Map.put(inv, :column, 0)
-        end
-
-
-    end)
-
+        inv =
+          cond do
+            inv.days_open > 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
+            inv.days_open > 60 and inv.days_open <= 90 -> Map.put(inv, :column, 3)
+            inv.days_open > 90 -> Map.put(inv, :column, 4)
+            true -> Map.put(inv, :column, 0)
+          end
+      end)
   end
 
 end

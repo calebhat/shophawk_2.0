@@ -1,8 +1,9 @@
 <div>
+    
     <div class="grid grid-cols-2 place-content-center text-stone-100">
         
         <!-- Checkbook Balance/tx's -->
-        <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[42vh]">
+        <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
             <div class="text-2xl">
               Checkbook Current Balance: <%= @current_balance %>
             </div>
@@ -39,52 +40,76 @@
         </div>
 
         <!-- open invoices -->
-        <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[42vh]">
-        <.button phx-click="test_click">CLICK ME</.button>
-            <div class="text-2xl">
-              Open Invoices: <%= Enum.count(@open_invoices) %>
+        <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
+        
+            <div class="text-2xl justify-items-end grid grid-cols-2">
+                <div class="underline">Open Invoices: <%= Enum.count(@open_invoices) %></div>
+                <div><.button phx-click="test_click">CLICK ME</.button></div>
             </div>
+            <%= if Enum.empty?(@open_invoices) == false do  %>
+            <div class="grid grid-cols-6">
+                <div class="border-b border-stone-400">0-30</div>
+                <div class="border-b border-stone-400">31-60</div>
+                <div class="border-b border-stone-400">61-90</div>
+                <div class="border-b border-stone-400">90+</div>
+                <div class="border-b border-stone-400">Late</div>
+                <div class="border-b border-stone-400">All</div>
+                <div class="hover:text-stone-400 cursor-pointer" phx-click="load_invoice_late_range" phx-value-range="0-30"><%= number_to_currency(@open_invoice_values.zero_to_thirty) %></div>
+                <div class="hover:text-stone-400 cursor-pointer" phx-click="load_invoice_late_range" phx-value-range="31-60"><%= number_to_currency(@open_invoice_values.thirty_to_sixty) %></div>
+                <div class="hover:text-stone-400 cursor-pointer" phx-click="load_invoice_late_range" phx-value-range="61-90"><%= number_to_currency(@open_invoice_values.sixty_to_ninety) %></div>
+                <div class="hover:text-stone-400 cursor-pointer" phx-click="load_invoice_late_range" phx-value-range="90+"><%= number_to_currency(@open_invoice_values.ninety_plus) %></div>
+                <div class="hover:text-stone-400 cursor-pointer" phx-click="load_invoice_late_range" phx-value-range="late"><%= number_to_currency(@open_invoice_values.late) %></div>
+                <div class="hover:text-stone-400 cursor-pointer" phx-click="load_invoice_late_range" phx-value-range="all"><%= number_to_currency(@open_invoice_values.all) %></div>
+            </div>
+            <% end %>
             <%= if Enum.empty?(@open_invoices) do  %>
                 <div class="loader"></div>
             <% else %>
-                <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[87%] overflow-y-auto">
-                    <div class="flex justify-center p-2 ">
-                        <table class="w-full">
-                            <thead>
-                                <tr>
-                                    <th class="">document</th>
-                                    <th class="">Customer</th>
-                                    <th class="">Invoice Date</th>
-                                    <th class="">Due Date</th>
-                                    <th class="">Terms</th>
-                                    <th class="">Days Open</th>
-                                    <th class="">0-30</th>
-                                    <th class="">31-60</th>
-                                    <th class="">61-90</th>
-                                    <th class="">90+</th>
-                                </tr>
+                <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[30vh]">
+                    <div class="flex justify-center">
+                        <div class="w-full">
+                        <table class="w-full table-fixed">
+                            <thead class="bg-cyan-800">
+                            <tr class="border-b border-stone-400 text-center">
+                                <th>Document</th>
+                                <th class="w-24">Customer</th>
+                                <th class="w-24">Invoice Date</th>
+                                <th class="w-24">Due Date</th>
+                                <th class="w-10">Terms</th>
+                                <th class="w-14 text-sm">Days Open</th>
+                                <th>0-30</th>
+                                <th>31-60</th>
+                                <th>61-90</th>
+                                <th>90+</th>
+                            </tr>
                             </thead>
+                        </table>
+                        <div class="overflow-y-auto h-[23vh]"> <!-- Adjust height as needed -->
+                            <table class="w-full table-fixed">
                             <tbody id="checkbook">
                                 <tr
                                 :for={inv <- @open_invoices}
                                 id="checkbook_entries"
                                 class="border-b border-stone-500 hover:bg-cyan-700"
                                 >
-                                    <td><%= inv.document %></td>
-                                    <td><%= inv.customer %></td>
-                                    <td><%= inv.document_date %></td>
-                                    <td><%= inv.due_date %></td>
-                                    <td><%= inv.terms %></td>
-                                    <td><%= inv.days_open %></td>
-                                    <td><%= if inv.days_open <= 30, do: inv.open_invoice_amt %></td>
-                                    <td class={change_bg_color_if_late(inv.late, inv.column, 2)}><%= if inv.days_open > 30 and inv.days_open <= 60, do: inv.open_invoice_amt %></td>
-                                    <td class={change_bg_color_if_late(inv.late, inv.column, 3)}><%= if inv.days_open > 60 and inv.days_open <= 90, do: inv.open_invoice_amt %></td>
-                                    <td class={change_bg_color_if_late(inv.late, inv.column, 4)}><%= if inv.days_open > 90, do: inv.open_invoice_amt %></td>
+                                <td class="border-x border-stone-500"><%= inv.document %></td>
+                                <td class="w-24 border-r border-stone-500 pl-1 overflow-hidden truncate whitespace-nowrap"><%= inv.customer %></td>
+                                <td class="w-24 border-r border-stone-500"><%= inv.document_date %></td>
+                                <td class="w-24 border-r border-stone-500"><%= inv.due_date %></td>
+                                <td class="w-10 border-r border-stone-500"><%= inv.terms %></td>
+                                <td class="w-14 border-r border-stone-500"><%= inv.days_open %></td>
+                                <td class="border-r border-stone-500"><%= if inv.days_open <= 30, do: number_to_currency(inv.open_invoice_amt) %></td>
+                                <td class={[change_bg_color_if_late(inv.late, inv.column, 2), "border-r border-stone-500"]}><%= if inv.days_open > 30 and inv.days_open <= 60, do: number_to_currency(inv.open_invoice_amt) %></td>
+                                <td class={[change_bg_color_if_late(inv.late, inv.column, 3), "border-r border-stone-500"]}><%= if inv.days_open > 60 and inv.days_open <= 90, do: number_to_currency(inv.open_invoice_amt) %></td>
+                                <td class={[change_bg_color_if_late(inv.late, inv.column, 4), "border-r border-stone-500"]}><%= if inv.days_open > 90, do: number_to_currency(inv.open_invoice_amt) %></td>
                                 </tr>
                             </tbody>
-                        </table>
+                            </table>
+                        </div>
+                        </div>
                     </div>
-                </div>
+                    </div>
+
             <% end %>
         </div>
 
