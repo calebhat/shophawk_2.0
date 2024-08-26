@@ -13,6 +13,8 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_BankHistory
     alias Shophawk.Jb_JournalEntry
     alias Shophawk.Jb_InvoiceHeader
+    alias Shophawk.Jb_job_delivery
+    alias Shophawk.Jb_delivery
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
 
@@ -440,18 +442,18 @@ defmodule Shophawk.Jobboss_db do
   end
 
   ######
-  #STATS PAGE FUNCTIONS
+  #DASHBOARD PAGE FUNCTIONS
   ######
 
   def bank_statements do #monthly bank statements
-  ten_years_ago = NaiveDateTime.add(NaiveDateTime.utc_now(), -3650, :day)
+    ten_years_ago = NaiveDateTime.add(NaiveDateTime.utc_now(), -3650, :day)
     query =
       from r in Jb_BankHistory,
       where: r.statement_date > ^ten_years_ago,
       where: r.bank == "Johnson Bank"
       #order_by: [asc: r.employee]
 
-    Shophawk.Repo_jb.all(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.drop([:bank]) |> sanitize_map() end)
+    failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.drop([:bank]) |> sanitize_map() end)
   end
 
   def journal_entry(start_date, end_date) do #start_date and end_date are naive Time format
@@ -459,16 +461,16 @@ defmodule Shophawk.Jobboss_db do
       from r in Jb_JournalEntry,
       where: r.transaction_date >= ^start_date and r.transaction_date <= ^end_date,
       where: r.gl_account == "104"
-    Shophawk.Repo_jb.all(query)
+    failsafed_query(query)
     |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 
-  def open_invoices() do #start_date and end_date are naive Time format
+  def open_invoices() do
     query =
       from r in Jb_InvoiceHeader,
       where: r.open_invoice_amt > 0.0
 
-    Shophawk.Repo_jb.all(query)
+    failsafed_query(query)
       |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
       |> Enum.sort_by(&(&1.customer), :desc)
       |> Enum.with_index()
@@ -486,16 +488,38 @@ defmodule Shophawk.Jobboss_db do
           end
         inv = Map.put(inv, :open_invoice_amount, Float.round(inv.open_invoice_amt, 2))
         inv = Map.put(inv, :days_open, Date.diff(Date.utc_today(), inv.document_date))
-        inv = if Date.diff(inv.due_date, Date.utc_today()) < 0, do: Map.put(inv, :late, true), else: Map.put(inv, :late, false)
+        inv = if Date.diff(inv.due_date, Date.utc_today()) <= 0, do: Map.put(inv, :late, true), else: Map.put(inv, :late, false)
 
         inv =
           cond do
-            inv.days_open > 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
+            inv.days_open < 30 -> Map.put(inv, :column, 1)
+            inv.days_open >= 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
             inv.days_open > 60 and inv.days_open <= 90 -> Map.put(inv, :column, 3)
             inv.days_open > 90 -> Map.put(inv, :column, 4)
             true -> Map.put(inv, :column, 0)
           end
       end)
   end
+
+  def active_jobs_with_cost() do
+    query =
+      from r in Jb_job_delivery,
+      where: r.status == "Active"
+
+    failsafed_query(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+      |> Enum.sort_by(&(&1.job), :desc)
+  end
+
+  def load_deliveries(job_numbers) do
+    query =
+      from r in Jb_delivery,
+      where: r.job in ^job_numbers
+
+    failsafed_query(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+      |> Enum.sort_by(&(&1.job), :desc)
+  end
+
 
 end
