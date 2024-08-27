@@ -23,8 +23,16 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import "../vendor/download_from_server"; //handles file downloads from push_redirect function inside a liveview
 
+// Import the chart hooks from charts.js
+import ChartHooks from "./charts";
+// Register hooks with LiveSocket
+let Hooks = {...ChartHooks}; // Merge ChartHooks with other hooks if you have more
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}})
+let liveSocket = new LiveSocket("/live", Socket, {
+  params: { _csrf_token: csrfToken },
+  hooks: Hooks
+});
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})

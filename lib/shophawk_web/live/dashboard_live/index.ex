@@ -15,10 +15,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:open_invoices, %{})
       |> assign(:selected_range, "")
       |> assign(:open_invoice_values, [])
-      |> assign(:revenue_history, [])
       |> assign(:six_weeks_revenue_amount, 0)
       |> assign(:total_revenue, 0)
       |> assign(:active_jobs, 0)
+      |> assign(:chart_data, [])
+
+      |> assign(:revenue_history, [])
 
       }
   end
@@ -98,6 +100,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def handle_event("test_click", _params, socket) do
     socket = assign(socket, :revenue_history, Shophawk.Dashboard.list_revenue)
+    data = Shophawk.Dashboard.list_revenue
+    chart_data =
+      %{
+        total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
+        six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
+        total_jobs: Enum.map(data, fn %{week: week, total_jobs: jobs} -> [week |> Date.to_iso8601(), jobs] end)
+      }
+    socket = assign(socket, :chart_data, Jason.encode!(chart_data))
 
     #field :date, :naive_datetime
     #field :amount, :float
