@@ -14,7 +14,12 @@
         />
 
         <!-- Checkbook Balance/tx's -->
-        <.live_component module={RevenueComponent} id="revenue-1" current_balance={@current_balance} checkbook_entries={@checkbook_entries}/>
+        <.live_component module={RevenueComponent} id="revenue-1" 
+        revenue_history={@revenue_history} 
+        six_weeks_revenue_amount={@six_weeks_revenue_amount}
+        total_revenue={@total_revenue}
+        active_jobs={@active_jobs}
+        />
 
 
         <div><.button phx-click="test_click">CLICK ME</.button></div>

@@ -511,15 +511,78 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.sort_by(&(&1.job), :desc)
   end
 
-  def load_deliveries(job_numbers) do
+  def deliveries_made_in_range(start_date, end_date) do
     query =
       from r in Jb_delivery,
-      where: r.job in ^job_numbers
+      where: r.shipped_date >= ^start_date and r.shipped_date < ^end_date
 
     failsafed_query(query)
       |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
       |> Enum.sort_by(&(&1.job), :desc)
   end
+
+  def load_deliveries(job_numbers) do
+    query =
+      from r in Jb_delivery,
+      where: r.job in ^job_numbers and is_nil(r.shipped_date) and r.promised_quantity > 0
+
+    failsafed_query(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+      |> Enum.sort_by(&(&1.job), :desc)
+  end
+
+  def load_jobs(job_numbers) do
+    query = from r in Jb_job, where: r.job in ^job_numbers
+    jobs_map =
+      failsafed_query(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  end
+
+  def total_revenue_at_date(date) do
+    naive_datetime = NaiveDateTime.new(date, ~T[00:00:00]) |> elem(1)
+    query = from j in Jb_job_delivery,
+          join: d in Jb_delivery,
+          on: j.job == d.job,
+          where: j.order_date <= ^naive_datetime,
+          where: d.promised_date >= ^naive_datetime or d.shipped_date >= ^naive_datetime,
+          distinct: true,
+          select: j.total_price
+    failsafed_query(query)
+    |> Enum.sum()
+  end
+
+  def total_jobs_at_date(date) do
+    naive_datetime = NaiveDateTime.new(date, ~T[00:00:00]) |> elem(1)
+    query = from j in Jb_job_delivery,
+          join: d in Jb_delivery,
+          on: j.job == d.job,
+          where: j.order_date <= ^naive_datetime,
+          where: d.promised_date >= ^naive_datetime or d.shipped_date >= ^naive_datetime,
+          distinct: true,
+          select: count(j.job)
+    failsafed_query(query)
+    |> Enum.sum()
+  end
+
+  def total_worth_of_orders_in_six_weeks_from_date(date) do
+    # Convert the date to a NaiveDateTime at the start of the day
+    naive_datetime = NaiveDateTime.new(date, ~T[00:00:00]) |> elem(1)
+
+    # Calculate the end date, which is 6 weeks from the input date
+    end_date = NaiveDateTime.add(naive_datetime, 6 * 7 * 24 * 60 * 60, :second)
+
+    query = from j in Jb_job_delivery,
+            join: d in Jb_delivery,
+            on: j.job == d.job,
+            where: j.order_date <= ^naive_datetime,
+            where: d.promised_date >= ^naive_datetime and d.promised_date <= ^end_date,
+            distinct: true,
+            select: j.total_price
+
+    failsafed_query(query)
+    |> Enum.sum()
+  end
+
 
 
 end
