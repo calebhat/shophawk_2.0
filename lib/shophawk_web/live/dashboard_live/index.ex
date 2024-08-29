@@ -20,8 +20,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:active_jobs, 0)
       |> assign(:chart_data, [])
 
-      |> assign(:revenue_history, [])
-
       }
   end
 
@@ -31,8 +29,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   defp apply_action(socket, :index, _params) do
-    #Process.send(self(), :load_data, [:noconnect])
-
+    Process.send(self(), :load_data, [:noconnect])
 
     socket
     |> assign(:page_title, "Dashboard")
@@ -42,7 +39,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply,
       socket
       |> load_checkbook()
-      |> get_open_invoices()
+      |> load_open_invoices()
+      |> load_anticipated_revenue()
     }
   end
 
@@ -75,7 +73,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:checkbook_entries, checkbook_entries)
   end
 
-  def get_open_invoices(socket) do
+  def load_open_invoices(socket) do
     open_invoices = Jobboss_db.open_invoices
 
     open_invoice_values = Enum.reduce(open_invoices, %{zero_to_thirty: 0, thirty_to_sixty: 0, sixty_to_ninety: 0, ninety_plus: 0, late: 0, all: 0}, fn inv, acc ->
@@ -98,41 +96,15 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:open_invoice_values, open_invoice_values)
   end
 
-  def handle_event("test_click", _params, socket) do
-    socket = assign(socket, :revenue_history, Shophawk.Dashboard.list_revenue)
+  def load_anticipated_revenue(socket) do
     data = Shophawk.Dashboard.list_revenue
     chart_data =
       %{
         total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
-        six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
-        total_jobs: Enum.map(data, fn %{week: week, total_jobs: jobs} -> [week |> Date.to_iso8601(), jobs] end)
+        six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
       }
     socket = assign(socket, :chart_data, Jason.encode!(chart_data))
-
-    #field :date, :naive_datetime
-    #field :amount, :float
-    #Shophawk.Dashboard.create_monthly_sales()
-
     socket = calc_current_revenue(socket)
-    {:noreply, socket}
-  end
-
-  def save_revenue_history() do
-    revenue_history = generate_full_revenue_history(~D[2014-01-06], Date.add(Date.utc_today, 1))
-    Enum.each(revenue_history, fn r -> Shophawk.Dashboard.create_revenue(r) end)
-  end
-
-  #Input startdate and an end date t going forward in time to generate load for each week in between.
-  def generate_full_revenue_history(start_date, end_date, list \\ []) do
-    if Date.after?(start_date, end_date) do
-      list
-    else
-      total_revenue = Jobboss_db.total_revenue_at_date(start_date)
-      six_week_revenue = Jobboss_db.total_worth_of_orders_in_six_weeks_from_date(start_date)
-      total_jobs = Jobboss_db.total_jobs_at_date(start_date)
-      map = %{total_revenue: Float.round(total_revenue, 2), six_week_revenue: Float.round(six_week_revenue, 2), total_jobs: total_jobs, week: start_date}
-      generate_full_revenue_history(Date.add(start_date, 7), end_date, [map | list])
-    end
   end
 
   def calc_current_revenue(socket) do
@@ -148,31 +120,30 @@ defmodule ShophawkWeb.DashboardLive.Index do
     total_revenue = Enum.reduce(merged_deliveries, 0, fn d, acc -> (d.promised_quantity * d.unit_price) + acc end)
     six_weeks_out_deliveries =
       Enum.filter(merged_deliveries, fn d -> Date.before?(d.promised_date, Date.add(Date.utc_today(), 43)) end)
-
-      #only late jobs
-      #Enum.filter(merged_deliveries, fn d -> Date.before?(d.promised_date, Date.utc_today()) end)
-
     six_weeks_revenue_amount = Enum.reduce(six_weeks_out_deliveries, 0, fn d, acc -> (d.promised_quantity * d.unit_price) + acc end)
 
     socket
-    #|> assign(:deliveries, six_weeks_out_deliveries)
     |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
     |> assign(:total_revenue, total_revenue)
     |> assign(:active_jobs, Enum.count(jobs))
   end
 
-  def calc_six_week_revenue_history(start_date, end_date) do
-    deliveries = Jobboss_db.deliveries_made_in_range(start_date, end_date)
-    job_numbers = Enum.map(deliveries, fn d -> d.job end)
-    jobs = Jobboss_db.load_jobs(job_numbers)
+  def handle_event("test_click", _params, socket) do
+    socket = assign(socket, :revenue_history, Shophawk.Dashboard.list_revenue)
+    data = Shophawk.Dashboard.list_revenue
+    chart_data =
+      %{
+        total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
+        six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
+      }
+    socket = assign(socket, :chart_data, Jason.encode!(chart_data))
 
-    merged_deliveries = Enum.reduce(deliveries, [], fn d, acc ->
-      job = Enum.find(jobs, fn job -> job.job == d.job end)
-      acc ++ [Map.merge(d, job)]
-    end)
-    |> Enum.filter(fn d -> d.unit_price > 0 end)
-    |> Enum.sort_by(&(&1.promised_date), Date)
-    six_weeks_revenue_amount = Enum.reduce(merged_deliveries, 0, fn d, acc -> (d.promised_quantity * d.unit_price) + acc end)
+    #field :date, :naive_datetime
+    #field :amount, :float
+    #Shophawk.Dashboard.create_monthly_sales()
+
+    socket = calc_current_revenue(socket)
+    {:noreply, socket}
   end
 
   def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
@@ -191,5 +162,26 @@ defmodule ShophawkWeb.DashboardLive.Index do
       end)
     {:noreply, assign(socket, :open_invoices, ranged_open_invoices) |> assign(:selected_range, range)}
   end
+
+
+  ###############################################
+    #Function to load history and save to DB
+    def save_revenue_history() do
+      revenue_history = generate_full_revenue_history(~D[2014-01-06], Date.add(Date.utc_today, 1))
+      Enum.each(revenue_history, fn r -> Shophawk.Dashboard.create_revenue(r) end)
+    end
+
+    #Input startdate and an end date t going forward in time to generate load for each week in between.
+    def generate_full_revenue_history(start_date, end_date, list \\ []) do
+      if Date.after?(start_date, end_date) do
+        list
+      else
+        total_revenue = Jobboss_db.total_revenue_at_date(start_date)
+        six_week_revenue = Jobboss_db.total_worth_of_orders_in_six_weeks_from_date(start_date)
+        total_jobs = Jobboss_db.total_jobs_at_date(start_date)
+        map = %{total_revenue: Float.round(total_revenue, 2), six_week_revenue: Float.round(six_week_revenue, 2), total_jobs: total_jobs, week: start_date}
+        generate_full_revenue_history(Date.add(start_date, 7), end_date, [map | list])
+      end
+    end
 
 end

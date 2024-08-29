@@ -5,12 +5,13 @@ defmodule Shophawk.Dashboard do
 
   import Ecto.Query, warn: false
   alias Shophawk.Repo
+  alias DateTime
   alias Shophawk.Dashboard.Monthlysales
   alias Shophawk.Dashboard.Revenue
 
 
   def list_revenue do
-    Repo.all(from t in Revenue, order_by: [desc: t.week])
+    Repo.all(from t in Revenue,  where: t.week > ^Date.add(Date.utc_today, -3650), order_by: [desc: t.week])
   end
 
 

@@ -14,16 +14,17 @@
         />
 
         <!-- Checkbook Balance/tx's -->
-        <.live_component module={RevenueComponent} id="revenue-1" 
-        revenue_history={@revenue_history} 
-        six_weeks_revenue_amount={@six_weeks_revenue_amount}
-        total_revenue={@total_revenue}
-        active_jobs={@active_jobs}
-        chart_data={@chart_data}
-        />
 
 
         <div><.button phx-click="test_click">CLICK ME</.button></div>
         
     </div> <!-- end of grid -->
+    <div class="grid grid-cols-1 place-content-center text-stone-100">
+        <.live_component module={RevenueComponent} id="revenue-2"
+        six_weeks_revenue_amount={@six_weeks_revenue_amount}
+        total_revenue={@total_revenue}
+        active_jobs={@active_jobs}
+        chart_data={@chart_data}
+        />
+    </div>
 </div>
