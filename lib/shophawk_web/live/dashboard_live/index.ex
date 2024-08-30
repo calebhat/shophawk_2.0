@@ -5,6 +5,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.CheckbookComponent
   alias ShophawkWeb.InvoicesComponent
   alias ShophawkWeb.RevenueComponent
+  alias ShophawkWeb.MonthlySalesChartComponent
   alias Shophawk.Dashboard
 
   @impl true
@@ -18,7 +19,13 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:six_weeks_revenue_amount, 0)
       |> assign(:total_revenue, 0)
       |> assign(:active_jobs, 0)
-      |> assign(:chart_data, [])
+      |> assign(:revenue_chart_data, [])
+      |> assign(:sales_chart_data, [])
+      #Yearly Sales Chart
+      |> assign(:monthly_sales, 0)
+      |> assign(:this_months_sales, 0)
+      |> assign(:this_years_sales, 0)
+      |> assign(:projected_yearly_sales, 0)
 
       }
   end
@@ -38,13 +45,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      |> load_checkbook()
-      |> load_open_invoices()
-      |> load_anticipated_revenue()
+      #|> load_checkbook_component()
+      #|> load_open_invoices_component()
+      |> load_anticipated_revenue_component()
+      |> load_monthly_sales_chart_component()
     }
   end
 
-  def load_checkbook(socket) do
+  def load_checkbook_component(socket) do
     bank_statements =
       Jobboss_db.bank_statements
       |> Enum.reverse
@@ -73,7 +81,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:checkbook_entries, checkbook_entries)
   end
 
-  def load_open_invoices(socket) do
+  def load_open_invoices_component(socket) do
     open_invoices = Jobboss_db.open_invoices
 
     open_invoice_values = Enum.reduce(open_invoices, %{zero_to_thirty: 0, thirty_to_sixty: 0, sixty_to_ninety: 0, ninety_plus: 0, late: 0, all: 0}, fn inv, acc ->
@@ -96,15 +104,67 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:open_invoice_values, open_invoice_values)
   end
 
-  def load_anticipated_revenue(socket) do
+  def load_anticipated_revenue_component(socket) do
     data = Shophawk.Dashboard.list_revenue
     chart_data =
       %{
         total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
         six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
       }
-    socket = assign(socket, :chart_data, Jason.encode!(chart_data))
+    socket = assign(socket, :revenue_chart_data, Jason.encode!(chart_data))
     socket = calc_current_revenue(socket)
+  end
+
+  def load_monthly_sales_chart_component(socket) do
+    beginning_of_this_month = Date.beginning_of_month(Date.utc_today())
+    current_months_sales = generate_monthly_sales(beginning_of_this_month, Date.add(Date.utc_today, 1)) |> List.first()
+    sales_chart_data =
+      Dashboard.list_monthly_sales
+      |> Enum.map(fn op ->
+        map =
+          Map.from_struct(op)
+          |> Map.drop([:__meta__])
+          |> Map.drop([:id])
+          |> Map.drop([:inserted_at])
+          |> Map.drop([:updated_at])
+        case Map.get(map, :date) do #replace or add current months sales with updated value
+          ^beginning_of_this_month -> Map.put(map, :amount, current_months_sales.amount)
+          nil ->
+            Map.put(map, :date, beginning_of_this_month)
+            |> Map.put(:amount, current_months_sales.amount)
+          _ -> map
+        end
+      end)
+      |> Enum.group_by(fn d -> d.date.year end)
+      |> Enum.map(fn {year, entries} ->
+        month_amounts =
+          Enum.reduce(1..12, [], fn n, acc ->
+            amount =
+              case Enum.find(entries, fn entry -> entry.date.month == n end) do
+                nil -> nil
+                found_entry -> found_entry.amount
+              end
+              [amount | acc]
+          end)
+          |> Enum.reverse
+        %{name: "#{year}", data: month_amounts}
+      end)
+    this_year_data = Enum.find(sales_chart_data, fn data -> data.name == Integer.to_string(Date.utc_today().year) end)
+    this_years_sales =
+      Enum.reduce(this_year_data.data, 0, fn d, acc ->
+        case d do
+          nil -> acc
+          amount -> amount + acc
+          _ -> acc
+        end
+      end)
+
+    socket =
+      socket
+      |> assign(:sales_chart_data, Jason.encode!(%{series: sales_chart_data}))
+      |> assign(:this_months_sales, current_months_sales.amount)
+      |> assign(:this_years_sales, this_years_sales)
+      |> assign(:projected_yearly_sales, (this_years_sales / Date.utc_today().month) * 12)
   end
 
   def calc_current_revenue(socket) do
@@ -128,24 +188,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:active_jobs, Enum.count(jobs))
   end
 
-  def handle_event("test_click", _params, socket) do
-    socket = assign(socket, :revenue_history, Shophawk.Dashboard.list_revenue)
-    data = Shophawk.Dashboard.list_revenue
-    chart_data =
-      %{
-        total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
-        six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
-      }
-    socket = assign(socket, :chart_data, Jason.encode!(chart_data))
-
-    #field :date, :naive_datetime
-    #field :amount, :float
-    #Shophawk.Dashboard.create_monthly_sales()
-
-    socket = calc_current_revenue(socket)
-    {:noreply, socket}
-  end
-
   def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
     open_invoices = socket.assigns.open_invoice_storage
     ranged_open_invoices =
@@ -163,6 +205,44 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply, assign(socket, :open_invoices, ranged_open_invoices) |> assign(:selected_range, range)}
   end
 
+  def handle_event("test_click", _params, socket) do
+
+    #socket = load_monthly_sales_chart_component(socket)
+
+    ######################Functions to load history into db for first load with new dashboard####################
+    #save_monthly_sales(Date.add(Date.utc_today, -4015), Date.add(Date.utc_today, -240))
+    #save_revenue_history()
+    {:noreply, socket}
+  end
+
+  def save_monthly_sales(start_date, end_date) do
+    monthly_sales = generate_monthly_sales(start_date, end_date, [])
+    #Enum.each(monthly_sales, fn month -> IO.inspect(month) end)
+
+    Enum.each(monthly_sales, fn r -> Shophawk.Dashboard.create_monthly_sales(r) end)
+  end
+
+  def generate_monthly_sales(start_date, end_date, list \\ []) do
+    if Date.after?(start_date, end_date) do
+      list
+    else
+      start_date = Date.beginning_of_month(start_date)
+      case Jobboss_db.load_deliveries(start_date, Date.end_of_month(start_date)) do
+        [] -> list #if no deliveries found
+        deliveries ->
+          jobs = Enum.map(deliveries, fn d -> d.job end) |> Jobboss_db.load_delivery_jobs()
+          merged_deliveries = Enum.reduce(deliveries, [], fn d, acc ->
+            job = Enum.find(jobs, fn job -> job.job == d.job end)
+            acc ++ [Map.merge(d, job)]
+            end)
+            |> Enum.sort_by(&(&1.promised_date), Date)
+          total_sales =
+            %{amount: Enum.reduce(merged_deliveries, 0, fn d, acc -> Float.round((d.promised_quantity * d.unit_price) + acc, 2) end),
+              date: start_date}
+          generate_monthly_sales(Date.add(start_date, 35), end_date, [total_sales | list])
+      end
+    end
+  end
 
   ###############################################
     #Function to load history and save to DB

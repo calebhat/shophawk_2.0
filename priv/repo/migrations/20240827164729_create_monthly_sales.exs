@@ -3,7 +3,7 @@ defmodule Shophawk.Repo.Migrations.CreateMonthlySales do
 
   def change do
     create table(:monthly_sales) do
-      add :date, :naive_datetime
+      add :date, :date
       add :amount, :float
 
       timestamps()

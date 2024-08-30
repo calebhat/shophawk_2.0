@@ -20,7 +20,7 @@ defmodule ShophawkWeb.RevenueComponent do
         <% end %>
         <%= if @total_revenue != 0 do  %>
             <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[85%] text-black">
-                <div id="mainChart" phx-hook="ApexChart" data-chart-data={@chart_data}></div>
+                <div id="Revenue_Chart" phx-hook="Revenue_Chart" data-revenue-chart={@revenue_chart_data}></div>
             </div>
         <% else %>
             <div class="loader"></div>

@@ -501,6 +501,18 @@ defmodule Shophawk.Jobboss_db do
       end)
   end
 
+  ######## thought this would work for monthly sales, but no ############
+  #def closed_invoices(start_date, end_date) do
+  #  start_date = NaiveDateTime.new(start_date, ~T[00:00:00]) |> elem(1)
+  #  end_date = NaiveDateTime.new(end_date, ~T[00:00:00]) |> elem(1)
+  #  query =
+  #    from r in Jb_InvoiceHeader,
+  #    where: not is_nil(r.paid_date),
+  #    where: r.paid_date >= ^start_date and r.paid_date <= ^end_date
+  #  failsafed_query(query)
+  #  |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  #end
+
   def active_jobs_with_cost() do
     query =
       from r in Jb_job_delivery,
@@ -531,8 +543,26 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.sort_by(&(&1.job), :desc)
   end
 
+  def load_deliveries(start_date, end_date) do
+        start_date = NaiveDateTime.new(start_date, ~T[00:00:00]) |> elem(1)
+        end_date = NaiveDateTime.new(end_date, ~T[00:00:00]) |> elem(1)
+        query =
+          from r in Jb_delivery,
+          where: not is_nil(r.shipped_date),
+          where: r.shipped_date >= ^start_date and r.shipped_date <= ^end_date
+        failsafed_query(query)
+        |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  end
+
   def load_jobs(job_numbers) do
     query = from r in Jb_job, where: r.job in ^job_numbers
+    jobs_map =
+      failsafed_query(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  end
+
+  def load_delivery_jobs(job_numbers) do
+    query = from r in Jb_job_delivery, where: r.job in ^job_numbers
     jobs_map =
       failsafed_query(query)
       |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)

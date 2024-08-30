@@ -3,7 +3,7 @@ defmodule Shophawk.Dashboard.Monthlysales do
   import Ecto.Changeset
 
   schema "monthly_sales" do
-    field :date, :naive_datetime
+    field :date, :date
     field :amount, :float
 
     timestamps()

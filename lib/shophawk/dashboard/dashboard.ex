@@ -14,6 +14,9 @@ defmodule Shophawk.Dashboard do
     Repo.all(from t in Revenue,  where: t.week > ^Date.add(Date.utc_today, -3650), order_by: [desc: t.week])
   end
 
+  def list_monthly_sales do
+    Repo.all(from t in Monthlysales,  where: t.date > ^Date.add(Date.utc_today, -3650), order_by: [desc: t.date])
+  end
 
   def get_revenue!(id) do
     Repo.get!(Revenue, id)
