@@ -7,6 +7,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.RevenueComponent
   alias ShophawkWeb.MonthlySalesChartComponent
   alias ShophawkWeb.TravelorcountComponent
+  alias ShophawkWeb.HotjobsComponent
   alias Shophawk.Dashboard
 
   @impl true
@@ -32,6 +33,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:travelor_count, [])
       |> assign(:travelor_totals, %{})
 
+      #hot jobs
+      |> assign(:hot_jobs, [])
+
       }
   end
 
@@ -50,11 +54,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      #|> load_checkbook_component()
-      #|> load_open_invoices_component()
+      |> load_checkbook_component()
+      |> load_open_invoices_component()
       |> load_travelors_released_componenet()
-      #|> load_anticipated_revenue_component()
+      |> load_anticipated_revenue_component()
       |> load_monthly_sales_chart_component()
+      |> load_hot_jobs()
     }
   end
 
@@ -264,6 +269,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
       end
   end
 
+  def load_hot_jobs(socket) do
+    assign(socket, :hot_jobs, Shophawk.Shop.get_hot_jobs())
+  end
+
+
   def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
     open_invoices = socket.assigns.open_invoice_storage
     ranged_open_invoices =
@@ -282,6 +292,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def handle_event("test_click", _params, socket) do
+    socket = load_hot_jobs(socket)
 
     ######################Functions to load history into db for first load with new dashboard####################
     #load_10_year_history_into_db()

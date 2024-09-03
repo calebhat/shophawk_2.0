@@ -27,10 +27,10 @@ defmodule ShophawkWeb.TravelorcountComponent do
                                 <th class="">Total</th>
                             </tr>
                         </thead>
-                        <tbody id="checkbook">
+                        <tbody id="travelors">
                             <tr
                             :for={t <- @travelor_count}
-                            id="checkbook_entries"
+                            id="travelors_counts"
                             class="hover:bg-cyan-700"
                             >
                                 <td class="py-2 border border-stone-500"><%= t.date %></td>
