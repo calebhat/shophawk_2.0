@@ -15,6 +15,7 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_InvoiceHeader
     alias Shophawk.Jb_job_delivery
     alias Shophawk.Jb_delivery
+    alias Shophawk.Jb_job_note_text
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
 
@@ -501,18 +502,6 @@ defmodule Shophawk.Jobboss_db do
       end)
   end
 
-  ######## thought this would work for monthly sales, but no ############
-  #def closed_invoices(start_date, end_date) do
-  #  start_date = NaiveDateTime.new(start_date, ~T[00:00:00]) |> elem(1)
-  #  end_date = NaiveDateTime.new(end_date, ~T[00:00:00]) |> elem(1)
-  #  query =
-  #    from r in Jb_InvoiceHeader,
-  #    where: not is_nil(r.paid_date),
-  #    where: r.paid_date >= ^start_date and r.paid_date <= ^end_date
-  #  failsafed_query(query)
-  #  |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
-  #end
-
   def active_jobs_with_cost() do
     query =
       from r in Jb_job_delivery,
@@ -522,6 +511,18 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
       |> Enum.sort_by(&(&1.job), :desc)
   end
+
+  def released_jobs(date) do
+    date = NaiveDateTime.new(date, ~T[00:00:00]) |> elem(1)
+    query =
+      from r in Jb_job_note_text,
+      where: r.released_date == ^date
+
+    failsafed_query(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  end
+
+  Jb_job_note_text
 
   def deliveries_made_in_range(start_date, end_date) do
     query =
@@ -612,7 +613,5 @@ defmodule Shophawk.Jobboss_db do
     failsafed_query(query)
     |> Enum.sum()
   end
-
-
 
 end

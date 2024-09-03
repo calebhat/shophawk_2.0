@@ -13,9 +13,11 @@
         open_invoice_values={@open_invoice_values}
         />
 
-        <!-- Checkbook Balance/tx's -->
-
-
+        <!-- Travelor Count -->
+        <.live_component module={TravelorcountComponent} id="travelor_count-1"
+        travelor_count={@travelor_count}
+        travelor_totals={@travelor_totals}
+        />
 
         <div><.button phx-click="test_click">CLICK ME</.button></div>
         
