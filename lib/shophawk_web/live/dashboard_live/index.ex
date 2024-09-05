@@ -8,6 +8,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.MonthlySalesChartComponent
   alias ShophawkWeb.TravelorcountComponent
   alias ShophawkWeb.HotjobsComponent
+  alias ShophawkWeb.WeekoneTimeoffComponent
+  alias ShophawkWeb.WeektwoTimeoffComponent
+  alias ShophawkWeb.YearlySalesChartComponent
   alias Shophawk.Dashboard
 
   @impl true
@@ -36,6 +39,17 @@ defmodule ShophawkWeb.DashboardLive.Index do
       #hot jobs
       |> assign(:hot_jobs, [])
 
+      #timeoff
+      |> assign(:weekly_dates, %{})
+      |> assign(:week1_timeoff, [])
+      |> assign(:week2_timeoff, [])
+
+      #Yearly Sales Chart
+      |> assign(:yearly_sales_loading, false)
+      |> assign(:yearly_sales_data, [])
+      |> assign(:total_sales, 0)
+      |> assign(:complete_yearly_sales_data, [])
+
       }
   end
 
@@ -54,12 +68,13 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      |> load_checkbook_component()
-      |> load_open_invoices_component()
-      |> load_travelors_released_componenet()
-      |> load_anticipated_revenue_component()
-      |> load_monthly_sales_chart_component()
-      |> load_hot_jobs()
+      #|> load_checkbook_component()
+      #|> load_open_invoices_component()
+      #|> load_travelors_released_componenet()
+      #|> load_anticipated_revenue_component()
+      #|> load_monthly_sales_chart_component()
+      #|> load_hot_jobs()
+      #|> load_time_off()
     }
   end
 
@@ -179,6 +194,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
               case Enum.find(entries, fn entry -> entry.date.month == n end) do
                 nil -> nil
                 found_entry -> found_entry.amount
+
               end
               [amount | acc]
           end)
@@ -273,6 +289,16 @@ defmodule ShophawkWeb.DashboardLive.Index do
     assign(socket, :hot_jobs, Shophawk.Shop.get_hot_jobs())
   end
 
+  def load_time_off(socket) do
+    weekly_dates = ShophawkWeb.SlideshowLive.Index.load_weekly_dates()
+    {week1_timeoff, week2_timeoff} = ShophawkWeb.SlideshowLive.Index.load_timeoff(weekly_dates)
+
+    socket =
+      assign(socket, :weekly_dates, weekly_dates)
+      |> assign(:week1_timeoff, week1_timeoff)
+      |> assign(:week2_timeoff, week2_timeoff)
+  end
+
 
   def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
     open_invoices = socket.assigns.open_invoice_storage
@@ -291,13 +317,198 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply, assign(socket, :open_invoices, ranged_open_invoices) |> assign(:selected_range, range)}
   end
 
+  def handle_event("add_yearly_sales_customer", _, socket) do
+    complete_data = socket.assigns.complete_yearly_sales_data |> IO.inspect
+    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
+    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
+    currently_shown_data = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> Enum.count
+
+    updated_yearly_sales_data =
+      case Enum.count(labels) do
+        11  -> %{labels: labels, series: series}
+        _ ->  %{
+              labels: [Enum.at(Enum.reverse(complete_data.labels), currently_shown_data)] ++ labels,
+              series: [Enum.at(Enum.reverse(complete_data.series), currently_shown_data)] ++ series
+            }
+        end
+
+    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
+
+    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
+  end
+
+  def handle_event("subtract_yearly_sales_customer", _, socket) do
+    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
+    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
+    updated_yearly_sales_data =
+      case Enum.count(labels) do
+        1 -> %{labels: labels, series: series}
+        _ ->
+          [_label_head | label_tail] = labels
+          [_series_head | series_tail] = series
+          %{labels: label_tail, series: series_tail}
+      end
+    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
+    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
+  end
+
+  def handle_event("clear_yearly_sales_customer", _, socket) do
+    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> List.last
+    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series") |> List.last
+    updated_yearly_sales_data =  %{labels: [labels], series: [series]}
+    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
+    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
+  end
+
+  def handle_event("load_yearly_sales_customer", _, socket) do
+    IO.puts("here")
+    task = Task.async(fn -> load_yearly_sales_chart() end)
+    {:noreply, assign(socket, :task, task) |> assign(:yearly_sales_loading, true)}
+  end
+
+  def handle_info({ref, result}, socket) do
+    if socket.assigns.task.ref == ref do
+      # Update the socket with the result of the task and stop loading
+      socket =
+        socket
+        |> assign(:yearly_sales_data, result.yearly_sales_data)
+        |> assign(:total_sales, result.total_sales)
+        |> assign(:complete_yearly_sales_data, result.complete_yearly_sales_data)
+        |> assign(:yearly_sales_loading, false)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
+    # Handle task errors
+    IO.inspect(reason)
+    {:noreply, assign(socket, loading: false, error: reason)}
+  end
+
+  def load_yearly_sales_chart() do
+    first_day_of_year = Date.new!(Date.utc_today().year, 1, 1)
+    matching_map = %{
+      ["alro"] => "Alro Plastics",
+      ["amcor"] => "Amcor",
+      ["applied"] => "Applied",
+      ["ball"] => "Ball Container",
+      ["bdi"] => "BDI",
+      ["bw"] => "BW Papersystems",
+      ["cope"] => "Cope",
+      ["domtar"] => "Domtar",
+      ["gates"] => "Gates",
+      ["inter-wait", "inter-wauk"] => "Interstate Bearing",
+      ["kaman"] => "Kaman",
+      ["kraft"] => "Kraft",
+      ["midland"] => "Midland Plastics",
+      ["mo-", "motion"] => "Motion Industries",
+      ["pcmc"] => "Paper Converting",
+      ["premier"] => "Premier",
+      ["psa"] => "Pneumatic Scale",
+      ["quad"] => "Quad Graphics",
+      ["rr don"] => "RR Donnelly",
+      ["seneca"] => "Seneca Foods",
+      ["stoughton"] => "Stoghton Trailers",
+      ["sonoco"] => "Sonoco",
+      ["stolle"] => "Stolle",
+      ["tetra"] => "Tetra",
+      ["trane"] => "Trane",
+      ["tyson"] => "Tyson Foods",
+      ["valmet"] => "Valmet"
+    }
+    deliveries_this_year = case Jobboss_db.load_deliveries(~D[2024-08-01], Date.utc_today()) do
+    #deliveries_this_year = case Jobboss_db.load_deliveries(first_day_of_year, Date.utc_today()) do
+      [] -> [] #if no deliveries found
+      deliveries ->
+        jobs =
+          Enum.chunk_every(deliveries, 1000)
+          |> Enum.map(fn chunk ->
+            Enum.map(chunk, fn d -> d.job end)
+            |> Jobboss_db.load_delivery_jobs()
+          end)
+          |> List.flatten()
+        addresses =
+          Enum.chunk_every(jobs, 1000)
+          |> Enum.map(fn chunk ->
+            Enum.map(chunk, fn d -> d.ship_to end)
+            |> Jobboss_db.load_addresses()
+          end)
+          |> List.flatten()
+          |> Enum.uniq
+        updated_jobs =
+          Enum.reduce(jobs, [], fn job, acc ->
+            address =
+              case job.customer do
+                "EDG GEAR" ->
+                  ad = Enum.find(addresses, fn ad -> ad.address == job.ship_to end)
+                  case ad.name do
+                    "MARQUIP WARD UNITED" -> %{customer: "bw"}
+                    _ -> %{}
+                  end
+                _ -> %{}
+              end
+            acc ++ [Map.merge(job, address)]
+          end)
+        Enum.reduce(deliveries, [], fn d, acc ->
+          job = Enum.find(updated_jobs, fn job -> job.job == d.job end)
+
+          acc ++ [Map.merge(d, job)]
+        end)
+        |> Enum.sort_by(&(&1.promised_date), Date)
+    end
+    |> Enum.group_by(&customer_key(&1, matching_map))
+    |> Enum.map(fn {customer, sales_list} ->
+      total_sales = Enum.reduce(sales_list, 0, fn map, acc -> (map.unit_price * map.promised_quantity) + acc end)
+      %{customer: customer, sales: Float.round(total_sales, 2)}
+    end)
+    |> Enum.sort_by(&(&1.sales), :desc)
+    top_ten_customers = Enum.take(deliveries_this_year, 10)
+    rest_of_customers = Enum.reject(deliveries_this_year, fn c -> c.customer in Enum.map(top_ten_customers, &(&1.customer)) end)
+    rest_of_customers_sales = Enum.reduce(rest_of_customers, 0, fn c, acc -> c.sales + acc end)
+    total_sales = Enum.reduce(deliveries_this_year, 0, fn c, acc -> c.sales + acc end) |> IO.inspect
+    yearly_sales_data =
+      %{
+        series: Enum.map(top_ten_customers, &(&1.sales)) ++ [rest_of_customers_sales],
+        labels: Enum.map(top_ten_customers, &(&1.customer)) ++ ["All Customers Minus the Top 10"]
+      }
+    #socket
+    #|> assign(:yearly_sales_data, Jason.encode!(yearly_sales_data))
+    #|> assign(:total_sales, total_sales)
+    #|> assign(:complete_yearly_sales_data, yearly_sales_data)
+    %{yearly_sales_data: Jason.encode!(yearly_sales_data), total_sales: total_sales, complete_yearly_sales_data: yearly_sales_data}
+  end
+
   def handle_event("test_click", _params, socket) do
-    socket = load_hot_jobs(socket)
+
+    #socket = load_yearly_sales_chart(socket)
+
+    #IO.inspect( Jason.encode!(yearly_sales_data))
+
+    #socket =
+    #  assign(socket, :yearly_sales_data, Jason.encode!(empty_yearly_sales_data))
+    #  |> assign(:complete_yearly_sales_data, yearly_sales_data)
+    #Jobboss_db.load_addresses(addresses)
+
+
+    #IO.inspect(Enum.count(deliveries_this_year))
+    #IO.inspect(List.first(deliveries_this_year))
 
     ######################Functions to load history into db for first load with new dashboard####################
     #load_10_year_history_into_db()
     {:noreply, socket}
   end
+  def customer_key(map, matching_map) do
+    Enum.find(matching_map, fn {substrings, _group} ->
+      Enum.any?(substrings, fn substring -> String.contains?(String.downcase(map.customer), substring) end)
+    end)
+    |> case do
+      {_, group} -> group
+      nil -> map.customer  # If no match is found, return the original customer name
+    end
+  end
+
 
 
 

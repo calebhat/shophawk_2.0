@@ -288,7 +288,7 @@ defmodule ShophawkWeb.CoreComponents do
 
   ## Examples
 
-      <.button>Send!</.button>
+      >Send!</.button>
       <.button phx-click="go" class="ml-2">Send!</.button>
   """
   attr :type, :string, default: nil
@@ -677,7 +677,7 @@ defmodule ShophawkWeb.CoreComponents do
     ~H"""
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
       <table class="w-[40rem] mt-4 sm:w-full">
-        <thead class="text-lg text-left leading-6 text-white text-center">
+        <thead class="text-lgleading-6 text-white text-center">
           <tr>
             <th :for={col <- @col} class="p-0 pr-6 pb-4 font-normal"><%= col[:label] %></th>
             <th class="relative p-0 pb-4"><span class="sr-only"><%= gettext("Actions") %></span></th>
@@ -743,7 +743,7 @@ defmodule ShophawkWeb.CoreComponents do
     ~H"""
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
       <table class="w-[40rem] mt-4 sm:w-full">
-        <thead class="text-lg text-left leading-6 text-black text-center">
+        <thead class="text-lg leading-6 text-black text-center">
           <tr>
             <th :for={col <- @col} class="p-0 pr-6 pb-4 font-normal"><%= col[:label] %></th>
             <th class="relative p-0 pb-4"><span class="sr-only"><%= gettext("Actions") %></span></th>

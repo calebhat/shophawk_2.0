@@ -19,7 +19,7 @@ defmodule ShophawkWeb.MonthlySalesChartComponent do
             </div>
         <% end %>
         <%= if @this_months_sales != 0 do  %>
-            <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[85%] text-black">
+            <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[78%] 2xl:h-[85%] text-black">
                 <div id="mainChart" phx-hook="monthly_sales_chart" data-sales-chart={@sales_chart_data}></div>
             </div>
         <% else %>

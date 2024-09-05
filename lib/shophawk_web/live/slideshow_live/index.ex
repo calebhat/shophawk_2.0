@@ -157,7 +157,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     end
   end
 
-  defp load_weekly_dates do
+  def load_weekly_dates do
     case :ets.lookup(:slideshow, :weekly_dates) do
       [weekly_dates: weekly_dates] -> weekly_dates
       [] ->

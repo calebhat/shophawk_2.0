@@ -11,7 +11,7 @@ defmodule ShophawkWeb.InvoicesComponent do
         <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
 
             <div class="text-2xl justify-items-center">
-                <div class="underline">Invoices: <%= Enum.count(@open_invoices) %></div>
+                <div class="underline">Invoices: <%= if Enum.empty?(@open_invoices), do: "loading...", else: Enum.count(@open_invoices) %></div>
             </div>
 
             <%= if Enum.empty?(@open_invoices) == false do  %>
@@ -33,18 +33,18 @@ defmodule ShophawkWeb.InvoicesComponent do
             <%= if Enum.empty?(@open_invoices) do  %>
                 <div class="loader"></div>
             <% else %>
-                <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[30vh]">
+                <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[70%] 2xl:h-[75%]">
                     <div class="flex justify-center">
                         <div class="w-full">
                             <table class="w-full table-fixed">
                                 <thead class="bg-cyan-800">
-                                <tr class="border-b border-stone-400 text-center">
+                                <tr class="border-b border-stone-400 text-center text-xs 2xl:text-sm">
                                     <th>Document</th>
                                     <th class="w-24">Customer</th>
-                                    <th class="w-24">Invoice Date</th>
-                                    <th class="w-24">Due Date</th>
+                                    <th class="w-20 2xl:w-24">Invoice Date</th>
+                                    <th class="w-20 2xl:w-24">Due Date</th>
                                     <th class="w-10">Terms</th>
-                                    <th class="w-14 text-sm">Days Open</th>
+                                    <th class="w-12 text-sm">Days Open</th>
                                     <th>0-30</th>
                                     <th>31-60</th>
                                     <th>61-90</th>
@@ -52,7 +52,7 @@ defmodule ShophawkWeb.InvoicesComponent do
                                 </tr>
                                 </thead>
                             </table>
-                            <div class="overflow-y-auto h-[23vh]"> <!-- Adjust height as needed -->
+                            <div class="overflow-y-auto h-[18vh] 2xl:h-[23vh] text-xs  2xl:text-base"> <!-- Adjust height as needed -->
                                 <table class="w-full table-fixed">
                                     <tbody id="checkbook">
                                         <tr
@@ -62,14 +62,14 @@ defmodule ShophawkWeb.InvoicesComponent do
                                         >
                                         <td class="border-x border-stone-500"><%= inv.document %></td>
                                         <td class="w-24 border-r border-stone-500 pl-1 overflow-hidden truncate whitespace-nowrap"><%= inv.customer %></td>
-                                        <td class="w-24 border-r border-stone-500"><%= inv.document_date %></td>
-                                        <td class="w-24 border-r border-stone-500"><%= inv.due_date %></td>
+                                        <td class="w-20 2xl:w-24 border-r border-stone-500"><%= inv.document_date %></td>
+                                        <td class="w-20 2xl:w-24 border-r border-stone-500"><%= inv.due_date %></td>
                                         <td class="w-10 border-r border-stone-500"><%= inv.terms %></td>
-                                        <td class="w-14 border-r border-stone-500"><%= inv.days_open %></td>
-                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 1), "border-r border-stone-500"]}><%= if inv.days_open <= 30, do: number_to_currency(inv.open_invoice_amt) %></td>
-                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 2), "border-r border-stone-500"]}><%= if inv.days_open > 30 and inv.days_open <= 60, do: number_to_currency(inv.open_invoice_amt) %></td>
-                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 3), "border-r border-stone-500"]}><%= if inv.days_open > 60 and inv.days_open <= 90, do: number_to_currency(inv.open_invoice_amt) %></td>
-                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 4), "border-r border-stone-500"]}><%= if inv.days_open > 90, do: number_to_currency(inv.open_invoice_amt) %></td>
+                                        <td class="w-12 border-r border-stone-500"><%= inv.days_open %></td>
+                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 1), "border-r border-stone-500 overflow-hidden"]}><%= if inv.days_open <= 30, do: number_to_currency(inv.open_invoice_amt) %></td>
+                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 2), "border-r border-stone-500 overflow-hidden"]}><%= if inv.days_open > 30 and inv.days_open <= 60, do: number_to_currency(inv.open_invoice_amt) %></td>
+                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 3), "border-r border-stone-500 overflow-hidden"]}><%= if inv.days_open > 60 and inv.days_open <= 90, do: number_to_currency(inv.open_invoice_amt) %></td>
+                                        <td class={[change_bg_color_if_late(inv.late, inv.column, 4), "border-r border-stone-500 overflow-hidden"]}><%= if inv.days_open > 90, do: number_to_currency(inv.open_invoice_amt) %></td>
                                         </tr>
                                     </tbody>
                                 </table>

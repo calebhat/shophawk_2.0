@@ -11,57 +11,49 @@ defmodule ShophawkWeb.TravelorcountComponent do
         <%= if Enum.empty?(@travelor_count) do  %>
             <div class="loader"></div>
         <% else %>
-            <div class="text-xl bg-cyan-800 rounded m-2 p-2 h-[87%] overflow-y-auto">
-                <div class="flex justify-center p-2 ">
-                    <table class="w-full">
-                        <thead>
-                            <tr>
-                                <th class="">Date</th>
-                                <th class="">Day</th>
-                                <th class="">Dave</th>
-                                <th class="">Jamie</th>
-                                <th class="">Brent</th>
-                                <th class="">Greg</th>
-                                <th class="">Caleb</th>
-                                <th class="">Mike</th>
-                                <th class="">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody id="travelors">
-                            <tr
-                            :for={t <- @travelor_count}
-                            id="travelors_counts"
-                            class="hover:bg-cyan-700"
-                            >
-                                <td class="py-2 border border-stone-500"><%= t.date %></td>
-                                <td class="border border-stone-500"><%= Enum.at(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], Date.day_of_week(t.date) - 1) %></td>
-                                <td class="border border-stone-500"><%= t.dave %></td>
-                                <td class="border border-stone-500"><%= t.jamie %></td>
-                                <td class="border border-stone-500"><%= t.brent %></td>
-                                <td class="border border-stone-500"><%= t.greg %></td>
-                                <td class="border border-stone-500"><%= t.caleb %></td>
-                                <td class="border border-stone-500"><%= t.mike %></td>
-                                <td class="border border-stone-500"><%= t.total %></td>
-                            </tr>
-                            <tr
-                            :for={t <- [@travelor_totals]}
-                            id="checkbook_entries"
-                            class="border-t-4 border-stone-500 hover:bg-cyan-700"
-                            >
-                                <td></td>
-                                <td class="py-2 border border-stone-500">Total</td>
-                                <td class="border border-stone-500"><%= t.dave_total %></td>
-                                <td class="border border-stone-500"><%= t.jamie_total %></td>
-                                <td class="border border-stone-500"><%= t.brent_total %></td>
-                                <td class="border border-stone-500"><%= t.greg_total %></td>
-                                <td class="border border-stone-500"><%= t.caleb_total %></td>
-                                <td class="border border-stone-500"><%= t.mike_total %></td>
-                                <td class="border border-stone-500"><%= t.total_total %></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="text-xl bg-cyan-800 rounded m-2 p-2 h-[87%] overflow-y-auto sm:text-lg md:text-xl lg:text-2xl">
+            <div class="flex justify-center p-2 overflow-x-auto">
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="text-sm md:text-base lg:text-lg">
+                            <th class="px-2 py-1 hidden 2xl:block">Date</th>
+                            <th class="px-2 py-1">Day</th>
+                            <th class="px-2 py-1">Dave</th>
+                            <th class="px-2 py-1">Jamie</th>
+                            <th class="px-2 py-1">Brent</th>
+                            <th class="px-2 py-1">Greg</th>
+                            <th class="px-2 py-1">Caleb</th>
+                            <th class="px-2 py-1">Mike</th>
+                            <th class="px-2 py-1">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="travelors">
+                        <tr :for={t <- @travelor_count} id="travelors_counts" class="hover:bg-cyan-700 text-sm md:text-base lg:text-lg">
+                            <td class="text-base hidden 2xl:block 2xl:py-2 border border-stone-500 px-2"><%= t.date %></td>
+                            <td class="border border-stone-500 px-2"><%= Enum.at(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], Date.day_of_week(t.date) - 1) %></td>
+                            <td class="border border-stone-500 px-2"><%= t.dave %></td>
+                            <td class="border border-stone-500 px-2"><%= t.jamie %></td>
+                            <td class="border border-stone-500 px-2"><%= t.brent %></td>
+                            <td class="border border-stone-500 px-2"><%= t.greg %></td>
+                            <td class="border border-stone-500 px-2"><%= t.caleb %></td>
+                            <td class="border border-stone-500 px-2"><%= t.mike %></td>
+                            <td class="border border-stone-500 px-2"><%= t.total %></td>
+                        </tr>
+                        <tr :for={t <- [@travelor_totals]} id="checkbook_entries" class="border-t-4 border-stone-500 hover:bg-cyan-700 text-sm md:text-base lg:text-lg">
+                            <td></td>
+                            <td class="py-2 border border-stone-500 px-2  hidden 2xl:block">Total</td>
+                            <td class="border border-stone-500 px-2"><%= t.dave_total %></td>
+                            <td class="border border-stone-500 px-2"><%= t.jamie_total %></td>
+                            <td class="border border-stone-500 px-2"><%= t.brent_total %></td>
+                            <td class="border border-stone-500 px-2"><%= t.greg_total %></td>
+                            <td class="border border-stone-500 px-2"><%= t.caleb_total %></td>
+                            <td class="border border-stone-500 px-2"><%= t.mike_total %></td>
+                            <td class="border border-stone-500 px-2"><%= t.total_total %></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+        </div>
         <% end %>
     </div>
     """

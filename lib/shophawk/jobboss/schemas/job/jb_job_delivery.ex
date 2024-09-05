@@ -12,12 +12,13 @@ defmodule Shophawk.Jb_job_delivery do
     field :unit_price, :float
     field :order_date, :naive_datetime
     field :customer, :string
+    field :ship_to, :integer
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :status, :total_price, :unit_price, :order_date, :customer])
-    |> validate_required([:job, :status, :total_price, :unit_price, :order_date, :customer])
+    |> cast(attrs, [:job, :status, :total_price, :unit_price, :order_date, :customer, :ship_to])
+    |> validate_required([:job, :status, :total_price, :unit_price, :order_date, :customer, :ship_to])
   end
 end

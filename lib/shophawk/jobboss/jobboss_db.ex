@@ -16,6 +16,7 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_job_delivery
     alias Shophawk.Jb_delivery
     alias Shophawk.Jb_job_note_text
+    alias Shophawk.Jb_address
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
 
@@ -522,18 +523,6 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 
-  Jb_job_note_text
-
-  def deliveries_made_in_range(start_date, end_date) do
-    query =
-      from r in Jb_delivery,
-      where: r.shipped_date >= ^start_date and r.shipped_date < ^end_date
-
-    failsafed_query(query)
-      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
-      |> Enum.sort_by(&(&1.job), :desc)
-  end
-
   def load_deliveries(job_numbers) do
     query =
       from r in Jb_delivery,
@@ -551,8 +540,7 @@ defmodule Shophawk.Jobboss_db do
           from r in Jb_delivery,
           where: not is_nil(r.shipped_date),
           where: r.shipped_date >= ^start_date and r.shipped_date <= ^end_date
-        failsafed_query(query)
-        |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+        failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 
   def load_jobs(job_numbers) do
@@ -564,9 +552,12 @@ defmodule Shophawk.Jobboss_db do
 
   def load_delivery_jobs(job_numbers) do
     query = from r in Jb_job_delivery, where: r.job in ^job_numbers
-    jobs_map =
-      failsafed_query(query)
-      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+    failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  end
+
+  def load_addresses(addresses) do
+    query = from r in Jb_address, where: r.address in ^addresses
+    failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 
   def total_revenue_at_date(date) do

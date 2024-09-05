@@ -1,4 +1,14 @@
 <div>
+    <div class="grid justify-contents-end"><.button phx-click="test_click">CLICK ME</.button></div>   
+
+    <div class="grid grid-cols-1 place-content-center text-stone-100">
+        <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
+        yearly_sales_loading={@yearly_sales_loading}
+        yearly_sales_data={@yearly_sales_data}
+        complete_yearly_sales_data={@complete_yearly_sales_data}
+        total_sales={@total_sales}
+        />
+    </div>
     
     <div class="grid grid-cols-2 place-content-center text-stone-100">
         
@@ -23,9 +33,18 @@
         <.live_component module={HotjobsComponent} id="hot_jobs-1"
         hot_jobs={@hot_jobs}
         />
-
-        <div><.button phx-click="test_click">CLICK ME</.button></div>
         
+        <!-- Hot Jobs -->
+        <.live_component module={WeekoneTimeoffComponent} id="weekonetimeoff-1"
+        weekly_dates={@weekly_dates}
+        week1_timeoff={@week1_timeoff}
+        />
+
+        <!-- Hot Jobs -->
+        <.live_component module={WeektwoTimeoffComponent} id="weektwotimeoff-1"
+        weekly_dates={@weekly_dates}
+        week2_timeoff={@week2_timeoff}
+        />
     </div> <!-- end of grid -->
 
     <div class="grid grid-cols-1 place-content-center text-stone-100">
@@ -45,4 +64,7 @@
         revenue_chart_data={@revenue_chart_data}
         />
     </div>
+
+    
+
 </div>
