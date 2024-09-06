@@ -6,7 +6,7 @@ defmodule ShophawkWeb.TravelorcountComponent do
     ~H"""
     <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
         <div class="text-2xl">
-            Travelors Released in the past week
+            Travelors Released in the Last 5 Days
         </div>
         <%= if Enum.empty?(@travelor_count) do  %>
             <div class="loader"></div>

@@ -314,7 +314,7 @@ ChartHooks.yearly_sales_Chart = {
           labels: {
             style: {
               colors: '#ffffff', // Set x-axis text color to white
-              fontSize: '14px' // Set x-axis font size
+              fontSize: '16px' // Set x-axis font size
             }
           }
         },

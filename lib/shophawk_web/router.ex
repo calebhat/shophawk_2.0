@@ -63,7 +63,7 @@ defmodule ShophawkWeb.Router do
     live "/timeoff/:id", TimeoffLive.Show, :show
     live "/timeoff/:id/show/edit", TimeoffLive.Show, :edit
 
-    live "/dashboard", DashboardLive.Index, :index
+
 
   end
 
@@ -84,7 +84,7 @@ defmodule ShophawkWeb.Router do
     scope "/" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: ShophawkWeb.Telemetry
+      live_dashboard "/devdashboard", metrics: ShophawkWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
@@ -112,6 +112,10 @@ defmodule ShophawkWeb.Router do
       on_mount: [{ShophawkWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+
+      live "/dashboard", DashboardLive.Index, :index
+      live "/dashboard/accounting", DashboardLive.Accounting, :index
+      live "/dashboard/office", DashboardLive.Office, :index
     end
   end
 

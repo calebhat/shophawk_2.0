@@ -13,14 +13,18 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.YearlySalesChartComponent
   alias Shophawk.Dashboard
 
+
   @impl true
   def mount(_params, _session, socket) do
       {:ok, socket
+      #Checkbook
       |> assign(:checkbook_entries, [])
       |> assign(:current_balance, "Loading...")
+      #Invoices
       |> assign(:open_invoices, %{})
       |> assign(:selected_range, "")
       |> assign(:open_invoice_values, [])
+      #anticated revenue
       |> assign(:six_weeks_revenue_amount, 0)
       |> assign(:total_revenue, 0)
       |> assign(:active_jobs, 0)
@@ -68,14 +72,34 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      #|> load_checkbook_component()
-      #|> load_open_invoices_component()
-      #|> load_travelors_released_componenet()
-      #|> load_anticipated_revenue_component()
-      #|> load_monthly_sales_chart_component()
-      #|> load_hot_jobs()
-      #|> load_time_off()
+      |> load_checkbook_component() #5 seconds
+      |> load_open_invoices_component() #5 sec
+      |> load_travelors_released_componenet() #1 second
+      |> load_anticipated_revenue_component() #2 sec
+      |> load_monthly_sales_chart_component() #instant
+      |> load_hot_jobs()
+      |> load_time_off()
     }
+  end
+
+  def handle_info({ref, result}, socket) do #load chart data once complete
+    if socket.assigns.task.ref == ref do
+      # Update the socket with the result of the task and stop loading
+      socket =
+        socket
+        |> assign(:yearly_sales_data, result.yearly_sales_data)
+        |> assign(:total_sales, result.total_sales)
+        |> assign(:complete_yearly_sales_data, result.complete_yearly_sales_data)
+        |> assign(:yearly_sales_loading, false)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
+    # Handle task errors
+    {:noreply, assign(socket, loading: false, error: reason)}
   end
 
   def load_checkbook_component(socket) do
@@ -242,9 +266,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def load_travelors_released_componenet(socket) do
     weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    travelor_count = generate_travelors_released(Date.add(Date.utc_today, -6), Date.utc_today, [])
+    travelor_count = generate_travelors_released(Date.add(Date.utc_today, -7), Date.utc_today, [])
     |> Enum.reject(fn job -> job.total == 0 end)
     |> Enum.reverse
+    |> Enum.take(5)
 
     travelor_totals = Enum.reduce(travelor_count, %{dave_total: 0, jamie_total: 0, brent_total: 0, greg_total: 0, caleb_total: 0, mike_total: 0, total_total: 0}, fn t, acc->
       acc
@@ -298,7 +323,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:week1_timeoff, week1_timeoff)
       |> assign(:week2_timeoff, week2_timeoff)
   end
-
 
   def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
     open_invoices = socket.assigns.open_invoice_storage
@@ -361,30 +385,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def handle_event("load_yearly_sales_customer", _, socket) do
-    IO.puts("here")
     task = Task.async(fn -> load_yearly_sales_chart() end)
     {:noreply, assign(socket, :task, task) |> assign(:yearly_sales_loading, true)}
-  end
-
-  def handle_info({ref, result}, socket) do
-    if socket.assigns.task.ref == ref do
-      # Update the socket with the result of the task and stop loading
-      socket =
-        socket
-        |> assign(:yearly_sales_data, result.yearly_sales_data)
-        |> assign(:total_sales, result.total_sales)
-        |> assign(:complete_yearly_sales_data, result.complete_yearly_sales_data)
-        |> assign(:yearly_sales_loading, false)
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
-    # Handle task errors
-    IO.inspect(reason)
-    {:noreply, assign(socket, loading: false, error: reason)}
   end
 
   def load_yearly_sales_chart() do

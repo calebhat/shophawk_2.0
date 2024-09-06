@@ -1,19 +1,14 @@
 <div>
-    <div class="grid justify-contents-end"><.button phx-click="test_click">CLICK ME</.button></div>   
+    <!-- <div class="grid justify-contents-end"><.button phx-click="test_click">CLICK ME</.button></div>   -->
 
-    <div class="grid grid-cols-1 place-content-center text-stone-100">
-        <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
-        yearly_sales_loading={@yearly_sales_loading}
-        yearly_sales_data={@yearly_sales_data}
-        complete_yearly_sales_data={@complete_yearly_sales_data}
-        total_sales={@total_sales}
-        />
-    </div>
-    
     <div class="grid grid-cols-2 place-content-center text-stone-100">
         
         <!-- Checkbook Balance/tx's -->
-        <.live_component module={CheckbookComponent} id="checkbook-1" current_balance={@current_balance} checkbook_entries={@checkbook_entries}/>
+        <.live_component module={CheckbookComponent} id="checkbook-1" 
+        current_balance={@current_balance} 
+        checkbook_entries={@checkbook_entries}
+        height={%{border: "h-[43vh]", frame: "h-[70%] 2xl:h-[87%]"}}
+        />
 
 
         <!-- open invoices -->
@@ -21,6 +16,7 @@
         open_invoices={@open_invoices} 
         selected_range={@selected_range}
         open_invoice_values={@open_invoice_values}
+        height={%{border: "h-[43vh", frame: "h-[70%] 2xl:h-[75%]", content: "h-[18vh] 2xl:h-[23vh]"}}
         />
 
         <!-- Travelor Count -->
@@ -62,6 +58,15 @@
         total_revenue={@total_revenue}
         active_jobs={@active_jobs}
         revenue_chart_data={@revenue_chart_data}
+        />
+    </div>
+
+    <div class="grid grid-cols-1 place-content-center text-stone-100">
+        <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
+        yearly_sales_loading={@yearly_sales_loading}
+        yearly_sales_data={@yearly_sales_data}
+        complete_yearly_sales_data={@complete_yearly_sales_data}
+        total_sales={@total_sales}
         />
     </div>
 

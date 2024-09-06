@@ -8,7 +8,7 @@ defmodule ShophawkWeb.InvoicesComponent do
   #open_invoice_values
   def render(assigns) do
     ~H"""
-        <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
+        <div class={["text-center justify-center rounded p-4 bg-cyan-900 m-2", @height.border]}>
 
             <div class="text-2xl justify-items-center">
                 <div class="underline">Invoices: <%= if Enum.empty?(@open_invoices), do: "loading...", else: Enum.count(@open_invoices) %></div>
@@ -33,7 +33,7 @@ defmodule ShophawkWeb.InvoicesComponent do
             <%= if Enum.empty?(@open_invoices) do  %>
                 <div class="loader"></div>
             <% else %>
-                <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[70%] 2xl:h-[75%]">
+                <div class={["text-md bg-cyan-800 rounded m-2 p-2", @height.frame]}>
                     <div class="flex justify-center">
                         <div class="w-full">
                             <table class="w-full table-fixed">
@@ -52,7 +52,7 @@ defmodule ShophawkWeb.InvoicesComponent do
                                 </tr>
                                 </thead>
                             </table>
-                            <div class="overflow-y-auto h-[18vh] 2xl:h-[23vh] text-xs  2xl:text-base"> <!-- Adjust height as needed -->
+                            <div class={["overflow-y-auto text-xs 2xl:text-base", @height.content]}> <!-- Adjust height as needed -->
                                 <table class="w-full table-fixed">
                                     <tbody id="checkbook">
                                         <tr

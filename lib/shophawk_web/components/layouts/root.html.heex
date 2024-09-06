@@ -14,49 +14,91 @@
     <link rel="icon" type="image/png" href="/images/shophawkfavicon.png">    
   </head>
   <body class="bg-black antialiased bg-fixed bg-shophawk bg-cover">
-    <!--
-    <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @current_user do %>
-        <li class="text-[0.8125rem] leading-6 text-zinc-900">
-          <%= @current_user.email %>
-        </li>
-        <li>
-          <.link
-            href={~p"/users/settings"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Settings
-          </.link>
-        </li>
-        <li>
-          <.link
-            href={~p"/users/log_out"}
-            method="delete"
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Log out
-          </.link>
-        </li>
-      <% else %>
-        <li>
-          <.link
-            href={~p"/users/register"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Register
-          </.link>
-        </li>
-        <li>
-          <.link
-            href={~p"/users/log_in"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-          >
-            Log in
-          </.link>
-        </li>
-      <% end %>
-    </ul>
-    -->
+    
+    
+    
+    <header class="px-4 sm:px-6 lg:px-8 bg-cyan-900">
+      <div class="flex items-center justify-between py-3 text-sm">
+        <div class="flex items-center gap-4">
+          <a href="/">
+            <img src={~p"/images/gearhawklogo.jpg"} width="50" />
+          </a>
+          <a href={~p"/runlists"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+            Runlist
+          </a>
+          
+          <a href={~p"/tools"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+            Inventory
+          </a>
+          
+          <a href={~p"/slideshow"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+            Slideshow
+          </a>
+          <a href={~p"/information"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+            Information
+          </a>
+          
+          <!-- Dropdown Wrapper for Dashboard -->
+      <div class="relative group">
+        <a href={~p"/dashboard"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+          Dashboard
+        </a>
+
+        <!-- Dropdown Menu -->
+        <div class="absolute hidden group-hover:block bg-cyan-800 rounded-lg shadow-lg py-2">
+          <a href={~p"/dashboard/accounting"} class="block px-4 py-2 text-white hover:bg-cyan-700">
+            Accounting
+          </a>
+          <a href={~p"/dashboard/office"} class="block px-4 py-2 text-white hover:bg-cyan-700">
+            Office
+          </a>
+        </div>
+      </div>
+        </div>      
+
+        <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
+          <%= if @current_user do %>
+            <li class="text-[0.8125rem] leading-6 text-stone-400">
+              <%= @current_user.email %>
+            </li>
+            <!-- <li>
+              <.link
+                href={~p"/users/settings"}
+                class="text-[0.8125rem] leading-6 text-stone-400 font-semibold hover:text-stone-200"
+              >
+                Settings
+              </.link>
+            </li> -->
+            <li>
+              <.link
+                href={~p"/users/log_out"}
+                method="delete"
+                class="text-[0.8125rem] leading-6 text-stone-400 font-semibold hover:text-stone-200"
+              >
+                Log out
+              </.link>
+            </li>
+          <% else %>
+            <!-- <li>
+              <.link
+                href={~p"/users/register"}
+                class="text-[0.8125rem] leading-6 text-stone-400 font-semibold hover:text-stone-200"
+              >
+                Register
+              </.link>
+            </li> -->
+            <li>
+              <.link
+                href={~p"/users/log_in"}
+                class="text-[0.8125rem] leading-6 text-stone-400 font-semibold hover:text-stone-200"
+              >
+                Log in
+              </.link>
+            </li>
+          <% end %>
+        </ul>
+      </div>        
+    </header>  
     <%= @inner_content %>
   </body>
 </html>

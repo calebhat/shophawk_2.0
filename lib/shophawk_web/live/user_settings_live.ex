@@ -5,6 +5,7 @@ defmodule ShophawkWeb.UserSettingsLive do
 
   def render(assigns) do
     ~H"""
+    <div class="bg-white m-4 p-4 rounded-lg">
     <.header class="text-center">
       Account Settings
       <:subtitle>Manage your account email address and password settings</:subtitle>
@@ -69,6 +70,7 @@ defmodule ShophawkWeb.UserSettingsLive do
           </:actions>
         </.simple_form>
       </div>
+    </div>
     </div>
     """
   end
