@@ -1,5 +1,6 @@
 defmodule ShophawkWeb.DashboardLive.Index do
   use ShophawkWeb, :live_view
+  alias ShophawkWeb.UserAuth
   alias Shophawk.Jobboss_db
   import Number.Currency
   alias ShophawkWeb.CheckbookComponent
@@ -16,7 +17,19 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-      {:ok, socket
+    case UserAuth.ensure_admin_access(socket.assigns.current_user.email) do
+      :ok -> {:ok, set_default_assigns(socket)}
+      {:error, message} ->
+        {:ok,
+          socket
+          |> put_flash(:error, message)
+          |> redirect(to: "/")}
+    end
+  end
+
+  def set_default_assigns(socket) do
+    socket =
+      socket
       #Checkbook
       |> assign(:checkbook_entries, [])
       |> assign(:current_balance, "Loading...")
@@ -53,8 +66,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:yearly_sales_data, [])
       |> assign(:total_sales, 0)
       |> assign(:complete_yearly_sales_data, [])
-
-      }
   end
 
   @impl true
@@ -64,7 +75,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   defp apply_action(socket, :index, _params) do
     Process.send(self(), :load_data, [:noconnect])
-
     socket
     |> assign(:page_title, "Dashboard")
   end

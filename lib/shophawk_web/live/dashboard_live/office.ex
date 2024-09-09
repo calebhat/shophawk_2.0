@@ -1,6 +1,7 @@
 # lib/shophawk_web/live/dashboard_live/office.ex
 defmodule ShophawkWeb.DashboardLive.Office do
   use ShophawkWeb, :live_view
+  alias ShophawkWeb.UserAuth
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
   import Number.Currency
   alias ShophawkWeb.RevenueComponent
@@ -59,53 +60,51 @@ defmodule ShophawkWeb.DashboardLive.Office do
           />
       </div>
 
-      <div class="grid grid-cols-1 place-content-center text-stone-100">
-          <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
-          yearly_sales_loading={@yearly_sales_loading}
-          yearly_sales_data={@yearly_sales_data}
-          complete_yearly_sales_data={@complete_yearly_sales_data}
-          total_sales={@total_sales}
-          />
-      </div>
+
       </div>
     """
   end
 
   @impl true
   def mount(_params, _session, socket) do
-    Process.send(self(), :load_data, [:noconnect])
-    {:ok,
+    case UserAuth.ensure_office_access(socket.assigns.current_user.email) do
+      :ok -> #if correct user is logged in.
+        Process.send(self(), :load_data, [:noconnect])
+        {:ok, set_default_assigns(socket)}
+      {:error, message} ->
+        {:ok,
+          socket
+          |> put_flash(:error, message)
+          |> redirect(to: "/")}
+    end
+  end
+
+  def set_default_assigns(socket) do
+    socket =
       socket
-      #anticated revenue
-      |> assign(:six_weeks_revenue_amount, 0)
-      |> assign(:total_revenue, 0)
-      |> assign(:active_jobs, 0)
-      |> assign(:revenue_chart_data, [])
-      |> assign(:sales_chart_data, [])
-      #Yearly Sales Chart
-      |> assign(:monthly_sales, 0)
-      |> assign(:this_months_sales, 0)
-      |> assign(:this_years_sales, 0)
-      |> assign(:projected_yearly_sales, 0)
+          #anticated revenue
+          |> assign(:six_weeks_revenue_amount, 0)
+          |> assign(:total_revenue, 0)
+          |> assign(:active_jobs, 0)
+          |> assign(:revenue_chart_data, [])
+          |> assign(:sales_chart_data, [])
+          #Yearly Sales Chart
+          |> assign(:monthly_sales, 0)
+          |> assign(:this_months_sales, 0)
+          |> assign(:this_years_sales, 0)
+          |> assign(:projected_yearly_sales, 0)
 
-      #Travelor Count
-      |> assign(:travelor_count, [])
-      |> assign(:travelor_totals, %{})
+          #Travelor Count
+          |> assign(:travelor_count, [])
+          |> assign(:travelor_totals, %{})
 
-      #hot jobs
-      |> assign(:hot_jobs, [])
+          #hot jobs
+          |> assign(:hot_jobs, [])
 
-      #timeoff
-      |> assign(:weekly_dates, %{})
-      |> assign(:week1_timeoff, [])
-      |> assign(:week2_timeoff, [])
-
-      #Yearly Sales Chart
-      |> assign(:yearly_sales_loading, false)
-      |> assign(:yearly_sales_data, [])
-      |> assign(:total_sales, 0)
-      |> assign(:complete_yearly_sales_data, [])
-    }
+          #timeoff
+          |> assign(:weekly_dates, %{})
+          |> assign(:week1_timeoff, [])
+          |> assign(:week2_timeoff, [])
   end
 
   def handle_info(:load_data, socket) do
@@ -138,54 +137,6 @@ defmodule ShophawkWeb.DashboardLive.Office do
   def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
     # Handle task errors
     {:noreply, assign(socket, loading: false, error: reason)}
-  end
-
-  def handle_event("add_yearly_sales_customer", _, socket) do
-    complete_data = socket.assigns.complete_yearly_sales_data |> IO.inspect
-    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
-    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
-    currently_shown_data = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> Enum.count
-
-    updated_yearly_sales_data =
-      case Enum.count(labels) do
-        11  -> %{labels: labels, series: series}
-        _ ->  %{
-              labels: [Enum.at(Enum.reverse(complete_data.labels), currently_shown_data)] ++ labels,
-              series: [Enum.at(Enum.reverse(complete_data.series), currently_shown_data)] ++ series
-            }
-        end
-
-    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
-
-    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
-  end
-
-  def handle_event("subtract_yearly_sales_customer", _, socket) do
-    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
-    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
-    updated_yearly_sales_data =
-      case Enum.count(labels) do
-        1 -> %{labels: labels, series: series}
-        _ ->
-          [_label_head | label_tail] = labels
-          [_series_head | series_tail] = series
-          %{labels: label_tail, series: series_tail}
-      end
-    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
-    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
-  end
-
-  def handle_event("clear_yearly_sales_customer", _, socket) do
-    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> List.last
-    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series") |> List.last
-    updated_yearly_sales_data =  %{labels: [labels], series: [series]}
-    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
-    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
-  end
-
-  def handle_event("load_yearly_sales_customer", _, socket) do
-    task = Task.async(fn -> Index.load_yearly_sales_chart() end)
-    {:noreply, assign(socket, :task, task) |> assign(:yearly_sales_loading, true)}
   end
 
 end

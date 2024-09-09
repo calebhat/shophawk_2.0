@@ -39,22 +39,27 @@
           </a>
           
           <!-- Dropdown Wrapper for Dashboard -->
-      <div class="relative group">
-        <a href={~p"/dashboard"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
-          Dashboard
-        </a>
-
-        <!-- Dropdown Menu -->
-        <div class="absolute hidden group-hover:block bg-cyan-800 rounded-lg shadow-lg py-2">
-          <a href={~p"/dashboard/accounting"} class="block px-4 py-2 text-white hover:bg-cyan-700">
-            Accounting
-          </a>
-          <a href={~p"/dashboard/office"} class="block px-4 py-2 text-white hover:bg-cyan-700">
-            Office
-          </a>
-        </div>
-      </div>
-        </div>      
+          <div class="relative group">
+            <%= if @current_user do %> <!-- hide drop down unless logged in -->
+              <%= if @current_user.email == "admin" do %>
+                  <a href={~p"/dashboard"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+                    Dashboard
+                  </a>
+                <!-- Dropdown Menu -->
+                <div class="absolute hidden group-hover:block bg-cyan-800 rounded-lg shadow-lg py-2">
+                  <a href={~p"/dashboard/accounting"} class="block px-4 py-2 text-white hover:bg-cyan-700">
+                    Accounting
+                  </a>
+                </div>
+              <% end %>
+              <%= if @current_user.email == "office" do %>
+                <a href={~p"/dashboard/office"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+                  Dashboard
+                </a>
+              <% end %>          
+            <% end %>
+          </div>
+        </div> 
 
         <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
           <%= if @current_user do %>

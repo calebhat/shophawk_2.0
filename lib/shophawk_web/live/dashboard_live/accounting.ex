@@ -1,6 +1,7 @@
 # lib/shophawk_web/live/dashboard_live/office.ex
 defmodule ShophawkWeb.DashboardLive.Accounting do
   use ShophawkWeb, :live_view
+  alias ShophawkWeb.UserAuth
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
   import Number.Currency
   alias ShophawkWeb.CheckbookComponent
@@ -33,8 +34,20 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
 
   @impl true
   def mount(_params, _session, socket) do
-    Process.send(self(), :load_data, [:noconnect])
-    {:ok,
+    case UserAuth.ensure_admin_access(socket.assigns.current_user.email) do
+      :ok -> #if correct user is logged in.
+        Process.send(self(), :load_data, [:noconnect])
+        {:ok, set_default_assigns(socket)}
+      {:error, message} ->
+        {:ok,
+          socket
+          |> put_flash(:error, message)
+          |> redirect(to: "/")}
+    end
+  end
+
+  def set_default_assigns(socket) do
+    socket =
       socket
       #Checkbook
       |> assign(:checkbook_entries, [])
@@ -43,7 +56,6 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
       |> assign(:open_invoices, %{})
       |> assign(:selected_range, "")
       |> assign(:open_invoice_values, [])
-    }
   end
 
   def handle_info(:load_data, socket) do
