@@ -4,17 +4,17 @@ defmodule ShophawkWeb.HotjobsComponent do
 
   def render(assigns) do
       ~H"""
-        <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
+        <div class={["text-center justify-center rounded p-4 bg-cyan-900 m-2", @height.border]}>
         <div class="text-2xl">
             Hot Jobs
         </div>
         <%= if Enum.empty?(@hot_jobs) do  %>
             <div class="loader"></div>
         <% else %>
-            <div class="bg-cyan-800 rounded m-2 p-2 h-[87%] overflow-y-auto">
+            <div class={["bg-cyan-800 rounded m-2 p-2 overflow-y-auto", @height.frame]}>
               <div class="flex justify-center p-2-md">
                 <table class="w-full text-center table-fixed">
-                    <thead class="bg-stone-800 text-white" style="font-size: .75vw">
+                    <thead class="bg-stone-800 text-white" style={@height.style}>
                       <tr class="">
                         <th class="px-2 py-2 w-20">Job</th>
                         <th class="px-2 py-2 w-10">Dots</th>
@@ -31,7 +31,7 @@ defmodule ShophawkWeb.HotjobsComponent do
                       :for={job <- @hot_jobs}
                       id="hot_jobs"
                       class={["text-stone-950 border border-stone-800", bg_class(job.dots)]}
-                      style="font-size: .75vw"
+                      style={@height.style}
                     >
                       <td class="py-1 truncate font-bold" style=""><%= job.job %></td>
                       <td class="py-1 truncate"><img class="grid justify-items-start" src={display_dots(job.dots)} /></td>

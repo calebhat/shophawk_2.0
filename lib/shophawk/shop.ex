@@ -527,7 +527,6 @@ defmodule Shophawk.Shop do
     else
       []
     end
-
   end
 
   @doc """

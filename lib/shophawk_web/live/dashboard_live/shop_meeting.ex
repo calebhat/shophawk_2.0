@@ -1,5 +1,5 @@
 # lib/shophawk_web/live/dashboard_live/office.ex
-defmodule ShophawkWeb.DashboardLive.Office do
+defmodule ShophawkWeb.DashboardLive.ShopMeeting do
   use ShophawkWeb, :live_view
   alias ShophawkWeb.UserAuth
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
@@ -7,7 +7,7 @@ defmodule ShophawkWeb.DashboardLive.Office do
   alias ShophawkWeb.RevenueComponent
   alias ShophawkWeb.MonthlySalesChartComponent
   alias ShophawkWeb.TravelorcountComponent
-  alias ShophawkWeb.HotjobsComponent
+  alias ShophawkWeb.HotjobsFullScreenComponent
   alias ShophawkWeb.WeekoneTimeoffComponent
   alias ShophawkWeb.WeektwoTimeoffComponent
   alias ShophawkWeb.YearlySalesChartComponent
@@ -19,38 +19,38 @@ defmodule ShophawkWeb.DashboardLive.Office do
       <div>
         <div class="grid grid-cols-2 place-content-center text-stone-100">
 
-            <!-- Travelor Count -->
-          <.live_component module={TravelorcountComponent} id="travelor_count-1"
-          travelor_count={@travelor_count}
-          travelor_totals={@travelor_totals}
-          />
-
           <!-- Hot Jobs -->
-          <.live_component module={HotjobsComponent} id="hot_jobs-1"
-          hot_jobs={@hot_jobs}
-          height={%{border: "h-[43vh]", frame: "h-[87%]", style: "font-size: .75vw"}}
-          />
 
-          <!-- Hot Jobs -->
-          <.live_component module={WeekoneTimeoffComponent} id="weekonetimeoff-1"
-          weekly_dates={@weekly_dates}
-          week1_timeoff={@week1_timeoff}
-          />
 
-          <!-- Hot Jobs -->
-          <.live_component module={WeektwoTimeoffComponent} id="weektwotimeoff-1"
-          weekly_dates={@weekly_dates}
-          week2_timeoff={@week2_timeoff}
-          />
       </div> <!-- end of grid -->
 
-      <div class="grid grid-cols-1 place-content-center text-stone-100">
-        <.live_component module={LateShipmentsComponent} id="late_shipments-1"
-            late_deliveries={@late_deliveries}
-            late_deliveries_loaded={@late_deliveries_loaded}
-            height={%{border: "h-[43vh]", frame: "h-[70%] 2xl:h-[94%]", style: "font-size: 1vw"}}
-          />
 
+
+      <div class="grid grid-cols-1 place-content-center text-stone-100">
+
+        <.live_component module={HotjobsFullScreenComponent} id="hot_jobs-1"
+          hot_jobs={@hot_jobs}
+          height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[94%]", style: "font-size: 1.25vw"}}
+        />
+        <br><br><br><br>
+
+        <.live_component module={LateShipmentsComponent} id="late_shipments-1"
+          late_deliveries={@late_deliveries}
+          late_deliveries_loaded={@late_deliveries_loaded}
+          height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[94%]", style: "font-size: 1.25vw"}}
+        />
+        <br><br><br><br>
+
+        <.live_component module={RevenueComponent} id="revenue-2"
+        six_weeks_revenue_amount={@six_weeks_revenue_amount}
+        total_revenue={@total_revenue}
+        active_jobs={@active_jobs}
+        revenue_chart_data={@revenue_chart_data}
+        percentage_diff={@percentage_diff}
+        />
+      </div>
+      <br><br><br><br>
+      <div class="grid grid-cols-1 place-content-center text-stone-100">
         <.live_component module={MonthlySalesChartComponent} id="monthly_sales"
         sales_chart_data={@sales_chart_data}
         this_months_sales={@this_months_sales}
@@ -62,16 +62,6 @@ defmodule ShophawkWeb.DashboardLive.Office do
         />
       </div>
 
-      <div class="grid grid-cols-1 place-content-center text-stone-100">
-        <.live_component module={RevenueComponent} id="revenue-2"
-        six_weeks_revenue_amount={@six_weeks_revenue_amount}
-        total_revenue={@total_revenue}
-        active_jobs={@active_jobs}
-        revenue_chart_data={@revenue_chart_data}
-        percentage_diff={@percentage_diff}
-        />
-      </div>
-
 
       </div>
     """
@@ -79,16 +69,8 @@ defmodule ShophawkWeb.DashboardLive.Office do
 
   @impl true
   def mount(_params, _session, socket) do
-    case UserAuth.ensure_office_access(socket.assigns.current_user.email) do
-      :ok -> #if correct user is logged in.
-        Process.send(self(), :load_data, [:noconnect])
-        {:ok, set_default_assigns(socket)}
-      {:error, message} ->
-        {:ok,
-          socket
-          |> put_flash(:error, message)
-          |> redirect(to: "/")}
-    end
+    Process.send(self(), :load_data, [:noconnect])
+    {:ok, set_default_assigns(socket)}
   end
 
   def set_default_assigns(socket) do
@@ -131,13 +113,10 @@ defmodule ShophawkWeb.DashboardLive.Office do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-
-      |> Index.load_travelors_released_componenet() #1 second
+      |> Index.load_hot_jobs()
+      |> Index.load_late_shipments()
       |> Index.load_anticipated_revenue_component() #2 sec
       |> Index.load_monthly_sales_chart_component() #instant
-      |> Index.load_hot_jobs()
-      |> Index.load_time_off()
-      |> Index.load_late_shipments()
     }
   end
 

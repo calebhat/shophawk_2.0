@@ -14,7 +14,10 @@ defmodule ShophawkWeb.RevenueComponent do
                 <div class="border-b border-stone-400 rounded-lg">Six Weeks Revenue Amount</div>
                 <div class="border-b border-stone-400 rounded-lg">Active Jobs Right Now</div>
                 <div class=""><%= number_to_currency(@total_revenue) %></div>
-                <div class=""><%= number_to_currency(@six_weeks_revenue_amount) %></div>
+                <div class="flex justify-center">
+                  <div><%= number_to_currency(@six_weeks_revenue_amount) %></div>
+                  <div class={text_color(@percentage_diff)}><%= @percentage_diff %></div>
+                </div>
                 <div class=""><%= @active_jobs %></div>
             </div>
         <% end %>
@@ -28,4 +31,12 @@ defmodule ShophawkWeb.RevenueComponent do
       </div>
     """
   end
+
+  def text_color(string) do
+    case String.contains?(string, "-") do
+      true -> "font-bold mx-4 text-red-500"
+      _ -> "font-bold text-green-400 mx-4"
+    end
+  end
+
 end

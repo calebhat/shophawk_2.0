@@ -102,6 +102,9 @@ ChartHooks.monthly_sales_chart = {
                 enabled: true,
                 type: 'y'
             },
+            animations: {
+              enabled: false // Disable animations on update
+            },
             foreColor: '#ffffff',
             background: 'transparent'
         },

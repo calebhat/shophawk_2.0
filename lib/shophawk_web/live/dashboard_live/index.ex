@@ -12,6 +12,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.WeekoneTimeoffComponent
   alias ShophawkWeb.WeektwoTimeoffComponent
   alias ShophawkWeb.YearlySalesChartComponent
+  alias ShophawkWeb.LateShipmentsComponent
   alias Shophawk.Dashboard
 
 
@@ -37,17 +38,23 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:open_invoices, %{})
       |> assign(:selected_range, "")
       |> assign(:open_invoice_values, [])
+
       #anticated revenue
       |> assign(:six_weeks_revenue_amount, 0)
       |> assign(:total_revenue, 0)
       |> assign(:active_jobs, 0)
       |> assign(:revenue_chart_data, [])
       |> assign(:sales_chart_data, [])
-      #Yearly Sales Chart
+      |> assign(:percentage_diff, 0)
+
+      #monthly Sales Chart
       |> assign(:monthly_sales, 0)
       |> assign(:this_months_sales, 0)
       |> assign(:this_years_sales, 0)
       |> assign(:projected_yearly_sales, 0)
+      |> assign(:sales_table_data, [])
+      |> assign(:show_monthly_sales_table, false)
+      |> assign(:monthly_average, 0)
 
       #Travelor Count
       |> assign(:travelor_count, [])
@@ -66,6 +73,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:yearly_sales_data, [])
       |> assign(:total_sales, 0)
       |> assign(:complete_yearly_sales_data, [])
+
+      #late Deliveries
+      |> assign(:late_deliveries, [])
+      |> assign(:late_deliveries_loaded, false)
   end
 
   @impl true
@@ -89,6 +100,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> load_monthly_sales_chart_component() #instant
       |> load_hot_jobs()
       |> load_time_off()
+      |> load_late_shipments()
     }
   end
 
@@ -172,9 +184,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
         six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
       }
     socket = assign(socket, :revenue_chart_data, Jason.encode!(chart_data))
-    socket = calc_current_revenue(socket)
+    socket = calc_current_revenue(socket, data)
   end
-  def calc_current_revenue(socket) do
+  def calc_current_revenue(socket, data) do
     jobs = Jobboss_db.active_jobs_with_cost()
     job_numbers = Enum.map(jobs, fn job -> job.job end)
     deliveries = Jobboss_db.load_deliveries(job_numbers)
@@ -189,16 +201,22 @@ defmodule ShophawkWeb.DashboardLive.Index do
       Enum.filter(merged_deliveries, fn d -> Date.before?(d.promised_date, Date.add(Date.utc_today(), 43)) end)
     six_weeks_revenue_amount = Enum.reduce(six_weeks_out_deliveries, 0, fn d, acc -> (d.promised_quantity * d.unit_price) + acc end)
 
+    percentage_diff =
+      (1- (Enum.at(data, 1).six_week_revenue / six_weeks_revenue_amount)) * 100
+      |> Float.round(2)
+      |> Number.Percentage.number_to_percentage(precision: 2)
+
     socket
     |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
     |> assign(:total_revenue, total_revenue)
     |> assign(:active_jobs, Enum.count(jobs))
+    |> assign(:percentage_diff, percentage_diff)
   end
 
   def load_monthly_sales_chart_component(socket) do
     beginning_of_this_month = Date.beginning_of_month(Date.utc_today())
     current_months_sales = generate_monthly_sales(beginning_of_this_month, Date.add(Date.utc_today, 1)) |> List.first()
-    sales_chart_data =
+    sales_table_data =
       Dashboard.list_monthly_sales
       |> Enum.map(fn op ->
         map =
@@ -208,17 +226,45 @@ defmodule ShophawkWeb.DashboardLive.Index do
           |> Map.drop([:inserted_at])
           |> Map.drop([:updated_at])
       end)
+
+      ### Prepare sales table data ###
+    # Create a list of all months in the current year
+    all_months = for month <- 1..12, do: %{date: Date.new!(Date.utc_today().year, month, 1), amount: nil}
+    # Filter for future months
+    all_months = Enum.filter(all_months, fn %{date: date} -> Date.compare(date, Date.utc_today()) == :gt end)
+    # Combine existing data with all months, preferring existing data
+    final_sales_table_data =
+      ([%{date: beginning_of_this_month, amount: current_months_sales.amount} | sales_table_data] ++ all_months)
+      |> Enum.sort_by(& &1.date, {:desc, Date})
+      |> Enum.uniq_by(& {&1.date.year, &1.date.month})
+      |> Enum.reduce({0, %{}, []}, fn map, {year, current_year_map, acc} ->
+        if map.date.year == year do
+          {map.date.year, add_date_key_and_amount(current_year_map, map.date.month, map.amount), acc}
+        else
+          {map.date.year, add_date_key_and_amount(%{year: map.date.year, total: 0}, map.date.month, map.amount), [current_year_map | acc]}
+        end
+      end)
+      |> elem(2)
+      |> Enum.reject(fn map -> map == %{} end)
+      |> Enum.reverse
+
+    ### 12 month Average ###
+    twelve_month_sum =
+      Enum.take(sales_table_data, 12)
+      |> Enum.reduce(0, fn month, acc -> month.amount + acc end)
+    monthly_average = twelve_month_sum / 12
+
     #if this months sales are less than the min value from other months, don't add it to the chart data
     #This keeps the y axis autoscaled correctly
-    min_amount = Enum.min_by(sales_chart_data, fn m -> m.amount end)
+    min_amount = Enum.min_by(sales_table_data, fn m -> m.amount end)
     sales_chart_data =
       if current_months_sales.amount > min_amount do
-        case Enum.find(sales_chart_data, fn month -> month.date == beginning_of_this_month end) do
-          nil -> [%{date: beginning_of_this_month, amount: current_months_sales.amount} | sales_chart_data]
+        case Enum.find(sales_table_data, fn month -> month.date == beginning_of_this_month end) do
+          nil -> [%{date: beginning_of_this_month, amount: current_months_sales.amount} | sales_table_data]
           found_month -> Map.put(found_month, :amount, current_months_sales.amount)
         end
       else
-        sales_chart_data
+        sales_table_data
       end
       |> Enum.group_by(fn d -> d.date.year end)
       |> Enum.map(fn {year, entries} ->
@@ -248,9 +294,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
     socket =
       socket
       |> assign(:sales_chart_data, Jason.encode!(%{series: sales_chart_data}))
+      |> assign(:sales_table_data, final_sales_table_data)
       |> assign(:this_months_sales, current_months_sales.amount)
-      |> assign(:this_years_sales, this_years_sales)
+      |> assign(:this_years_sales, this_years_sales + current_months_sales.amount)
       |> assign(:projected_yearly_sales, (this_years_sales / Date.utc_today().month) * 12)
+      |> assign(:monthly_average, monthly_average)
   end
   def generate_monthly_sales(start_date, end_date, list \\ []) do
     if Date.after?(start_date, end_date) do
@@ -271,6 +319,27 @@ defmodule ShophawkWeb.DashboardLive.Index do
               date: start_date}
           generate_monthly_sales(Date.add(start_date, 35), end_date, [total_sales | list])
       end
+    end
+  end
+  def add_date_key_and_amount(map, int, amount) do
+    map =
+      case amount do
+        nil -> map
+        value -> Map.put(map, :total, map.total + value)
+      end
+    case int do
+      1 -> Map.put(map, :jan, amount)
+      2 -> Map.put(map, :feb, amount)
+      3 -> Map.put(map, :mar, amount)
+      4 -> Map.put(map, :apr, amount)
+      5 -> Map.put(map, :may, amount)
+      6 -> Map.put(map, :jun, amount)
+      7 -> Map.put(map, :jul, amount)
+      8 -> Map.put(map, :aug, amount)
+      9 -> Map.put(map, :sep, amount)
+      10 -> Map.put(map, :oct, amount)
+      11 -> Map.put(map, :nov, amount)
+      12 -> Map.put(map, :dec, amount)
     end
   end
 
@@ -322,81 +391,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def load_hot_jobs(socket) do
     assign(socket, :hot_jobs, Shophawk.Shop.get_hot_jobs())
-  end
-
-  def load_time_off(socket) do
-    weekly_dates = ShophawkWeb.SlideshowLive.Index.load_weekly_dates()
-    {week1_timeoff, week2_timeoff} = ShophawkWeb.SlideshowLive.Index.load_timeoff(weekly_dates)
-
-    socket =
-      assign(socket, :weekly_dates, weekly_dates)
-      |> assign(:week1_timeoff, week1_timeoff)
-      |> assign(:week2_timeoff, week2_timeoff)
-  end
-
-  def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
-    open_invoices = socket.assigns.open_invoice_storage
-    ranged_open_invoices =
-      Enum.filter(open_invoices, fn inv ->
-        case range do
-          "0-30" -> inv.days_open > 0 and inv.days_open <= 30
-          "31-60" -> inv.days_open > 30 and inv.days_open <= 60
-          "61-90" -> inv.days_open > 60 and inv.days_open <= 90
-          "90+" -> inv.days_open > 90
-          "late" -> inv.late == true
-          "all" -> true
-          _ -> false
-        end
-      end)
-    {:noreply, assign(socket, :open_invoices, ranged_open_invoices) |> assign(:selected_range, range)}
-  end
-
-  def handle_event("add_yearly_sales_customer", _, socket) do
-    complete_data = socket.assigns.complete_yearly_sales_data |> IO.inspect
-    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
-    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
-    currently_shown_data = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> Enum.count
-
-    updated_yearly_sales_data =
-      case Enum.count(labels) do
-        11  -> %{labels: labels, series: series}
-        _ ->  %{
-              labels: [Enum.at(Enum.reverse(complete_data.labels), currently_shown_data)] ++ labels,
-              series: [Enum.at(Enum.reverse(complete_data.series), currently_shown_data)] ++ series
-            }
-        end
-
-    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
-
-    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
-  end
-
-  def handle_event("subtract_yearly_sales_customer", _, socket) do
-    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
-    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
-    updated_yearly_sales_data =
-      case Enum.count(labels) do
-        1 -> %{labels: labels, series: series}
-        _ ->
-          [_label_head | label_tail] = labels
-          [_series_head | series_tail] = series
-          %{labels: label_tail, series: series_tail}
-      end
-    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
-    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
-  end
-
-  def handle_event("clear_yearly_sales_customer", _, socket) do
-    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> List.last
-    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series") |> List.last
-    updated_yearly_sales_data =  %{labels: [labels], series: [series]}
-    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
-    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
-  end
-
-  def handle_event("load_yearly_sales_customer", _, socket) do
-    task = Task.async(fn -> load_yearly_sales_chart() end)
-    {:noreply, assign(socket, :task, task) |> assign(:yearly_sales_loading, true)}
   end
 
   def load_yearly_sales_chart() do
@@ -479,24 +473,130 @@ defmodule ShophawkWeb.DashboardLive.Index do
     top_ten_customers = Enum.take(deliveries_this_year, 10)
     rest_of_customers = Enum.reject(deliveries_this_year, fn c -> c.customer in Enum.map(top_ten_customers, &(&1.customer)) end)
     rest_of_customers_sales = Enum.reduce(rest_of_customers, 0, fn c, acc -> c.sales + acc end)
-    total_sales = Enum.reduce(deliveries_this_year, 0, fn c, acc -> c.sales + acc end) |> IO.inspect
+    total_sales = Enum.reduce(deliveries_this_year, 0, fn c, acc -> c.sales + acc end)
     yearly_sales_data =
       %{
         series: Enum.map(top_ten_customers, &(&1.sales)) ++ [rest_of_customers_sales],
         labels: Enum.map(top_ten_customers, &(&1.customer)) ++ ["All Customers Minus the Top 10"]
       }
-    #socket
-    #|> assign(:yearly_sales_data, Jason.encode!(yearly_sales_data))
-    #|> assign(:total_sales, total_sales)
-    #|> assign(:complete_yearly_sales_data, yearly_sales_data)
     %{yearly_sales_data: Jason.encode!(yearly_sales_data), total_sales: total_sales, complete_yearly_sales_data: yearly_sales_data}
+  end
+
+  def load_late_shipments(socket) do
+    runlists =
+      case :ets.lookup(:runlist, :active_jobs) do
+        [{:active_jobs, runlists}] -> Enum.reverse(runlists)
+        [] -> []
+      end
+    late_deliveries = case Shophawk.Jobboss_db.load_late_deliveries() do
+        [] -> [] #if no deliveries found
+        deliveries ->
+          Enum.reduce(deliveries, [], fn d, acc ->
+            case Enum.find(runlists, fn op -> op.job == d.job end) do
+              nil -> acc
+              job ->
+                if job.job_status == "Active" do
+                  acc ++ [Map.merge(d, job)]
+                else
+                  acc
+                end
+            end
+          end)
+          |> Enum.sort_by(&(&1.promised_date), Date)
+      end
+      |> Enum.reject(fn op -> op.customer == "EDG GEAR" end)
+      |> IO.inspect
+      IO.inspect(Enum.count(late_deliveries))
+      IO.inspect(List.first(late_deliveries))
+
+    assign(socket, :late_deliveries, late_deliveries)
+    |> assign(:late_deliveries_loaded, true)
+  end
+
+  def load_time_off(socket) do
+    weekly_dates = ShophawkWeb.SlideshowLive.Index.load_weekly_dates()
+    {week1_timeoff, week2_timeoff} = ShophawkWeb.SlideshowLive.Index.load_timeoff(weekly_dates)
+
+    socket =
+      assign(socket, :weekly_dates, weekly_dates)
+      |> assign(:week1_timeoff, week1_timeoff)
+      |> assign(:week2_timeoff, week2_timeoff)
+  end
+
+  def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
+    open_invoices = socket.assigns.open_invoice_storage
+    ranged_open_invoices =
+      Enum.filter(open_invoices, fn inv ->
+        case range do
+          "0-30" -> inv.days_open > 0 and inv.days_open <= 30
+          "31-60" -> inv.days_open > 30 and inv.days_open <= 60
+          "61-90" -> inv.days_open > 60 and inv.days_open <= 90
+          "90+" -> inv.days_open > 90
+          "late" -> inv.late == true
+          "all" -> true
+          _ -> false
+        end
+      end)
+    {:noreply, assign(socket, :open_invoices, ranged_open_invoices) |> assign(:selected_range, range)}
+  end
+
+  def handle_event("add_yearly_sales_customer", _, socket) do
+    complete_data = socket.assigns.complete_yearly_sales_data
+    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
+    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
+    currently_shown_data = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> Enum.count
+
+    updated_yearly_sales_data =
+      case Enum.count(labels) do
+        11  -> %{labels: labels, series: series}
+        _ ->  %{
+              labels: [Enum.at(Enum.reverse(complete_data.labels), currently_shown_data)] ++ labels,
+              series: [Enum.at(Enum.reverse(complete_data.series), currently_shown_data)] ++ series
+            }
+        end
+
+    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
+
+    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
+  end
+
+  def handle_event("subtract_yearly_sales_customer", _, socket) do
+    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels")
+    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series")
+    updated_yearly_sales_data =
+      case Enum.count(labels) do
+        1 -> %{labels: labels, series: series}
+        _ ->
+          [_label_head | label_tail] = labels
+          [_series_head | series_tail] = series
+          %{labels: label_tail, series: series_tail}
+      end
+    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
+    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
+  end
+
+  def handle_event("clear_yearly_sales_customer", _, socket) do
+    labels = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("labels") |> List.last
+    series = Jason.decode!(socket.assigns.yearly_sales_data) |> Map.get("series") |> List.last
+    updated_yearly_sales_data =  %{labels: [labels], series: [series]}
+    send_update(ShophawkWeb.YearlySalesChartComponent, id: "yearly_sales_1", yearly_sales_data: Jason.encode!(updated_yearly_sales_data))
+    {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
+  end
+
+  def handle_event("load_yearly_sales_customer", _, socket) do
+    task = Task.async(fn -> load_yearly_sales_chart() end)
+    {:noreply, assign(socket, :task, task) |> assign(:yearly_sales_loading, true)}
+  end
+
+  def handle_event("monthly_sales_toggle", _, socket) do
+    {:noreply, assign(socket, :show_monthly_sales_table, !socket.assigns.show_monthly_sales_table)}
   end
 
   def handle_event("test_click", _params, socket) do
 
     #socket = load_yearly_sales_chart(socket)
 
-    #IO.inspect( Jason.encode!(yearly_sales_data))
+
 
     #socket =
     #  assign(socket, :yearly_sales_data, Jason.encode!(empty_yearly_sales_data))
@@ -504,8 +604,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     #Jobboss_db.load_addresses(addresses)
 
 
-    #IO.inspect(Enum.count(deliveries_this_year))
-    #IO.inspect(List.first(deliveries_this_year))
+
 
     ######################Functions to load history into db for first load with new dashboard####################
     #load_10_year_history_into_db()
