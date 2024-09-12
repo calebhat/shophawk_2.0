@@ -32,7 +32,7 @@ defmodule ShophawkWeb.MonthlySalesChartComponent do
                 <div id="sales_chart" phx-hook="monthly_sales_chart" data-sales-chart={@sales_chart_data}></div>
             </div>
           <% else %>
-            <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[78%] 2xl:h-[85%] text-white text-2xl">
+            <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[65%] 2xl:h-[80%] text-white text-2xl">
 
               <div class="flex justify-center p-2 overflow-x-auto">
                   <table class="w-full table-auto">

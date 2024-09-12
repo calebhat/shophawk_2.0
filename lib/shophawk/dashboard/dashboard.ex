@@ -19,7 +19,8 @@ defmodule Shophawk.Dashboard do
   end
 
   def list_monthly_sales do
-    Repo.all(from t in Monthlysales,  where: t.date > ^Date.add(Date.utc_today, -3650), order_by: [desc: t.date])
+    starting_date = Date.new!(Date.add(Date.utc_today, -3650).year, 1, 1)
+    Repo.all(from t in Monthlysales,  where: t.date >= ^starting_date, order_by: [desc: t.date])
   end
 
   def list_monthly_sales(date) do

@@ -94,14 +94,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      #|> load_checkbook_component() #5 seconds
-      #|> load_open_invoices_component() #5 sec
-      #|> load_travelors_released_componenet() #1 second
-      #|> load_anticipated_revenue_component() #2 sec
-      #|> load_monthly_sales_chart_component() #instant
-      #|> load_hot_jobs()
-      #|> load_time_off()
-      #|> load_late_shipments()
+      |> load_checkbook_component() #5 seconds
+      |> load_open_invoices_component() #5 sec
+      |> load_travelors_released_componenet() #1 second
+      |> load_anticipated_revenue_component() #2 sec
+      |> load_monthly_sales_chart_component() #instant
+      |> load_hot_jobs()
+      |> load_time_off()
+      |> load_late_shipments()
     }
   end
 
@@ -178,26 +178,36 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def load_anticipated_revenue_component(socket) do
-    data = Shophawk.Dashboard.list_revenue
-    chart_data =
-      %{
-        total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
-        six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
-      }
-    socket = assign(socket, :revenue_chart_data, Jason.encode!(chart_data))
-    {six_weeks_revenue_amount, total_revenue, active_jobs} = calc_current_revenue()
 
-    percentage_diff =
-      (1- (Enum.at(data, 1).six_week_revenue / six_weeks_revenue_amount)) * 100
-      |> Float.round(2)
-      |> Number.Percentage.number_to_percentage(precision: 2)
+    case Shophawk.Dashboard.list_revenue do
+      [] -> socket
+      nil -> socket
+      data ->
+        chart_data =
+          %{
+            total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
+            six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
+          }
+        socket = assign(socket, :revenue_chart_data, Jason.encode!(chart_data))
+        {six_weeks_revenue_amount, total_revenue, active_jobs} = calc_current_revenue()
 
-    socket =
-      socket
-      |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
-      |> assign(:total_revenue, total_revenue)
-      |> assign(:active_jobs, active_jobs)
-      |> assign(:percentage_diff, percentage_diff)
+        percentage_diff =
+          case Enum.at(data, 1) do
+            nil -> "0"
+            found_data ->
+              (1- (found_data.six_week_revenue / six_weeks_revenue_amount)) * 100
+              |> Float.round(2)
+              |> Number.Percentage.number_to_percentage(precision: 2)
+            end
+
+        socket =
+          socket
+          |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
+          |> assign(:total_revenue, total_revenue)
+          |> assign(:active_jobs, active_jobs)
+          |> assign(:percentage_diff, percentage_diff)
+      _ -> socket
+    end
   end
   def calc_current_revenue() do
     jobs = Jobboss_db.active_jobs_with_cost()
@@ -300,7 +310,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> assign(:sales_chart_data, Jason.encode!(%{series: sales_chart_data}))
       |> assign(:sales_table_data, final_sales_table_data)
       |> assign(:this_months_sales, current_months_sales.amount)
-      |> assign(:this_years_sales, this_years_sales + current_months_sales.amount)
+      |> assign(:this_years_sales, this_years_sales)
       |> assign(:projected_yearly_sales, (this_years_sales / Date.utc_today().month) * 12)
       |> assign(:monthly_average, monthly_average)
   end
@@ -428,8 +438,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
       ["tyson"] => "Tyson Foods",
       ["valmet"] => "Valmet"
     }
-    deliveries_this_year = case Jobboss_db.load_deliveries(~D[2024-08-01], Date.utc_today()) do
-    #deliveries_this_year = case Jobboss_db.load_deliveries(first_day_of_year, Date.utc_today()) do
+    #deliveries_this_year = case Jobboss_db.load_deliveries(~D[2024-08-01], Date.utc_today()) do
+    deliveries_this_year = case Jobboss_db.load_deliveries(first_day_of_year, Date.utc_today()) do
       [] -> [] #if no deliveries found
       deliveries ->
         jobs =
@@ -610,18 +620,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def handle_event("test_click", _params, socket) do
 
-    #socket = load_yearly_sales_chart(socket)
-
-
-
-    #socket =
-    #  assign(socket, :yearly_sales_data, Jason.encode!(empty_yearly_sales_data))
-    #  |> assign(:complete_yearly_sales_data, yearly_sales_data)
-    #Jobboss_db.load_addresses(addresses)
-
     #IO.inspect()
-    save_last_months_sales()
-    save_this_weeks_revenue()
+    #save_last_months_sales()
+    #save_this_weeks_revenue()
 
     ######################Functions to load history into db for first load with new dashboard####################
     #load_10_year_history_into_db()
