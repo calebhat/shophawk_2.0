@@ -76,6 +76,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
       #late Deliveries
       |> assign(:late_deliveries, [])
+      |> assign(:late_delivery_count, 0)
       |> assign(:late_deliveries_loaded, false)
   end
 
@@ -505,11 +506,24 @@ defmodule ShophawkWeb.DashboardLive.Index do
           |> Enum.sort_by(&(&1.promised_date), Date)
       end
       |> Enum.reject(fn op -> op.customer == "EDG GEAR" end)
-      |> IO.inspect
-      IO.inspect(Enum.count(late_deliveries))
-      IO.inspect(List.first(late_deliveries))
+
+    two_week_late_history =
+      case Shophawk.Jobboss_db.load_late_delivery_history() do
+        [] -> [] #if no deliveries found
+        deliveries ->
+          Enum.reduce(deliveries, [], fn d, acc ->
+            case Enum.find(runlists, fn op -> op.job == d.job end) do
+              nil -> acc
+              job -> acc ++ [Map.merge(d, job)]
+            end
+          end)
+          |> Enum.sort_by(&(&1.promised_date), Date)
+      end
+      |> Enum.reject(fn op -> op.customer == "EDG GEAR" end)
+      IO.inspect(Enum.count(two_week_late_history))
 
     assign(socket, :late_deliveries, late_deliveries)
+    |> assign(:late_delivery_count, Enum.count(two_week_late_history))
     |> assign(:late_deliveries_loaded, true)
   end
 

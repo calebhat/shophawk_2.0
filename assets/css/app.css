@@ -21,6 +21,18 @@
     @apply p-4 mx-2 content-center rounded-lg
     /* Add more styling as needed */
   }
+
+  .dark-tooltip-container .tooltip {
+    display: none;
+  }
+
+  .dark-tooltip-container:hover .tooltip {
+    display: block;
+    position: absolute;
+    background-color: #373635  ;
+    @apply p-4 mx-2 content-center rounded-lg ml-24
+    /* Add more styling as needed */
+  }
   
 
 /* ANIMATIONS */

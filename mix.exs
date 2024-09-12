@@ -54,7 +54,8 @@ defmodule Shophawk.MixProject do
       {:nimble_csv, "~> 1.2"},
       {:decimal, "~> 2.1"},
       {:number, "~> 1.0"},
-      {:tds, "~> 2.3"}
+      {:tds, "~> 2.3"},
+      {:quantum, "~> 3.0"}
     ]
   end
 

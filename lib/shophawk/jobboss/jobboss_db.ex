@@ -529,7 +529,7 @@ defmodule Shophawk.Jobboss_db do
     query =
       from r in Jb_delivery,
       where: is_nil(r.shipped_date) and
-            r.promised_date <= ^today and
+            r.promised_date < ^today and
             r.promised_date > ^two_years_ago and
             not like(r.job, "%lbr%") and
             not like(r.job, "%lvl%")
@@ -538,6 +538,20 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
       |> Enum.sort_by(&(&1.job), :desc)
   end
+
+  def load_late_delivery_history() do #All active deliveries
+  today = NaiveDateTime.new(Date.utc_today(), ~T[00:00:00]) |> elem(1)
+  two_weeks_ago = NaiveDateTime.new(Date.add(Date.utc_today(), -14), ~T[00:00:00]) |> elem(1)
+  query =
+    from r in Jb_delivery,
+    where: r.shipped_date > r.promised_date and
+          not like(r.job, "%lbr%") and
+          not like(r.job, "%lvl%")
+
+  failsafed_query(query)
+    |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+    |> Enum.sort_by(&(&1.job), :desc)
+end
 
   def load_deliveries(job_numbers) do
     query =

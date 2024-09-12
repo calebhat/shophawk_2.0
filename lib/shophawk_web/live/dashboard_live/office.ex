@@ -48,6 +48,7 @@ defmodule ShophawkWeb.DashboardLive.Office do
         <.live_component module={LateShipmentsComponent} id="late_shipments-1"
             late_deliveries={@late_deliveries}
             late_deliveries_loaded={@late_deliveries_loaded}
+            late_delivery_count={@late_delivery_count}
             height={%{border: "h-[43vh]", frame: "h-[70%] 2xl:h-[94%]", style: "font-size: 1vw"}}
           />
 
@@ -125,6 +126,7 @@ defmodule ShophawkWeb.DashboardLive.Office do
 
           #late Deliveries
           |> assign(:late_deliveries, [])
+          |> assign(:late_delivery_count, 0)
           |> assign(:late_deliveries_loaded, false)
   end
 

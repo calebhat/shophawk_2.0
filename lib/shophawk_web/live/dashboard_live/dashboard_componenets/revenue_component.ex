@@ -5,18 +5,18 @@ defmodule ShophawkWeb.RevenueComponent do
   def render(assigns) do
     ~H"""
       <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[86vh]">
-        <div class="text-2xl underline pb-4">
-            Anticipated Revenue
-        </div>
         <%= if @total_revenue != 0 do  %>
-            <div class="grid grid-cols-3 text-xl">
-                <div class="border-b border-stone-400 rounded-lg">Total Revenue</div>
-                <div class="border-b border-stone-400 rounded-lg">Six Weeks Revenue Amount</div>
+            <div class="grid grid-cols-3 text-4xl">
+                <div class="border-b border-stone-400 rounded-lg">Total Anticipated Revenue</div>
+                <div class="border-b border-stone-400 rounded-lg">Six Weeks Revenue</div>
                 <div class="border-b border-stone-400 rounded-lg">Active Jobs Right Now</div>
                 <div class=""><%= number_to_currency(@total_revenue) %></div>
                 <div class="flex justify-center">
                   <div><%= number_to_currency(@six_weeks_revenue_amount) %></div>
-                  <div class={text_color(@percentage_diff)}><%= @percentage_diff %></div>
+                  <div class="dark-tooltip-container grid grid-cols-1">
+                    <div class={text_color(@percentage_diff)}><%= @percentage_diff %></div>
+                    <div class="tooltip ml-6">Change from 2 weeks ago</div>
+                  </div>
                 </div>
                 <div class=""><%= @active_jobs %></div>
             </div>
@@ -26,7 +26,8 @@ defmodule ShophawkWeb.RevenueComponent do
                 <div id="Revenue_Chart" phx-hook="Revenue_Chart" data-revenue-chart={@revenue_chart_data}></div>
             </div>
         <% else %>
-            <div class="loader"></div>
+          <div class="text-4xl">Anticipated Revenue </div>
+          <div class="loader"></div>
         <% end %>
       </div>
     """

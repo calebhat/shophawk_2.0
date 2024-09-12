@@ -37,6 +37,7 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
         <.live_component module={LateShipmentsComponent} id="late_shipments-1"
           late_deliveries={@late_deliveries}
           late_deliveries_loaded={@late_deliveries_loaded}
+          late_delivery_count={@late_delivery_count}
           height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[94%]", style: "font-size: 1.25vw"}}
         />
         <br><br><br><br>
@@ -108,6 +109,7 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
           #late Deliveries
           |> assign(:late_deliveries, [])
           |> assign(:late_deliveries_loaded, false)
+          |> assign(:late_delivery_count, 0)
   end
 
   def handle_info(:load_data, socket) do

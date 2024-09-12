@@ -5,14 +5,20 @@ defmodule ShophawkWeb.LateShipmentsComponent do
   def render(assigns) do
       ~H"""
         <div class={["text-center justify-center rounded p-4 bg-cyan-900 m-2", @height.border]}>
-        <div class="text-2xl">
-            Late Shipments
+        <%= if @late_delivery_count > 0 do %>
+          <div class="text-6xl">
+            Late Shipments in the past two weeks: <%= @late_delivery_count %>
+          </div>
+        <% else %>
+          <div class="text-4xl">
+              Late Shipments
         </div>
+        <% end %>
         <%= if @late_deliveries_loaded == false do  %>
             <div class="loader"></div>
         <% else %>
           <%= if @late_deliveries == [] do %>
-            <div class="text-6xl pt-24">Zero Late Shipments</div>
+            <div class="text-4xl pt-24">Zero Late Shipments</div>
           <% else %>
             <div class={["bg-cyan-800 rounded m-2 p-2 overflow-y-auto", @height.frame]}>
               <div class="flex justify-center p-2-md">
