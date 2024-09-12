@@ -37,6 +37,7 @@ defmodule Shophawk.Jobboss_db do
     runlist =
       Enum.chunk_every(job_numbers, 50)
       |> Enum.map(fn x -> merge_jobboss_job_info(x) end)
+      |> List.flatten()
 
     :ets.insert(:runlist, {:active_jobs, runlist})  # Store the data in ETS
   end

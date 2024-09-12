@@ -25,7 +25,8 @@ defmodule Shophawk.Application do
 
 
       #Started app repeating functions
-      ScheduledTasks
+      ScheduledTasks, #run initial task startup and ets initialization
+      Shophawk.Scheduler #to start quantum scheduling for tasks
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

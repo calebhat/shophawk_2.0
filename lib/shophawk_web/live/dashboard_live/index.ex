@@ -94,14 +94,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      |> load_checkbook_component() #5 seconds
-      |> load_open_invoices_component() #5 sec
-      |> load_travelors_released_componenet() #1 second
-      |> load_anticipated_revenue_component() #2 sec
-      |> load_monthly_sales_chart_component() #instant
-      |> load_hot_jobs()
-      |> load_time_off()
-      |> load_late_shipments()
+      #|> load_checkbook_component() #5 seconds
+      #|> load_open_invoices_component() #5 sec
+      #|> load_travelors_released_componenet() #1 second
+      #|> load_anticipated_revenue_component() #2 sec
+      #|> load_monthly_sales_chart_component() #instant
+      #|> load_hot_jobs()
+      #|> load_time_off()
+      #|> load_late_shipments()
     }
   end
 
@@ -185,9 +185,21 @@ defmodule ShophawkWeb.DashboardLive.Index do
         six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
       }
     socket = assign(socket, :revenue_chart_data, Jason.encode!(chart_data))
-    socket = calc_current_revenue(socket, data)
+    {six_weeks_revenue_amount, total_revenue, active_jobs} = calc_current_revenue()
+
+    percentage_diff =
+      (1- (Enum.at(data, 1).six_week_revenue / six_weeks_revenue_amount)) * 100
+      |> Float.round(2)
+      |> Number.Percentage.number_to_percentage(precision: 2)
+
+    socket =
+      socket
+      |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
+      |> assign(:total_revenue, total_revenue)
+      |> assign(:active_jobs, active_jobs)
+      |> assign(:percentage_diff, percentage_diff)
   end
-  def calc_current_revenue(socket, data) do
+  def calc_current_revenue() do
     jobs = Jobboss_db.active_jobs_with_cost()
     job_numbers = Enum.map(jobs, fn job -> job.job end)
     deliveries = Jobboss_db.load_deliveries(job_numbers)
@@ -202,16 +214,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       Enum.filter(merged_deliveries, fn d -> Date.before?(d.promised_date, Date.add(Date.utc_today(), 43)) end)
     six_weeks_revenue_amount = Enum.reduce(six_weeks_out_deliveries, 0, fn d, acc -> (d.promised_quantity * d.unit_price) + acc end)
 
-    percentage_diff =
-      (1- (Enum.at(data, 1).six_week_revenue / six_weeks_revenue_amount)) * 100
-      |> Float.round(2)
-      |> Number.Percentage.number_to_percentage(precision: 2)
-
-    socket
-    |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
-    |> assign(:total_revenue, total_revenue)
-    |> assign(:active_jobs, Enum.count(jobs))
-    |> assign(:percentage_diff, percentage_diff)
+    {six_weeks_revenue_amount, total_revenue, Enum.count(jobs)}
   end
 
   def load_monthly_sales_chart_component(socket) do
@@ -520,7 +523,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
           |> Enum.sort_by(&(&1.promised_date), Date)
       end
       |> Enum.reject(fn op -> op.customer == "EDG GEAR" end)
-      IO.inspect(Enum.count(two_week_late_history))
 
     assign(socket, :late_deliveries, late_deliveries)
     |> assign(:late_delivery_count, Enum.count(two_week_late_history))
@@ -617,8 +619,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
     #  |> assign(:complete_yearly_sales_data, yearly_sales_data)
     #Jobboss_db.load_addresses(addresses)
 
-
-
+    #IO.inspect()
+    save_last_months_sales()
+    save_this_weeks_revenue()
 
     ######################Functions to load history into db for first load with new dashboard####################
     #load_10_year_history_into_db()
@@ -636,6 +639,35 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
 
 
+  ############## Scheduled jobs to run via quantum ##########
+  def save_last_months_sales() do
+    beginning_of_last_month = Date.utc_today |> Date.beginning_of_month() |> Date.add(-1) |> Date.beginning_of_month()
+    end_of_last_month = Date.utc_today |> Date.beginning_of_month() |> Date.add(-1) |> Date.end_of_month()
+    case Dashboard.list_monthly_sales(beginning_of_last_month) do
+      [] ->
+        last_months_sales = List.first(generate_monthly_sales(beginning_of_last_month, end_of_last_month))
+        Shophawk.Dashboard.create_monthly_sales(last_months_sales)
+      _ -> :ok
+    end
+    IO.puts("monthly sales saved")
+  end
+
+  def save_this_weeks_revenue() do
+    beginning_of_week = Date.utc_today |> Date.beginning_of_week()
+    case Dashboard.list_revenue(beginning_of_week) do
+      [] ->
+        {six_weeks_revenue, total_revenue, total_jobs} = calc_current_revenue()
+        revenue_to_save = %{
+          six_week_revenue: Float.round(six_weeks_revenue, 2),
+          total_revenue: Float.round(total_revenue, 2),
+          total_jobs: total_jobs,
+          week: beginning_of_week
+        }
+        Shophawk.Dashboard.create_revenue(revenue_to_save)
+      _ -> :ok
+    end
+    IO.puts("this week revenue saved")
+  end
 
   ###############################################
     #Function to load history and save to DB
@@ -650,7 +682,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     end
 
     def save_revenue_history() do
-      revenue_history = generate_full_revenue_history(~D[2014-01-06], Date.add(Date.utc_today, 1))
+      revenue_history = generate_full_revenue_history(Date.beginning_of_week(~D[2014-01-06]), Date.add(Date.utc_today, 1))
       Enum.each(revenue_history, fn r -> Shophawk.Dashboard.create_revenue(r) end)
     end
 

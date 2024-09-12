@@ -2,7 +2,6 @@ defmodule Shophawk.Dashboard do
   @moduledoc """
   The Inventory context.
   """
-
   import Ecto.Query, warn: false
   alias Shophawk.Repo
   alias DateTime
@@ -14,8 +13,18 @@ defmodule Shophawk.Dashboard do
     Repo.all(from t in Revenue,  where: t.week > ^Date.add(Date.utc_today, -3650), order_by: [desc: t.week])
   end
 
+  def list_revenue(date) do
+    Repo.all(from t in Revenue,
+    where: t.week >= ^date)
+  end
+
   def list_monthly_sales do
     Repo.all(from t in Monthlysales,  where: t.date > ^Date.add(Date.utc_today, -3650), order_by: [desc: t.date])
+  end
+
+  def list_monthly_sales(date) do
+    Repo.all(from t in Monthlysales,
+    where: t.date == ^date)
   end
 
   def get_revenue!(id) do

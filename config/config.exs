@@ -29,6 +29,24 @@ config :shophawk, ShophawkWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :shophawk, Shophawk.Mailer, adapter: Swoosh.Adapters.Local
 
+config :shophawk, Shophawk.Scheduler,
+  jobs: [
+    # Run every 5 minutes
+    {"*/5 * * * *", {ScheduledTasks, :update_all_runlist_loads, []}},
+
+    # Run once a day
+    {"@daily", {ScheduledTasks, :load_current_week_birthdays, []}},
+
+    # Save weekly dates once a day (around 24 hours)
+    {"@daily", {ScheduledTasks, :save_weekly_dates, []}},
+
+    #1am on the 1st of every month
+    {"@daily", {ShophawkWeb.DashboardLive.Index, :save_last_months_sales, []}},
+
+    #1am on monday of every week
+    {"@daily", {ShophawkWeb.DashboardLive.Index, :save_this_weeks_revenue, []}}
+  ]
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",

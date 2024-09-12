@@ -7,7 +7,7 @@ defmodule ShophawkWeb.MonthlySalesChartComponent do
       <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[86vh]">
         <div class="grid grid-cols-3">
           <div></div>
-          <div class="text-2xl underline pb-4 justify-items-center">
+          <div class="text-4xl underline pb-4 justify-items-center">
               Monthly Sales
           </div>
           <%= if @this_months_sales != 0 do  %>
@@ -17,7 +17,7 @@ defmodule ShophawkWeb.MonthlySalesChartComponent do
           <% end %>
         </div>
         <%= if @this_months_sales != 0 do  %>
-            <div class="grid grid-cols-3 text-xl">
+            <div class="grid grid-cols-3 text-4xl">
                 <div class="border-b border-stone-400 rounded-lg">This Years Sales</div>
                 <div class="border-b border-stone-400 rounded-lg"><%= if @show_monthly_sales_table == false, do: "This Months Sales", else: "Monthly Average (12 Month)" %></div>
                 <div class="border-b border-stone-400 rounded-lg">Projected Yearly Sales</div>
@@ -28,7 +28,7 @@ defmodule ShophawkWeb.MonthlySalesChartComponent do
         <% end %>
         <%= if @this_months_sales != 0 do  %>
           <%= if @show_monthly_sales_table == false do %>
-            <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[78%] 2xl:h-[85%] text-black">
+            <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[65%] 2xl:h-[80%] text-black">
                 <div id="sales_chart" phx-hook="monthly_sales_chart" data-sales-chart={@sales_chart_data}></div>
             </div>
           <% else %>

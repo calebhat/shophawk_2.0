@@ -26,12 +26,16 @@ defmodule ScheduledTasks do
     Shophawk.Jobboss_db.load_all_active_jobs
     IO.puts("active jobs loaded into cache")
 
-    #repeating scheduled functions
-    Process.send_after(self(), :update_all_runlist_loads, 100)
-    Process.send_after(self(), :load_current_week_birthdays,2000)
-    Process.send_after(self(), :save_weekly_dates, 2000)
-    Process.send_after(self(), :update_from_jobboss, 2000)
+    # Initial scheduled tasks
+    load_current_week_birthdays()
+    save_weekly_dates()
+    update_all_runlist_loads()
+    ShophawkWeb.DashboardLive.Index.save_last_months_sales()
+    ShophawkWeb.DashboardLive.Index.save_this_weeks_revenue()
 
+    #tasks less than 1 minutes must be ran in the genserver.
+    #All other functions here are ran with Quantum dep that is controlled from /config/config.ex file
+    #Process.send_after(self(), :update_from_jobboss, 2000)
     {:ok, nil}
   end
 
@@ -45,12 +49,12 @@ defmodule ScheduledTasks do
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
 
-    #Process.send_after(self(), :update_from_jobboss, 7000)
+    Process.send_after(self(), :update_from_jobboss, 7000) #runs again 7 seconds after finishing function.
     {:noreply, nil}
   end
 
   #runs every 5 minutes
-  def handle_info(:update_all_runlist_loads, _state) do
+  def update_all_runlist_loads do
     departments = Shop.list_departments |> Enum.sort_by(&(&1).department)
     department_loads =
       Enum.reduce(departments, %{}, fn department, acc ->
@@ -62,14 +66,14 @@ defmodule ScheduledTasks do
         acc ++ [weekly_load]
       end)
     :ets.insert(:runlist_loads, {:data, department_loads})  # Store the data in ETS
-    Process.send_after(self(), :update_all_runlist_loads, 300000)
+    #Process.send_after(self(), :update_all_runlist_loads, 300000)
     IO.puts("Loads Updated")
 
-    {:noreply, nil}
+    #{:noreply, nil}
   end
 
 #runs once a day
-  def handle_info(:load_current_week_birthdays, _state) do
+  def load_current_week_birthdays do
     employees = Shophawk.Jobboss_db.employee_data
     :ets.insert(:employees, {:data, employees})
     today = Date.utc_today()
@@ -91,12 +95,12 @@ defmodule ScheduledTasks do
       end)
 
     :ets.insert(:slideshow, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
-    Process.send_after(self(), :load_current_week_birthdays, 86400000)
+    #Process.send_after(self(), :load_current_week_birthdays, 86400000)
     IO.puts("This Weeks Birthdays Updated")
-    {:noreply, nil}
+    #{:noreply, nil}
   end
 
-  def handle_info(:save_weekly_dates, _state) do
+  def save_weekly_dates do
     today = Date.utc_today()
     day_of_week = Date.day_of_week(today)
     monday = Date.add(today, -(day_of_week - 1))
@@ -105,8 +109,8 @@ defmodule ScheduledTasks do
     next_friday = Date.add(next_monday, 4)
     :ets.insert(:slideshow, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
     IO.puts("weekly dates updated")
-    Process.send_after(self(), :save_weekly_dates, 86500000)
-    {:noreply, nil}
+    #Process.send_after(self(), :save_weekly_dates, 86500000)
+    #{:noreply, nil}
   end
 
 end
