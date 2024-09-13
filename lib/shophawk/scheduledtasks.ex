@@ -30,12 +30,12 @@ defmodule ScheduledTasks do
     load_current_week_birthdays()
     save_weekly_dates()
     update_all_runlist_loads()
-    #ShophawkWeb.DashboardLive.Index.save_last_months_sales()
-    #ShophawkWeb.DashboardLive.Index.save_this_weeks_revenue()
+    ShophawkWeb.DashboardLive.Index.save_last_months_sales()
+    ShophawkWeb.DashboardLive.Index.save_this_weeks_revenue()
 
     #tasks less than 1 minutes must be ran in the genserver.
     #All other functions here are ran with Quantum dep that is controlled from /config/config.ex file
-    #Process.send_after(self(), :update_from_jobboss, 2000)
+    Process.send_after(self(), :update_from_jobboss, 2000)
     {:ok, nil}
   end
 
