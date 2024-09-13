@@ -6,7 +6,7 @@ defmodule ShophawkWeb.YearlySalesChartComponent do
     ~H"""
       <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[86vh]">
         <div class="text-2xl underline pb-4">
-            Yearly Sales
+            Top 10 Customers & Yearly Sales
         </div>
           <%= if @yearly_sales_data == [] do %>
             <%= if @yearly_sales_loading == false do %>
@@ -18,7 +18,7 @@ defmodule ShophawkWeb.YearlySalesChartComponent do
               <div></div>
             <% end %>
           <% else %>
-            <div class="grid grid-cols-2 text-xl">
+            <div class="grid grid-cols-2 text-4xl">
               <div class="border-b border-stone-400 rounded-lg">Total Sales</div>
               <div class="border-b border-stone-400 rounded-lg">Controls</div>
               <div class=""><%= number_to_currency(@total_sales) %></div>

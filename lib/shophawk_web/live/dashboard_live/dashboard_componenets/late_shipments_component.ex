@@ -6,11 +6,11 @@ defmodule ShophawkWeb.LateShipmentsComponent do
       ~H"""
         <div class={["text-center justify-center rounded p-4 bg-cyan-900 m-2", @height.border]}>
         <%= if @late_delivery_count > 0 do %>
-          <div class="text-6xl">
+          <div class={@header_font_size}>
             Late Shipments in the past two weeks: <%= @late_delivery_count %>
           </div>
         <% else %>
-          <div class="text-4xl">
+          <div class={@header_font_size}>
               Late Shipments
         </div>
         <% end %>

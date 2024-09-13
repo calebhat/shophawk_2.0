@@ -6,23 +6,23 @@ defmodule ShophawkWeb.RevenueComponent do
     ~H"""
       <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[86vh]">
         <%= if @total_revenue != 0 do  %>
-            <div class="grid grid-cols-3 text-4xl">
-                <div class="border-b border-stone-400 rounded-lg">Total Anticipated Revenue</div>
-                <div class="border-b border-stone-400 rounded-lg">Six Weeks Revenue</div>
-                <div class="border-b border-stone-400 rounded-lg">Active Jobs Right Now</div>
-                <div class=""><%= number_to_currency(@total_revenue) %></div>
-                <div class="flex justify-center">
-                  <div><%= number_to_currency(@six_weeks_revenue_amount) %></div>
-                  <div class="dark-tooltip-container grid grid-cols-1">
-                    <div class={text_color(@percentage_diff)}><%= @percentage_diff %></div>
-                    <div class="tooltip ml-6">Change from 2 weeks ago</div>
-                  </div>
-                </div>
-                <div class=""><%= @active_jobs %></div>
+          <div class={["grid grid-cols-3", @header_font_size]}>
+            <div class="border-b border-stone-400 rounded-lg">Total Anticipated Revenue</div>
+            <div class="border-b border-stone-400 rounded-lg">Six Weeks Revenue</div>
+            <div class="border-b border-stone-400 rounded-lg">Active Jobs Right Now</div>
+            <div class=""><%= number_to_currency(@total_revenue) %></div>
+            <div class="flex justify-center">
+              <div><%= number_to_currency(@six_weeks_revenue_amount) %></div>
+              <div class="dark-tooltip-container grid grid-cols-1">
+                <div class={text_color(@percentage_diff)}><%= @percentage_diff %></div>
+                <div class="tooltip ml-6">Change from 2 weeks ago</div>
+              </div>
             </div>
+            <div class=""><%= @active_jobs %></div>
+          </div>
         <% end %>
         <%= if @total_revenue != 0 do  %>
-            <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[78%] 2xl:h-[85%] text-black">
+            <div class={["text-md bg-cyan-800 rounded m-2 p-2  text-black", @height.frame]}>
                 <div id="Revenue_Chart" phx-hook="Revenue_Chart" data-revenue-chart={@revenue_chart_data}></div>
             </div>
         <% else %>

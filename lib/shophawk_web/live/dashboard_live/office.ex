@@ -29,6 +29,7 @@ defmodule ShophawkWeb.DashboardLive.Office do
           <.live_component module={HotjobsComponent} id="hot_jobs-1"
           hot_jobs={@hot_jobs}
           height={%{border: "h-[43vh]", frame: "h-[87%]", style: "font-size: .75vw"}}
+          header_font_size="text-2xl"
           />
 
           <!-- Hot Jobs -->
@@ -46,11 +47,22 @@ defmodule ShophawkWeb.DashboardLive.Office do
 
       <div class="grid grid-cols-1 place-content-center text-stone-100">
         <.live_component module={LateShipmentsComponent} id="late_shipments-1"
-            late_deliveries={@late_deliveries}
-            late_deliveries_loaded={@late_deliveries_loaded}
-            late_delivery_count={@late_delivery_count}
-            height={%{border: "h-[43vh]", frame: "h-[70%] 2xl:h-[94%]", style: "font-size: 1vw"}}
-          />
+          late_deliveries={@late_deliveries}
+          late_deliveries_loaded={@late_deliveries_loaded}
+          late_delivery_count={@late_delivery_count}
+          height={%{border: "h-[43vh]", frame: "h-[81%] 2xl:h-[87%]", style: "font-size: 1vw"}}
+          header_font_size="text-2xl"
+        />
+
+        <.live_component module={RevenueComponent} id="revenue-2"
+        six_weeks_revenue_amount={@six_weeks_revenue_amount}
+        total_revenue={@total_revenue}
+        active_jobs={@active_jobs}
+        revenue_chart_data={@revenue_chart_data}
+        percentage_diff={@percentage_diff}
+        header_font_size="text-2xl"
+        height={%{frame: "h-[87%] 2xl:h-[89%]"}}
+        />
 
         <.live_component module={MonthlySalesChartComponent} id="monthly_sales"
         sales_chart_data={@sales_chart_data}
@@ -60,16 +72,8 @@ defmodule ShophawkWeb.DashboardLive.Office do
         show_monthly_sales_table={@show_monthly_sales_table}
         sales_table_data={@sales_table_data}
         monthly_average={@monthly_average}
-        />
-      </div>
-
-      <div class="grid grid-cols-1 place-content-center text-stone-100">
-        <.live_component module={RevenueComponent} id="revenue-2"
-        six_weeks_revenue_amount={@six_weeks_revenue_amount}
-        total_revenue={@total_revenue}
-        active_jobs={@active_jobs}
-        revenue_chart_data={@revenue_chart_data}
-        percentage_diff={@percentage_diff}
+        header_font_size="text-2xl"
+        height={%{frame: "h-[77%] 2xl:h-[82%]"}}
         />
       </div>
 

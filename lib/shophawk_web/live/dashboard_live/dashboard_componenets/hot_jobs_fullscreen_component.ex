@@ -5,7 +5,7 @@ defmodule ShophawkWeb.HotjobsFullScreenComponent do
   def render(assigns) do
       ~H"""
         <div class={["text-center justify-center rounded p-4 bg-cyan-900 m-2", @height.border]}>
-        <div class="text-2xl">
+        <div class={@header_font_size}>
             Hot Jobs
         </div>
         <%= if Enum.empty?(@hot_jobs) do  %>

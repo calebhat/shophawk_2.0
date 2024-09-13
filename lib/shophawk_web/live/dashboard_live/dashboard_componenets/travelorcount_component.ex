@@ -8,7 +8,6 @@ defmodule ShophawkWeb.TravelorcountComponent do
         <div class="text-2xl">
             Travelors Released in the Last 5 Days
         </div>
-        <% IO.inspect(@travelor_count) %>
         <%= if Enum.empty?(@travelor_count) do  %>
             <div class="loader"></div>
         <% else %>
