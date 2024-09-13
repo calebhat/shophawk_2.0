@@ -38,8 +38,9 @@ defmodule ShophawkWeb.LateShipmentsComponent do
                     <tr
                       :for={job <- @late_deliveries}
                       id="late_ships"
-                      class={["text-stone-950 border border-stone-800"]}
+                      class={["text-stone-950 border border-stone-800 hover:cursor-pointer hover:bg-stone-400"]}
                       style={@height.style}
+                      phx-click="show_job" phx-value-job={job.job}
                     >
                       <td class="py-1 truncate font-bold" style=""><%= job.job %></td>
                       <td class="py-1 truncated font-bold" style=""><%= job.make_quantity %></td>

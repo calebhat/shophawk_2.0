@@ -35,7 +35,7 @@ defmodule ScheduledTasks do
 
     #tasks less than 1 minutes must be ran in the genserver.
     #All other functions here are ran with Quantum dep that is controlled from /config/config.ex file
-    Process.send_after(self(), :update_from_jobboss, 2000)
+    #Process.send_after(self(), :update_from_jobboss, 2000)
     {:ok, nil}
   end
 

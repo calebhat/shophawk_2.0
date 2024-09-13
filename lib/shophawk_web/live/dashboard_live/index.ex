@@ -82,7 +82,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
-    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+    case Map.has_key?(params, "reload") do
+      true -> {:noreply, socket}
+      _ -> {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+    end
   end
 
   defp apply_action(socket, :index, _params) do
@@ -636,6 +639,46 @@ defmodule ShophawkWeb.DashboardLive.Index do
       {_, group} -> group
       nil -> map.customer  # If no match is found, return the original customer name
     end
+  end
+
+
+   ###### Showjob and attachments downloads ########
+   def handle_event("show_job", %{"job" => job}, socket) do
+    #Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
+    socket = ShophawkWeb.RunlistLive.Index.showjob(socket, job)
+    {:noreply, socket}
+  end
+
+  def handle_info({:load_attachments, job}, socket) do
+    IO.inspect(":here")
+    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
+    {:noreply, socket}
+  end
+
+  def handle_event("attachments", _, socket) do
+    job = socket.assigns.id
+    #[{:data, attachments}] = :ets.lookup(:job_attachments, :data)
+    attachments = Shophawk.Jobboss_db.export_attachments(job)
+    socket =
+      socket
+      |> assign(id: job)
+      |> assign(attachments: attachments)
+      |> assign(page_title: "Job #{job} attachments")
+      |> assign(:live_action, :job_attachments)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("download", %{"file-path" => file_path}, socket) do
+    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
+  end
+
+  def handle_event("download", _params, socket) do
+    {:noreply, socket |> assign(:not_found, "File not found")}
+  end
+
+  def handle_event("close_job_attachments", _params, socket) do
+    {:noreply, assign(socket, live_action: :show_job)}
   end
 
 
