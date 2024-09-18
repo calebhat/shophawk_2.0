@@ -22,23 +22,23 @@ defmodule ShophawkWeb.SlideshowLive.FormComponent do
       <div class="grid grid-cols-2">
         <div class="bg-cyan-700 rounded-lg m-4">
           <div class="mt-4 text-2xl flex justify-center border-b-4 border-black">Current Week</div>
-          <div class="grid grid-cols-3 gap-4 content-center flex justify-around p-2 m-2 text-xl">
-            <div class="flex justify-center grid content-center">Monday</div>
+          <div class="grid grid-cols-3 gap-4 content-center justify-around p-2 m-2 text-xl">
+            <div class="grid content-center">Monday</div>
             <.input field={@form[:mondayo1]} type="time" label="" />
             <.input field={@form[:mondayc1]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Tuesday</div>
+            <div class="grid content-center">Tuesday</div>
             <.input field={@form[:tuesdayo1]} type="time" label="" />
             <.input field={@form[:tuesdayc1]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Wednesday</div>
+            <div class="grid content-center">Wednesday</div>
             <.input field={@form[:wednesdayo1]} type="time" label="" />
             <.input field={@form[:wednesdayc1]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Thursday</div>
+            <div class="grid content-center">Thursday</div>
             <.input field={@form[:thursdayo1]} type="time" label="" />
             <.input field={@form[:thursdayc1]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Friday</div>
+            <div class="grid content-center">Friday</div>
             <.input field={@form[:fridayo1]} type="time" label="" />
             <.input field={@form[:fridayc1]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Saturday</div>
+            <div class="grid content-center">Saturday</div>
             <.input field={@form[:saturdayo1]} type="time" label="" />
             <.input field={@form[:saturdayc1]} type="time" label="" />
           </div>
@@ -49,23 +49,23 @@ defmodule ShophawkWeb.SlideshowLive.FormComponent do
         </div>
         <div class="bg-cyan-700 rounded-lg m-4">
           <div class="mt-4 text-2xl flex justify-center border-b-4 border-black">Next Week</div>
-          <div class="grid grid-cols-3 gap-4 content-center flex justify-around p-2 m-2 text-xl">
+          <div class="grid grid-cols-3 gap-4 content-center justify-around p-2 m-2 text-xl">
             <div class="cflex justify-center grid content-center">Monday</div>
             <.input field={@form[:mondayo2]} type="time" label="" />
             <.input field={@form[:mondayc2]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Tuesday</div>
+            <div class="grid content-center">Tuesday</div>
             <.input field={@form[:tuesdayo2]} type="time" label="" />
             <.input field={@form[:tuesdayc2]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Wednesday</div>
+            <div class="grid content-center">Wednesday</div>
             <.input field={@form[:wednesdayo2]} type="time" label="" />
             <.input field={@form[:wednesdayc2]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Thursday</div>
+            <div class="grid content-center">Thursday</div>
             <.input field={@form[:thursdayo2]} type="time" label="" />
             <.input field={@form[:thursdayc2]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Friday</div>
+            <div class="grid content-center">Friday</div>
             <.input field={@form[:fridayo2]} type="time" label="" />
             <.input field={@form[:fridayc2]} type="time" label="" />
-            <div class="flex justify-center grid content-center">Saturday</div>
+            <div class="grid content-center">Saturday</div>
             <.input field={@form[:saturdayo2]} type="time" label="" />
             <.input field={@form[:saturdayc2]} type="time" label="" />
           </div>
