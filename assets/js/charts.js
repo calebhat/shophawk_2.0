@@ -243,153 +243,165 @@ ChartHooks.monthly_sales_chart = {
 }
 
 ChartHooks.yearly_sales_Chart = {
-    mounted() {
-      let chartData = JSON.parse(this.el.dataset.yearlysalesChart);
-    
-      // Prepend empty bars if the number of entries is less than 11
-      while (chartData.series.length < 11) {
-        chartData.series.unshift(0);  // Add empty bar (value 0)
-        chartData.labels.unshift(''); // Add an empty label
-      }
-    
-      const options = {
-        series: [{
-          data: chartData.series // Sales values
-        }],
-        chart: {
-          type: 'bar',
-          height: ['100%'],
-          toolbar: {
-            show: true
-          },
-          animations: {
-            enabled: false // Disable animations on update
-          }
-        },
-        plotOptions: {
-          bar: {
-            barHeight: '100%',
-            distributed: true,
-            horizontal: true,
-            dataLabels: {
-              position: 'bottom'
-            },
-          }
-        },
-        colors: [
-          '#b71c1c',  // Dark Red
-          '#c62828',  // Crimson Red
-          '#bf360c',  // Burnt Orange
-          '#d84315',  // Dark Orange
-          '#ff6f00',  // Dark Amber
-          '#ff8f00',  // Amber            
-          '#ffb300',  // Dark Yellow  
-          '#33691e',  // Olive Green
-          '#1b5e20',  // Forest Green
-          '#004d40',  // Dark Green
-          '#00695c'   // Teal Green
-        ], // Color array for each bar
-        dataLabels: {
-          enabled: true,
-          textAnchor: 'start',
-          style: {
-            colors: ['#ffffff'], // Set all text to white
-            fontSize: '20px' // Increase the font size for data labels
-          },
-          formatter: function (val, opt) {
-            // Display the customer name and sales value inside the bar
-            return chartData.labels[opt.dataPointIndex] + ": " + val.toLocaleString('en-US', {
-              style: 'currency',
-              currency: 'USD'
-            });
-          },
-          offsetX: 0,
-          dropShadow: {
-            enabled: false
-          }
-        },
-        stroke: {
-          width: 1,
-          colors: ['#fff']
-        },
-        xaxis: {
-          categories: chartData.labels, // Customer names as categories
-          labels: {
-            style: {
-              colors: '#ffffff', // Set x-axis text color to white
-              fontSize: '16px' // Set x-axis font size
-            }
-          }
-        },
-        yaxis: {
-          labels: {
-            show: false // Hide y-axis labels
-          }
-        },
-        title: {
-          text: 'Yearly Sales by Customer',
-          align: 'center',
-          floating: true,
-          style: {
-            color: '#ffffff', // Set title color to white
-            fontSize: '20px' // Increase title font size
-          }
-        },
-        legend: {
-          show: false,
-          labels: {
-            colors: '#ffffff', // Set legend text color to white
-            fontSize: '18px' // Increase legend text size
-          }
-        },
-        tooltip: {
-          theme: 'dark',
-          x: {
-            show: false
-          },
-          y: {
-            title: {
-              formatter: function () {
-                return '';
-              }
-            }
-          }
-        }
-      };
-    
-      this.chart = new ApexCharts(this.el, options);
-      this.chart.render();
-    },
-    
-    updated() {
-      let updatedChartData = JSON.parse(this.el.dataset.yearlysalesChart);
-    
-      // Prepend empty bars if the number of entries is less than 11
-      while (updatedChartData.series.length < 11) {
-        updatedChartData.series.unshift(0);  // Add empty bar (value 0)
-        updatedChartData.labels.unshift(''); // Add an empty label
-      }
-    
-      // Update the chart with the new data and formatted labels
-      this.chart.updateOptions({
-        series: [{
-          data: updatedChartData.series // Update the sales data
-        }],
-        xaxis: {
-          categories: updatedChartData.labels // Update the customer names
-        },
-        dataLabels: {
-          formatter: function (val, opt) {
-            // Display the customer name and sales value inside the bar after update
-            return updatedChartData.labels[opt.dataPointIndex] + ": " + val.toLocaleString('en-US', {
-              style: 'currency',
-              currency: 'USD'
-            });
-          }
-        }
-      });
+  mounted() {
+    let chartData = JSON.parse(this.el.dataset.yearlysalesChart);
+  
+    // Prepend empty bars if the number of entries is less than 11
+    while (chartData.series.length < 11) {
+      chartData.series.unshift(0);  // Add empty bar (value 0)
+      chartData.labels.unshift(''); // Add an empty label
     }
-  };
+  
+    const options = {
+      series: [{
+        data: chartData.series // Sales values
+      }],
+      chart: {
+        type: 'bar',
+        height: ['100%'],
+        toolbar: {
+          show: true
+        },
+        animations: {
+          enabled: false // Disable animations on update
+        }
+      },
+      plotOptions: {
+        bar: {
+          barHeight: '100%',
+          distributed: true,
+          horizontal: true,
+          dataLabels: {
+            position: 'bottom'
+          },
+        }
+      },
+      colors: [
+        '#b71c1c',  // Dark Red
+        '#c62828',  // Crimson Red
+        '#bf360c',  // Burnt Orange
+        '#d84315',  // Dark Orange
+        '#ff6f00',  // Dark Amber
+        '#ff8f00',  // Amber            
+        '#ffb300',  // Dark Yellow  
+        '#33691e',  // Olive Green
+        '#1b5e20',  // Forest Green
+        '#004d40',  // Dark Green
+        '#00695c'   // Teal Green
+      ], // Color array for each bar
+      dataLabels: {
+        enabled: true,
+        textAnchor: 'start',
+        style: {
+          colors: ['#ffffff'], // Set all text to white
+          fontSize: '20px' // Increase the font size for data labels
+        },
+        formatter: function (val, opt) {
+          // Calculate the total sum of all series data
+          const total = chartData.series.reduce((sum, value) => sum + value, 0);
+          
+          // Calculate the percentage
+          const percentage = ((val / total) * 100).toFixed(2);
+          
+          // Display the customer name, sales value, and percentage inside the bar
+          return `${chartData.labels[opt.dataPointIndex]}: ${val.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD'
+          })} (${percentage}%)`;
+        },
+        offsetX: 0,
+        dropShadow: {
+          enabled: false
+        }
+      },
+      stroke: {
+        width: 1,
+        colors: ['#fff']
+      },
+      xaxis: {
+        categories: chartData.labels, // Customer names as categories
+        labels: {
+          style: {
+            colors: '#ffffff', // Set x-axis text color to white
+            fontSize: '16px' // Set x-axis font size
+          }
+        }
+      },
+      yaxis: {
+        labels: {
+          show: false // Hide y-axis labels
+        }
+      },
+      title: {
+        text: 'Yearly Sales by Customer',
+        align: 'center',
+        floating: true,
+        style: {
+          color: '#ffffff', // Set title color to white
+          fontSize: '20px' // Increase title font size
+        }
+      },
+      legend: {
+        show: false,
+        labels: {
+          colors: '#ffffff', // Set legend text color to white
+          fontSize: '18px' // Increase legend text size
+        }
+      },
+      tooltip: {
+        theme: 'dark',
+        x: {
+          show: false
+        },
+        y: {
+          title: {
+            formatter: function () {
+              return '';
+            }
+          }
+        }
+      }
+    };
+  
+    this.chart = new ApexCharts(this.el, options);
+    this.chart.render();
+  },
+  
+  updated() {
+    let updatedChartData = JSON.parse(this.el.dataset.yearlysalesChart);
+  
+    // Prepend empty bars if the number of entries is less than 11
+    while (updatedChartData.series.length < 11) {
+      updatedChartData.series.unshift(0);  // Add empty bar (value 0)
+      updatedChartData.labels.unshift(''); // Add an empty label
+    }
+  
+    // Update the chart with the new data and formatted labels
+    this.chart.updateOptions({
+      series: [{
+        data: updatedChartData.series // Update the sales data
+      }],
+      xaxis: {
+        categories: updatedChartData.labels // Update the customer names
+      },
+      dataLabels: {
+        formatter: function (val, opt) {
+          // Calculate the total sum of all series data
+          const total = updatedChartData.series.reduce((sum, value) => sum + value, 0);
+          
+          // Calculate the percentage
+          const percentage = ((val / total) * 100).toFixed(2);
+          
+          // Display the customer name, sales value, and percentage inside the bar after update
+          return `${updatedChartData.labels[opt.dataPointIndex]}: ${val.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD'
+          })} (${percentage}%)`;
+        }
+      }
+    });
+  }
+};
   
 
 export default ChartHooks;
