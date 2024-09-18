@@ -1,6 +1,5 @@
 defmodule ShophawkWeb.CheckbookComponent do
     use ShophawkWeb, :live_component
-    import Number.Currency
 
     #Needed Varables
     #current_balance

@@ -1,6 +1,5 @@
 defmodule Shophawk.Jobboss_db do
     import Ecto.Query, warn: false
-    import Number.Currency
     alias DateTime
     alias Shophawk.Jb_job
     alias Shophawk.Jb_job_operation
@@ -423,7 +422,7 @@ defmodule Shophawk.Jobboss_db do
       {:ok, result} = {:ok, Shophawk.Repo_jb.all(query)}
       result
     rescue
-      e in DBConnection.ConnectionError ->
+      _e in DBConnection.ConnectionError ->
         IO.puts("Database connection error. Retries left: #{retries}")
         handle_retry(query, retries, delay, :connection_error)
       e in Ecto.QueryError ->
@@ -494,14 +493,13 @@ defmodule Shophawk.Jobboss_db do
         inv = Map.put(inv, :days_open, Date.diff(Date.utc_today(), inv.document_date))
         inv = if Date.diff(inv.due_date, Date.utc_today()) <= 0, do: Map.put(inv, :late, true), else: Map.put(inv, :late, false)
 
-        inv =
-          cond do
-            inv.days_open < 30 -> Map.put(inv, :column, 1)
-            inv.days_open >= 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
-            inv.days_open > 60 and inv.days_open <= 90 -> Map.put(inv, :column, 3)
-            inv.days_open > 90 -> Map.put(inv, :column, 4)
-            true -> Map.put(inv, :column, 0)
-          end
+        cond do
+          inv.days_open < 30 -> Map.put(inv, :column, 1)
+          inv.days_open >= 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
+          inv.days_open > 60 and inv.days_open <= 90 -> Map.put(inv, :column, 3)
+          inv.days_open > 90 -> Map.put(inv, :column, 4)
+          true -> Map.put(inv, :column, 0)
+        end
       end)
   end
 
@@ -542,8 +540,6 @@ defmodule Shophawk.Jobboss_db do
   end
 
   def load_late_delivery_history() do #All active deliveries
-  today = NaiveDateTime.new(Date.utc_today(), ~T[00:00:00]) |> elem(1)
-  two_weeks_ago = NaiveDateTime.new(Date.add(Date.utc_today(), -14), ~T[00:00:00]) |> elem(1)
   query =
     from r in Jb_delivery,
     where: r.shipped_date > r.promised_date and
@@ -577,9 +573,8 @@ end
 
   def load_jobs(job_numbers) do
     query = from r in Jb_job, where: r.job in ^job_numbers
-    jobs_map =
-      failsafed_query(query)
-      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+    failsafed_query(query)
+    |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 
   def load_delivery_jobs(job_numbers) do

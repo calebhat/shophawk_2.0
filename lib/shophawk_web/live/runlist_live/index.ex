@@ -220,18 +220,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-  def showjob(socket, job) do
-
-    {job_ops, job_info} = Shop.list_job(job)
-    socket =
-      socket
-      |> assign(id: job)
-      |> assign(page_title: "Job #{job}")
-      |> assign(:live_action, :show_job)
-      |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
-      |> assign(:job_info, job_info)
-  end
-
   def handle_event("test", _, socket) do
     Shophawk.Jobboss_db.merge_jobboss_job_info(["135480"])
     #Shophawk.Jobboss_db.update_workcenters
@@ -292,6 +280,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def handle_event("close_job_attachments", _params, socket) do
     {:noreply, assign(socket, live_action: :show_job)}
+  end
+
+  def showjob(socket, job) do
+    {job_ops, job_info} = Shop.list_job(job)
+    socket
+    |> assign(id: job)
+    |> assign(page_title: "Job #{job}")
+    |> assign(:live_action, :show_job)
+    |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
+    |> assign(:job_info, job_info)
   end
 
   defp finalize_department_stream(socket, department_id) do

@@ -29,55 +29,54 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def set_default_assigns(socket) do
-    socket =
-      socket
-      #Checkbook
-      |> assign(:checkbook_entries, [])
-      |> assign(:current_balance, "Loading...")
-      #Invoices
-      |> assign(:open_invoices, %{})
-      |> assign(:selected_range, "")
-      |> assign(:open_invoice_values, [])
+    socket
+    #Checkbook
+    |> assign(:checkbook_entries, [])
+    |> assign(:current_balance, "Loading...")
+    #Invoices
+    |> assign(:open_invoices, %{})
+    |> assign(:selected_range, "")
+    |> assign(:open_invoice_values, [])
 
-      #anticated revenue
-      |> assign(:six_weeks_revenue_amount, 0)
-      |> assign(:total_revenue, 0)
-      |> assign(:active_jobs, 0)
-      |> assign(:revenue_chart_data, [])
-      |> assign(:sales_chart_data, [])
-      |> assign(:percentage_diff, 0)
+    #anticated revenue
+    |> assign(:six_weeks_revenue_amount, 0)
+    |> assign(:total_revenue, 0)
+    |> assign(:active_jobs, 0)
+    |> assign(:revenue_chart_data, [])
+    |> assign(:sales_chart_data, [])
+    |> assign(:percentage_diff, 0)
 
-      #monthly Sales Chart
-      |> assign(:monthly_sales, 0)
-      |> assign(:this_months_sales, 0)
-      |> assign(:this_years_sales, 0)
-      |> assign(:projected_yearly_sales, 0)
-      |> assign(:sales_table_data, [])
-      |> assign(:show_monthly_sales_table, false)
-      |> assign(:monthly_average, 0)
+    #monthly Sales Chart
+    |> assign(:monthly_sales, 0)
+    |> assign(:this_months_sales, 0)
+    |> assign(:this_years_sales, 0)
+    |> assign(:projected_yearly_sales, 0)
+    |> assign(:sales_table_data, [])
+    |> assign(:show_monthly_sales_table, false)
+    |> assign(:monthly_average, 0)
 
-      #Travelor Count
-      |> assign(:travelor_count, [])
-      |> assign(:travelor_totals, %{})
+    #Travelor Count
+    |> assign(:travelor_count, [])
+    |> assign(:travelor_totals, %{})
 
-      #hot jobs
-      |> assign(:hot_jobs, [])
+    #hot jobs
+    |> assign(:hot_jobs, [])
 
-      #timeoff
-      |> assign(:weekly_dates, %{})
-      |> assign(:week1_timeoff, [])
-      |> assign(:week2_timeoff, [])
+    #timeoff
+    |> assign(:weekly_dates, %{})
+    |> assign(:week1_timeoff, [])
+    |> assign(:week2_timeoff, [])
 
-      #Yearly Sales Chart
-      |> assign(:yearly_sales_loading, false)
-      |> assign(:yearly_sales_data, [])
-      |> assign(:total_sales, 0)
-      |> assign(:complete_yearly_sales_data, [])
+    #Yearly Sales Chart
+    |> assign(:yearly_sales_loading, false)
+    |> assign(:yearly_sales_data, [])
+    |> assign(:total_sales, 0)
+    |> assign(:complete_yearly_sales_data, [])
 
-      #late Deliveries
-      |> assign(:late_deliveries, [])
-      |> assign(:late_delivery_count, 0)
-      |> assign(:late_deliveries_loaded, false)
+    #late Deliveries
+    |> assign(:late_deliveries, [])
+    |> assign(:late_delivery_count, 0)
+    |> assign(:late_deliveries_loaded, false)
   end
 
   @impl true
@@ -94,6 +93,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:page_title, "Dashboard")
   end
 
+  @impl true
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
@@ -106,6 +106,16 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> load_time_off()
       |> load_late_shipments()
     }
+  end
+
+  def handle_info({:load_attachments, job}, socket) do
+    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
+    {:noreply, socket}
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
+    # Handle task errors
+    {:noreply, assign(socket, loading: false, error: reason)}
   end
 
   def handle_info({ref, result}, socket) do #load chart data once complete
@@ -121,11 +131,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
     else
       {:noreply, socket}
     end
-  end
-
-  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
-    # Handle task errors
-    {:noreply, assign(socket, loading: false, error: reason)}
   end
 
   def load_checkbook_component(socket) do
@@ -170,14 +175,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
           true -> acc
         end
         acc = if inv.late == true, do: Map.put(acc, :late, acc.late + inv.open_invoice_amount), else: acc
-        acc = Map.put(acc, :all, acc.all + inv.open_invoice_amount)
-
+        Map.put(acc, :all, acc.all + inv.open_invoice_amount)
       end)
 
-    socket =
-      assign(socket, :open_invoices, open_invoices)
-      |> assign(:open_invoice_storage, open_invoices) #used when changing range of invoices viewed
-      |> assign(:open_invoice_values, open_invoice_values)
+    assign(socket, :open_invoices, open_invoices)
+    |> assign(:open_invoice_storage, open_invoices) #used when changing range of invoices viewed
+    |> assign(:open_invoice_values, open_invoice_values)
   end
 
   def load_anticipated_revenue_component(socket) do
@@ -203,13 +206,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
               |> Number.Percentage.number_to_percentage(precision: 2)
             end
 
-        socket =
-          socket
-          |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
-          |> assign(:total_revenue, total_revenue)
-          |> assign(:active_jobs, active_jobs)
-          |> assign(:percentage_diff, percentage_diff)
-      _ -> socket
+        socket
+        |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
+        |> assign(:total_revenue, total_revenue)
+        |> assign(:active_jobs, active_jobs)
+        |> assign(:percentage_diff, percentage_diff)
     end
   end
   def calc_current_revenue() do
@@ -236,12 +237,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
     sales_table_data =
       Dashboard.list_monthly_sales
       |> Enum.map(fn op ->
-        map =
-          Map.from_struct(op)
-          |> Map.drop([:__meta__])
-          |> Map.drop([:id])
-          |> Map.drop([:inserted_at])
-          |> Map.drop([:updated_at])
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> Map.drop([:id])
+        |> Map.drop([:inserted_at])
+        |> Map.drop([:updated_at])
       end)
 
       ### Prepare sales table data ###
@@ -304,18 +304,16 @@ defmodule ShophawkWeb.DashboardLive.Index do
         case d do
           nil -> acc
           amount -> amount + acc
-          _ -> acc
         end
       end)
 
-    socket =
-      socket
-      |> assign(:sales_chart_data, Jason.encode!(%{series: sales_chart_data}))
-      |> assign(:sales_table_data, final_sales_table_data)
-      |> assign(:this_months_sales, current_months_sales.amount)
-      |> assign(:this_years_sales, this_years_sales)
-      |> assign(:projected_yearly_sales, (this_years_sales / Date.utc_today().month) * 12)
-      |> assign(:monthly_average, monthly_average)
+    socket
+    |> assign(:sales_chart_data, Jason.encode!(%{series: sales_chart_data}))
+    |> assign(:sales_table_data, final_sales_table_data)
+    |> assign(:this_months_sales, current_months_sales.amount)
+    |> assign(:this_years_sales, this_years_sales)
+    |> assign(:projected_yearly_sales, (this_years_sales / Date.utc_today().month) * 12)
+    |> assign(:monthly_average, monthly_average)
   end
   def generate_monthly_sales(start_date, end_date, list \\ []) do
     if Date.after?(start_date, end_date) do
@@ -361,7 +359,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def load_travelors_released_componenet(socket) do
-    weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     travelor_count = generate_travelors_released(Date.add(Date.utc_today, -7), Date.utc_today, [])
     |> Enum.reject(fn job -> job.total == 0 end)
     |> Enum.reverse
@@ -546,12 +543,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
     weekly_dates = ShophawkWeb.SlideshowLive.Index.load_weekly_dates()
     {week1_timeoff, week2_timeoff} = ShophawkWeb.SlideshowLive.Index.load_timeoff(weekly_dates)
 
-    socket =
-      assign(socket, :weekly_dates, weekly_dates)
-      |> assign(:week1_timeoff, week1_timeoff)
-      |> assign(:week2_timeoff, week2_timeoff)
+    assign(socket, :weekly_dates, weekly_dates)
+    |> assign(:week1_timeoff, week1_timeoff)
+    |> assign(:week2_timeoff, week2_timeoff)
   end
 
+  @impl true
   def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
     open_invoices = socket.assigns.open_invoice_storage
     ranged_open_invoices =
@@ -631,27 +628,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
     #load_10_year_history_into_db()
     {:noreply, socket}
   end
-  def customer_key(map, matching_map) do
-    Enum.find(matching_map, fn {substrings, _group} ->
-      Enum.any?(substrings, fn substring -> String.contains?(String.downcase(map.customer), substring) end)
-    end)
-    |> case do
-      {_, group} -> group
-      nil -> map.customer  # If no match is found, return the original customer name
-    end
-  end
-
 
    ###### Showjob and attachments downloads ########
    def handle_event("show_job", %{"job" => job}, socket) do
     #Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
     socket = ShophawkWeb.RunlistLive.Index.showjob(socket, job)
-    {:noreply, socket}
-  end
-
-  def handle_info({:load_attachments, job}, socket) do
-    IO.inspect(":here")
-    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
     {:noreply, socket}
   end
 
@@ -681,6 +662,15 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply, assign(socket, live_action: :show_job)}
   end
 
+  def customer_key(map, matching_map) do
+    Enum.find(matching_map, fn {substrings, _group} ->
+      Enum.any?(substrings, fn substring -> String.contains?(String.downcase(map.customer), substring) end)
+    end)
+    |> case do
+      {_, group} -> group
+      nil -> map.customer  # If no match is found, return the original customer name
+    end
+  end
 
 
   ############## Scheduled jobs to run via quantum ##########

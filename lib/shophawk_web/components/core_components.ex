@@ -799,6 +799,12 @@ defmodule ShophawkWeb.CoreComponents do
   attr :rows, :list, required: true
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+  attr :updated, :boolean
+  attr :dots, :integer
+  attr :weekly_load, :any
+  attr :started_assignment_list, :any
+  attr :assignments, :any
+  attr :jobs_that_ship_today, :any
 
   attr :row_item, :any,
     default: &Function.identity/1,
@@ -806,6 +812,8 @@ defmodule ShophawkWeb.CoreComponents do
 
   slot :col, required: true do
     attr :label, :string
+    attr :cellstyle, :any
+    attr :headerstyle, :any
   end
 
   slot :action, doc: "the slot for showing user actions in the last table column"
@@ -817,256 +825,256 @@ defmodule ShophawkWeb.CoreComponents do
       end
 
     ~H"""
-    <div class={["overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4", (if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")]}>
-      <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
-        <%= if @dots != %{} do %>
-          <div class={[@dots.dot_columns, "grid text-center pt-3 px-3"]}>
-            <%= for {key, title, dot_count} <- [{:one, "Single Dots", 1}, {:two, "Double Dots", 2}, {:three, "Triple Dots", 3}] do %>
-              <%= if Map.has_key?(@dots, key) do %>
-                <div class={[@dots[key], "m-1 rounded"]}>
-                  <div class="text-lg font-semibold underline">
-                    <%= title %>
-                  </div>
-                  <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == dot_count))}>
-                    <div>
-                      <%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+      <div class={["overflow-y-auto px-4 sm:overflow-visible sm:px-0 mt-4", (if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")]}>
+        <div class="bg-cyan-800 p-t-4 rounded-t-lg border-b-4 border-black">
+          <%= if @dots != %{} do %>
+            <div class={[@dots.dot_columns, "grid text-center pt-3 px-3"]}>
+              <%= for {key, title, dot_count} <- [{:one, "Single Dots", 1}, {:two, "Double Dots", 2}, {:three, "Triple Dots", 3}] do %>
+                <%= if Map.has_key?(@dots, key) do %>
+                  <div class={[@dots[key], "m-1 rounded"]}>
+                    <div class="text-lg font-semibold underline">
+                      <%= title %>
+                    </div>
+                    <div :for={op <- Enum.filter(@dots.ops, &(&1.dots == dot_count))}>
+                      <div>
+                        <%= op.job %> Starting <%= Calendar.strftime(op.sched_start, "%m-%d-%y") %>
+                      </div>
                     </div>
                   </div>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%= if @weekly_load do %>
+            <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
+              <%= for {value, week} <- Enum.with_index([@weekly_load.weekone, @weekly_load.weektwo, @weekly_load.weekthree, @weekly_load.weekfour]) do %>
+                <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(value), "p-1 rounded-t-md border-2 border-black"]}>
+                  <%= case week do %>
+                    <% 0 -> %> Load for coming week: <%= value %>%
+                    <% 1 -> %> Week Two Load: <%= value %>%
+                    <% 2 -> %> Week Three Load: <%= value %>%
+                    <% 3 -> %> Week Four Load: <%= value %>%
+                  <% end %>
                 </div>
               <% end %>
-            <% end %>
-          </div>
-        <% end %>
+            </div>
+          <% end %>
+        </div>
 
-        <%= if @weekly_load do %>
-          <div class="grid grid-cols-4 gap-3 pt-3 px-3 rounded-md text-center">
-            <%= for {value, week} <- Enum.with_index([@weekly_load.weekone, @weekly_load.weektwo, @weekly_load.weekthree, @weekly_load.weekfour]) do %>
-              <div class={[(if rem(@updated, 2) == 1, do: "scale-out-bottom", else: "scale-in-bottom"), ShophawkWeb.RunlistLive.Index.calculate_color(value), "p-1 rounded-t-md border-2 border-black"]}>
-                <%= case week do %>
-                  <% 0 -> %> Load for coming week: <%= value %>%
-                  <% 1 -> %> Week Two Load: <%= value %>%
-                  <% 2 -> %> Week Three Load: <%= value %>%
-                  <% 3 -> %> Week Four Load: <%= value %>%
-                <% end %>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
+        <div>
+        <table class={["w-[40rem] sm:w-full table-fixed"]}>
+          <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
+            <tr>
+              <th :for={col <- @col} class={["p-0 pr-1 pb-4 font-normal", col[:headerstyle] ]} ><%= col[:label] %></th>
+            </tr>
+          </thead>
+          <tbody
+            id={@id}
+            phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
+            class="relative divide-y divide-stone-800 border-t-0 leading-5 text-stone-200"
+          >
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class={["group", calc_row_height(row)]}>
+            <%= cond do %>
+              <% Map.has_key?(elem(row, 1), :ships_today_header) -> %>
+                <td colspan="2" class="bg-stone-900"></td>
+                <td colspan="9" class="w-full bg-stone-900 text-stone-200 text-center text-2xl"><div class="heartbeat m-1">Scheduled To Ship Today</div></td>
+                <td class="bg-stone-900"></td>
+              <% Map.has_key?(elem(row, 1), :ships_today) -> %>
+                <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
+                <div :for={{col, i} <- Enum.with_index(@col)}>
+                  <%= case i do %>
+                  <% 8 -> %>
+                  <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={[ "h-12 block" ]} >
+                      <form phx-change="change_assignment" phx-value-job-operation={elem(row, 1).job_operation}>
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
+                          <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}  />
+                        </span>
+                      </form>
+                    </div>
+                  </td>
+                  <% 9 -> %>
+                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={[ "h-12 text-center block" ]}>
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                        <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={elem(row, 1).id} checked={elem(row, 1).material_waiting}>
+                      </span>
+                    </div>
+                  </td>
+                  <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
+                    <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <div class={[ ]}>
+                            <%= if i == 10 do %>
+                              &#x2705 Job at <%= elem(row, 1).wc_vendor %>
+                            <% else %>
+                              <%= render_slot(col, @row_item.(row)) %>
+                            <% end %>
+                          </div>
+                        </span>
+                      </div>
+                    </td>
+                  <% _ -> %>
+                    <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <%= render_slot(col, @row_item.(row)) %>
+                        </span>
+                      </div>
+                    </td>
+                  <% end %>
+                </div>
+              <% Map.has_key?(elem(row, 1), :ships_today_footer) -> %>
+                <td colspan="12" class="bg-stone-900 h-2"></td>
+              <% Map.has_key?(elem(row, 1), :shipping_today) -> %>
+                <td colspan="1" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                  <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                    <span class={["relative font-semibold"]}>
+                      <%= elem(row, 1).job %>
+                    </span>
+                  </div>
+                </td>
+                <td colspan="1" class={["relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                  <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                    <span class={["relative"]}>
+                      <%= elem(row, 1).order_quantity %>
+                    </span>
+                  </div>
+                </td>
+                <td colspan="1" class={["relative p-0  text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                  <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                    <span class={["relative"]}>
+                      <%= elem(row, 1).est_total_hrs %>
+                    </span>
+                  </div>
+                </td>
+                <td colspan="8" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                  <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                    <span class={["relative"]}>
+                    Shipping Today, See Top of List
+                    </span>
+                  </div>
+                </td>
+                <td class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                  <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                    <span class={["relative"]}>
+                    </span>
+                  </div>
+                </td>
+              <% elem(row, 1).date_row_identifer == 0 -> %> <.render_date_row row={elem(row, 1)} col={@col} />
+              <% elem(row, 1).runner == true -> %> <!-- normal operation row -->
+                <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
+                <div :for={{col, i} <- Enum.with_index(@col)}>
+                  <%= case i do %>
+                  <% 8 -> %>
+                  <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={[ "block" ]} >
+                      <form phx-change="change_assignment" phx-value-job-operation={elem(row, 1).job_operation}>
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
+                          <div class="bg-stone-300 rounded">
+                            <%= if elem(row, 1).assignment != nil, do: elem(row, 1).assignment, else: " " %>
+                          </div>
+                        </span>
+                      </form>
+                    </div>
+                  </td>
+                  <% 9 -> %>
+                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={["text-center block"]}>
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                        <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={elem(row, 1).id} checked={elem(row, 1).material_waiting}>
+                      </span>
+                    </div>
+                  </td>
+                  <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
+                    <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={[" block py-1 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <div class={[ ]}>
+                            <%= if i == 10 do %>
+                              &#x2705 Job at <%= elem(row, 1).wc_vendor %>
+                            <% else %>
+                              <%= render_slot(col, @row_item.(row)) %>
+                            <% end %>
+                          </div>
+                        </span>
+                      </div>
+                    </td>
+                  <% _ -> %>
+                    <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={[" block py-1 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <%= render_slot(col, @row_item.(row)) %>
+                        </span>
+                      </div>
+                    </td>
+                  <% end %>
+                </div>
+              <% true -> %> <!-- normal operation row -->
+                <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
+                <div :for={{col, i} <- Enum.with_index(@col)}>
+                  <%= case i do %>
+                  <% 8 -> %>
+                  <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={[ "block" ]} >
+                      <form phx-change="change_assignment" phx-value-job-operation={elem(row, 1).job_operation}>
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
+                          <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}/>
+                        </span>
+                      </form>
+                    </div>
+                  </td>
+                  <% 9 -> %>
+                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                    <div class={[ " text-center block" ]}>
+                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                        <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class=" h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={elem(row, 1).id} checked={elem(row, 1).material_waiting}>
+                      </span>
+                    </div>
+                  </td>
+                  <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
+                    <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={[" block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <div class={[ ]}>
+                            <%= if i == 10 do %>
+                              &#x2705 Job at <%= elem(row, 1).wc_vendor %>
+                            <% else %>
+                              <%= render_slot(col, @row_item.(row)) %>
+                            <% end %>
+                          </div>
+                        </span>
+                      </div>
+                    </td>
+                  <% _ -> %>
+                    <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
+                      <div class={[" block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
+                        <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
+                        <span class={["relative", i == 0 && "font-semibold"]}>
+                          <%= render_slot(col, @row_item.(row)) %>
+                        </span>
+                      </div>
+                    </td>
+                  <% end %>
+                </div>
+              <% end %>
+            </tr>
+          </tbody>
+        </table>
+        </div>
       </div>
-
-      <div>
-      <table class={["w-[40rem] sm:w-full table-fixed"]}>
-        <thead class="text-left leading-6 text-stone-200 bg-cyan-800 2xl:text-xl ">
-          <tr>
-            <th :for={col <- @col} class={["p-0 pr-1 pb-4 font-normal", col[:headerstyle] ]} ><%= col[:label] %></th>
-          </tr>
-        </thead>
-        <tbody
-          id={@id}
-          phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="relative divide-y divide-stone-800 border-t-0 leading-5 text-stone-200"
-        >
-        <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class={["group", calc_row_height(row)]}>
-          <%= cond do %>
-            <% Map.has_key?(elem(row, 1), :ships_today_header) -> %>
-              <td colspan="2" class="bg-stone-900"></td>
-              <td colspan="9" class="w-full bg-stone-900 text-stone-200 text-center text-2xl"><div class="heartbeat m-1">Scheduled To Ship Today</div></td>
-              <td class="bg-stone-900"></td>
-            <% Map.has_key?(elem(row, 1), :ships_today) -> %>
-              <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
-              <div :for={{col, i} <- Enum.with_index(@col)}>
-                <%= case i do %>
-                <% 8 -> %>
-                <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                  <div class={[ "h-12 block" ]} >
-                    <form phx-change="change_assignment" phx-value-job-operation={elem(row, 1).job_operation}>
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
-                        <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}  />
-                      </span>
-                    </form>
-                  </div>
-                </td>
-                <% 9 -> %>
-                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                  <div class={[ "h-12 text-center block" ]}>
-                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                      <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={elem(row, 1).id} checked={elem(row, 1).material_waiting}>
-                    </span>
-                  </div>
-                </td>
-                <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
-                  <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                      <span class={["relative", i == 0 && "font-semibold"]}>
-                        <div class={[ ]}>
-                          <%= if i == 10 do %>
-                            &#x2705 Job at <%= elem(row, 1).wc_vendor %>
-                          <% else %>
-                            <%= render_slot(col, @row_item.(row)) %>
-                          <% end %>
-                        </div>
-                      </span>
-                    </div>
-                  </td>
-                <% _ -> %>
-                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                      <span class={["relative", i == 0 && "font-semibold"]}>
-                        <%= render_slot(col, @row_item.(row)) %>
-                      </span>
-                    </div>
-                  </td>
-                <% end %>
-              </div>
-            <% Map.has_key?(elem(row, 1), :ships_today_footer) -> %>
-              <td colspan="12" class="bg-stone-900 h-2"></td>
-            <% Map.has_key?(elem(row, 1), :shipping_today) -> %>
-              <td colspan="1" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                  <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                  <span class={["relative font-semibold"]}>
-                    <%= elem(row, 1).job %>
-                  </span>
-                </div>
-              </td>
-              <td colspan="1" class={["relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                  <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                  <span class={["relative"]}>
-                    <%= elem(row, 1).order_quantity %>
-                  </span>
-                </div>
-              </td>
-              <td colspan="1" class={["relative p-0  text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                  <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                  <span class={["relative"]}>
-                    <%= elem(row, 1).est_total_hrs %>
-                  </span>
-                </div>
-              </td>
-              <td colspan="8" class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                  <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                  <span class={["relative"]}>
-                  Shipping Today, See Top of List
-                  </span>
-                </div>
-              </td>
-              <td class={["relative p-0 text-center", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                <div class={["h-12 block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                  <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                  <span class={["relative"]}>
-                  </span>
-                </div>
-              </td>
-            <% elem(row, 1).date_row_identifer == 0 -> %> <.render_date_row row={elem(row, 1)} col={@col} />
-            <% elem(row, 1).runner == true -> %> <!-- normal operation row -->
-              <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
-              <div :for={{col, i} <- Enum.with_index(@col)}>
-                <%= case i do %>
-                <% 8 -> %>
-                <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                  <div class={[ "block" ]} >
-                    <form phx-change="change_assignment" phx-value-job-operation={elem(row, 1).job_operation}>
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
-                        <div class="bg-stone-300 rounded">
-                          <%= if elem(row, 1).assignment != nil, do: elem(row, 1).assignment, else: " " %>
-                        </div>
-                      </span>
-                    </form>
-                  </div>
-                </td>
-                <% 9 -> %>
-                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                  <div class={["text-center block"]}>
-                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                      <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class="w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={elem(row, 1).id} checked={elem(row, 1).material_waiting}>
-                    </span>
-                  </div>
-                </td>
-                <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
-                  <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={[" block py-1 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                      <span class={["relative", i == 0 && "font-semibold"]}>
-                        <div class={[ ]}>
-                          <%= if i == 10 do %>
-                            &#x2705 Job at <%= elem(row, 1).wc_vendor %>
-                          <% else %>
-                            <%= render_slot(col, @row_item.(row)) %>
-                          <% end %>
-                        </div>
-                      </span>
-                    </div>
-                  </td>
-                <% _ -> %>
-                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={[" block py-1 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                      <span class={["relative", i == 0 && "font-semibold"]}>
-                        <%= render_slot(col, @row_item.(row)) %>
-                      </span>
-                    </div>
-                  </td>
-                <% end %>
-              </div>
-            <% true -> %> <!-- normal operation row -->
-              <% exact_wc_vendor = String.replace(elem(row, 1).wc_vendor, " -#{elem(row, 1).operation_service}", "") %>
-              <div :for={{col, i} <- Enum.with_index(@col)}>
-                <%= case i do %>
-                <% 8 -> %>
-                <td class={[col[:cellstyle], "relative p-0 text-stone-950", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                  <div class={[ "block" ]} >
-                    <form phx-change="change_assignment" phx-value-job-operation={elem(row, 1).job_operation}>
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-1 pr-4 pl-4", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status ) ]} >
-                        <.input  name="selection" type="runlist_assignment_select" options={@assignments} value="" started_assignment_list={@started_assignment_list} selected_assignment={elem(row, 1).assignment}/>
-                      </span>
-                    </form>
-                  </div>
-                </td>
-                <% 9 -> %>
-                <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                  <div class={[ " text-center block" ]}>
-                    <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl py-3 pr-2 pl-2", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                      <input phx-click="mat_waiting_toggle" phx-value-job-operation={elem(row, 1).job_operation} class=" h-6 w-6 rounded text-gray-800 focus:ring-0" type="checkbox" id={elem(row, 1).id} checked={elem(row, 1).material_waiting}>
-                    </span>
-                  </div>
-                </td>
-                <% _ when elem(row, 1).currentop == exact_wc_vendor -> %>
-                  <td colspan={if i == 10, do: 2, else: nil} class={[col[:cellstyle], i == 11 && "hidden", "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={[" block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                      <span class={["relative", i == 0 && "font-semibold"]}>
-                        <div class={[ ]}>
-                          <%= if i == 10 do %>
-                            &#x2705 Job at <%= elem(row, 1).wc_vendor %>
-                          <% else %>
-                            <%= render_slot(col, @row_item.(row)) %>
-                          <% end %>
-                        </div>
-                      </span>
-                    </div>
-                  </td>
-                <% _ -> %>
-                  <td class={[col[:cellstyle], "relative p-0", @row_click && "hover:cursor-pointer", date_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} >
-                    <div class={[" block py-3 pr-2 pl-2 truncate"]} phx-click={@row_click && @row_click.(row)} phx-value-job={elem(row, 1).job} >
-                      <span class={["absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl", hover_color(elem(row, 1).sched_start, elem(row, 1).dots, elem(row, 1).runner, elem(row, 1).status) ]} />
-                      <span class={["relative", i == 0 && "font-semibold"]}>
-                        <%= render_slot(col, @row_item.(row)) %>
-                      </span>
-                    </div>
-                  </td>
-                <% end %>
-              </div>
-            <% end %>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-    </div>
     """
   end
 
@@ -1099,6 +1107,12 @@ defmodule ShophawkWeb.CoreComponents do
   attr :rows, :list, required: true
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+  attr :updated, :boolean
+  attr :dots, :integer
+  attr :weekly_load, :any
+  attr :started_assignment_list, :any
+  attr :assignments, :any
+  attr :jobs_that_ship_today, :any
 
   attr :row_item, :any,
     default: &Function.identity/1,
@@ -1106,6 +1120,8 @@ defmodule ShophawkWeb.CoreComponents do
 
   slot :col, required: true do
     attr :label, :string
+    attr :cellstyle, :any
+    attr :headerstyle, :any
   end
 
   slot :action, doc: "the slot for showing user actions in the last table column"

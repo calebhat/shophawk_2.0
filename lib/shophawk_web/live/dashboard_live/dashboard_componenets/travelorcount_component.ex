@@ -1,6 +1,5 @@
 defmodule ShophawkWeb.TravelorcountComponent do
   use ShophawkWeb, :live_component
-  import Number.Currency
 
   def render(assigns) do
     ~H"""

@@ -93,7 +93,7 @@ defmodule Shophawk.Dashboard do
 
   """
   def change_tool(%Revenue{} = tool, attrs \\ %{}) do
-    Tool.changeset(tool, attrs)
+    Revenue.changeset(tool, attrs)
   end
 
   def search(search) do

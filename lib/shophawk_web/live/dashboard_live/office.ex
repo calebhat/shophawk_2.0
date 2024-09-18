@@ -3,17 +3,15 @@ defmodule ShophawkWeb.DashboardLive.Office do
   use ShophawkWeb, :live_view
   alias ShophawkWeb.UserAuth
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
-  import Number.Currency
   alias ShophawkWeb.RevenueComponent
   alias ShophawkWeb.MonthlySalesChartComponent
   alias ShophawkWeb.TravelorcountComponent
   alias ShophawkWeb.HotjobsComponent
   alias ShophawkWeb.WeekoneTimeoffComponent
   alias ShophawkWeb.WeektwoTimeoffComponent
-  alias ShophawkWeb.YearlySalesChartComponent
   alias ShophawkWeb.LateShipmentsComponent
 
-
+  @impl true
   def render(assigns) do
     ~H"""
       <div>
@@ -118,43 +116,43 @@ defmodule ShophawkWeb.DashboardLive.Office do
   end
 
   def set_default_assigns(socket) do
-    socket =
-      socket
-          #anticated revenue
-          |> assign(:six_weeks_revenue_amount, 0)
-          |> assign(:total_revenue, 0)
-          |> assign(:active_jobs, 0)
-          |> assign(:revenue_chart_data, [])
-          |> assign(:sales_chart_data, [])
-          |> assign(:percentage_diff, 0)
+    socket
+    #anticated revenue
+    |> assign(:six_weeks_revenue_amount, 0)
+    |> assign(:total_revenue, 0)
+    |> assign(:active_jobs, 0)
+    |> assign(:revenue_chart_data, [])
+    |> assign(:sales_chart_data, [])
+    |> assign(:percentage_diff, 0)
 
-          #monthly Sales Chart
-          |> assign(:monthly_sales, 0)
-          |> assign(:this_months_sales, 0)
-          |> assign(:this_years_sales, 0)
-          |> assign(:projected_yearly_sales, 0)
-          |> assign(:sales_table_data, [])
-          |> assign(:show_monthly_sales_table, false)
-          |> assign(:monthly_average, 0)
+    #monthly Sales Chart
+    |> assign(:monthly_sales, 0)
+    |> assign(:this_months_sales, 0)
+    |> assign(:this_years_sales, 0)
+    |> assign(:projected_yearly_sales, 0)
+    |> assign(:sales_table_data, [])
+    |> assign(:show_monthly_sales_table, false)
+    |> assign(:monthly_average, 0)
 
-          #Travelor Count
-          |> assign(:travelor_count, [])
-          |> assign(:travelor_totals, %{})
+    #Travelor Count
+    |> assign(:travelor_count, [])
+    |> assign(:travelor_totals, %{})
 
-          #hot jobs
-          |> assign(:hot_jobs, [])
+    #hot jobs
+    |> assign(:hot_jobs, [])
 
-          #timeoff
-          |> assign(:weekly_dates, %{})
-          |> assign(:week1_timeoff, [])
-          |> assign(:week2_timeoff, [])
+    #timeoff
+    |> assign(:weekly_dates, %{})
+    |> assign(:week1_timeoff, [])
+    |> assign(:week2_timeoff, [])
 
-          #late Deliveries
-          |> assign(:late_deliveries, [])
-          |> assign(:late_delivery_count, 0)
-          |> assign(:late_deliveries_loaded, false)
+    #late Deliveries
+    |> assign(:late_deliveries, [])
+    |> assign(:late_delivery_count, 0)
+    |> assign(:late_deliveries_loaded, false)
   end
 
+  @impl true
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
@@ -166,6 +164,17 @@ defmodule ShophawkWeb.DashboardLive.Office do
       |> Index.load_time_off()
       |> Index.load_late_shipments()
     }
+  end
+
+  def handle_info({:load_attachments, job}, socket) do
+    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
+    {:noreply, socket}
+  end
+
+
+  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
+    # Handle task errors
+    {:noreply, assign(socket, loading: false, error: reason)}
   end
 
   def handle_info({ref, result}, socket) do #load chart data once complete
@@ -183,11 +192,12 @@ defmodule ShophawkWeb.DashboardLive.Office do
     end
   end
 
-  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
-    # Handle task errors
-    {:noreply, assign(socket, loading: false, error: reason)}
+  @impl true
+  def handle_params(_params, _url, socket) do
+    {:noreply, socket}
   end
 
+  @impl true
   def handle_event("monthly_sales_toggle", _, socket) do
     {:noreply, assign(socket, :show_monthly_sales_table, !socket.assigns.show_monthly_sales_table)}
   end
@@ -196,16 +206,6 @@ defmodule ShophawkWeb.DashboardLive.Office do
    def handle_event("show_job", %{"job" => job}, socket) do
     #Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
     socket = ShophawkWeb.RunlistLive.Index.showjob(socket, job)
-    {:noreply, socket}
-  end
-
-  def handle_info({:load_attachments, job}, socket) do
-    IO.inspect(":here")
-    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
-    {:noreply, socket}
-  end
-
-  def handle_params(params, _url, socket) do
     {:noreply, socket}
   end
 

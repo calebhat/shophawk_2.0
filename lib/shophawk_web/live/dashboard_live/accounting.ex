@@ -3,10 +3,10 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
   use ShophawkWeb, :live_view
   alias ShophawkWeb.UserAuth
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
-  import Number.Currency
   alias ShophawkWeb.CheckbookComponent
   alias ShophawkWeb.InvoicesComponent
 
+  @impl true
   def render(assigns) do
     ~H"""
       <div>
@@ -47,17 +47,17 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
   end
 
   def set_default_assigns(socket) do
-    socket =
-      socket
-      #Checkbook
-      |> assign(:checkbook_entries, [])
-      |> assign(:current_balance, "Loading...")
-      #Invoices
-      |> assign(:open_invoices, %{})
-      |> assign(:selected_range, "")
-      |> assign(:open_invoice_values, [])
+    socket
+    #Checkbook
+    |> assign(:checkbook_entries, [])
+    |> assign(:current_balance, "Loading...")
+    #Invoices
+    |> assign(:open_invoices, %{})
+    |> assign(:selected_range, "")
+    |> assign(:open_invoice_values, [])
   end
 
+  @impl true
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
@@ -66,6 +66,7 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
     }
   end
 
+  @impl true
   def handle_event("load_invoice_late_range", %{"range" => range}, socket) do
     open_invoices = socket.assigns.open_invoice_storage
     ranged_open_invoices =

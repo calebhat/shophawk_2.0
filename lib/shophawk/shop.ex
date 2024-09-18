@@ -448,10 +448,10 @@ defmodule Shophawk.Shop do
     case department.capacity do
       0.0 ->
         weekly_hours_with_act_run_hrs_subtracted
-        |> Map.update!(:weekone, fn map -> 0 end)
-        |> Map.update!(:weektwo, fn map -> 0 end)
-        |> Map.update!(:weekthree, fn map -> 0 end)
-        |> Map.update!(:weekfour, fn map -> 0 end)
+        |> Map.update!(:weekone, fn _map -> 0 end)
+        |> Map.update!(:weektwo, fn _map -> 0 end)
+        |> Map.update!(:weekthree, fn _map -> 0 end)
+        |> Map.update!(:weekfour, fn _map -> 0 end)
         |> Map.put_new(:department, department.department)
         |> Map.put_new(:department_id, department.id)
       _ ->
