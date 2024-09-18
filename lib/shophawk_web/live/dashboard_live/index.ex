@@ -538,7 +538,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> Enum.reject(fn op -> op.customer == "EDG GEAR" end)
 
     assign(socket, :late_deliveries, late_deliveries)
-    |> assign(:late_delivery_count, Enum.count(two_week_late_history))
+    |> assign(:late_delivery_count, Enum.count(two_week_late_history) + Enum.count(late_deliveries))
     |> assign(:late_deliveries_loaded, true)
   end
 

@@ -7,6 +7,14 @@ defmodule Shophawk.Application do
 
   @impl true
   def start(_type, _args) do
+
+    #create all ets caches needed
+    :ets.new(:runlist, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:employees, [:set, :named_table, :public, read_concurrency: true])
+
     children = [
       # Start the Telemetry supervisor
       ShophawkWeb.Telemetry,

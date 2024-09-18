@@ -9,13 +9,6 @@ defmodule ScheduledTasks do
 
   # Server callbacks
   def init([]) do
-    #create all ets caches needed
-    :ets.new(:runlist, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:employees, [:set, :named_table, :public, read_concurrency: true])
-
     #Initial ETS Table settings
     :ets.insert(:runlist_loads, {:refresh_time, NaiveDateTime.utc_now()})
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})

@@ -18,13 +18,14 @@ defmodule Shophawk.Jb_job_operation do
     field :status, :string, default: "nil"
     field :est_total_hrs, :float
     field :last_updated, :naive_datetime
+    field :note_text, :string
     #timestamps()
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :job_operation, :wc_vendor, :operation_service, :sched_end, :sched_end, :sequence, :status, :est_total_hrs])
+    |> cast(attrs, [:job, :job_operation, :wc_vendor, :operation_service, :sched_end, :sched_end, :sequence, :status, :est_total_hrs, :note_text])
     |> validate_required([:job, :job_operation, :status])
   end
 end

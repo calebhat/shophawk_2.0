@@ -62,6 +62,7 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.map(fn op ->
         Map.from_struct(op)
         |> Map.drop([:__meta__])
+        |> rename_key(:note_text, :operation_note_text)
       end)
       #IO.puts("job ops map loaded")
     job_operation_numbers = Enum.map(operations_map, fn op -> op.job_operation end)

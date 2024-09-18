@@ -23,6 +23,7 @@ defmodule Shophawk.Shop do
       |> Map.put(:status, status_change(map.status))
       map = if map.rev == nil, do: Map.put(map, :rev, ""), else: Map.put(map, :rev, ", Rev: " <> map.rev)
       if map.customer_po_line == nil, do: Map.put(map, :customer_po_line, ""), else: map
+      if map.operation_note_text == nil, do:  Map.put(map, :operation_note_text, ""), else: map
     end)
     [job | _tail] = job_ops
     {job_ops, sort_job_info(job)}
@@ -115,17 +116,21 @@ defmodule Shophawk.Shop do
       blackout_dates = Shophawk.Jobboss_db.load_blackout_dates
 
       carryover_list =
-        runlists
-        |> Enum.reduce([], fn row, acc ->
-          if row.est_total_hrs > department.capacity do
-            [%{date: row.sched_start, hours: row.est_total_hrs, id: row.id} | acc]
-          else
-            acc
-          end
-        end)
-        |> Enum.reduce([], fn %{date: date, hours: remaining_hours, id: id}, acc ->
-          generate_daily_carryover_days(id, date, remaining_hours, department.capacity, acc, blackout_dates, 0)
-        end)
+        case department.capacity do
+          0.0 -> []
+          _ ->
+            runlists
+            |> Enum.reduce([], fn row, acc ->
+              if row.est_total_hrs > department.capacity do
+                [%{date: row.sched_start, hours: row.est_total_hrs, id: row.id} | acc]
+              else
+                acc
+              end
+            end)
+            |> Enum.reduce([], fn %{date: date, hours: remaining_hours, id: id}, acc ->
+              generate_daily_carryover_days(id, date, remaining_hours, department.capacity, acc, blackout_dates, 0)
+            end)
+        end
 
       {date_rows_list, _, _} = #Make list of date & hours map for matching to date rows
         Enum.reduce_while(runlists, {[], nil, 0}, fn row, {acc, prev_sched_start, daily_hours} ->
@@ -158,22 +163,41 @@ defmodule Shophawk.Shop do
                     if sched_start == map.date && map.index > 0, do: true end)
                   Float.round(department.capacity + get_date_sum(filtered_rows, sched_start), 2)
               end
+            case daily_capacity do #in case department capacity is zero
+              0.0 ->
+                case row.id do #adds in date rows between operations
+                  ^first_row_id ->
+                    {:cont, {acc, sched_start, new_daily_hours}}
 
-            case row.id do #adds in date rows between operations
-              ^first_row_id ->
-                {:cont, {acc, sched_start, new_daily_hours}}
+                  ^last_row_id ->
+                    date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: 0}] #2nd to last day
+                    new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
+                    date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: 0}] #last day
+                    new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil, daily_capacity)
+                    {:halt, {new_acc, sched_start, new_daily_hours}}
 
-              ^last_row_id ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #2nd to last day
-                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
-                date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((new_daily_hours/daily_capacity)*100)), 0..-3)}] #last day
-                new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil, daily_capacity)
-                {:halt, {new_acc, sched_start, new_daily_hours}}
-
+                  _ ->
+                    date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: 0}]
+                    new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
+                    {:cont, {new_acc, sched_start, new_daily_hours}}
+                end
               _ ->
-                date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}]
-                new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
-                {:cont, {new_acc, sched_start, new_daily_hours}}
+                case row.id do #adds in date rows between operations
+                  ^first_row_id ->
+                    {:cont, {acc, sched_start, new_daily_hours}}
+
+                  ^last_row_id ->
+                    date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}] #2nd to last day
+                    new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
+                    date_row = new_acc ++ [%{est_total_hrs: (new_daily_hours), sched_start: sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((new_daily_hours/daily_capacity)*100)), 0..-3)}] #last day
+                    new_acc = date_row ++ add_missing_date_rows(carryover_list, sched_start, nil, daily_capacity)
+                    {:halt, {new_acc, sched_start, new_daily_hours}}
+
+                  _ ->
+                    date_row = acc ++ [%{est_total_hrs: daily_hours, sched_start: prev_sched_start, id: Date.to_string(sched_start), date_row_identifer: 0, hour_percentage: String.slice(Float.to_string(Float.ceil((daily_hours/daily_capacity)*100)), 0..-3)}]
+                    new_acc = date_row ++ add_missing_date_rows(carryover_list, prev_sched_start, sched_start, daily_capacity)
+                    {:cont, {new_acc, sched_start, new_daily_hours}}
+                end
             end
           end
         end)
@@ -421,13 +445,24 @@ defmodule Shophawk.Shop do
           true -> acc
         end
       end)
-    weekly_hours_with_act_run_hrs_subtracted
-    |> Map.update!(:weekone, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
-    |> Map.update!(:weektwo, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
-    |> Map.update!(:weekthree, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
-    |> Map.update!(:weekfour, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
-    |> Map.put_new(:department, department.department)
-    |> Map.put_new(:department_id, department.id)
+    case department.capacity do
+      0.0 ->
+        weekly_hours_with_act_run_hrs_subtracted
+        |> Map.update!(:weekone, fn map -> 0 end)
+        |> Map.update!(:weektwo, fn map -> 0 end)
+        |> Map.update!(:weekthree, fn map -> 0 end)
+        |> Map.update!(:weekfour, fn map -> 0 end)
+        |> Map.put_new(:department, department.department)
+        |> Map.put_new(:department_id, department.id)
+      _ ->
+        weekly_hours_with_act_run_hrs_subtracted
+        |> Map.update!(:weekone, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
+        |> Map.update!(:weektwo, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
+        |> Map.update!(:weekthree, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
+        |> Map.update!(:weekfour, &(Kernel.round((&1 / (department.capacity * department.machine_count * 5)) * 100)))
+        |> Map.put_new(:department, department.department)
+        |> Map.put_new(:department_id, department.id)
+    end
   end
 
   defp add_missing_date_rows(carryover_list, start, stop, capacity) do #adds date rows for carryover hours if non exist
@@ -505,27 +540,27 @@ defmodule Shophawk.Shop do
   end
 
   def get_hot_jobs() do
-
     runlists =
       case :ets.lookup(:runlist, :active_jobs) do
         [{:active_jobs, runlists}] -> runlists
         [] -> []
       end
-    if runlists != [] do
-      hot_jobs =
-        List.flatten(runlists)
-        |> Enum.reject(fn op -> op.dots == nil end)
+    case runlists do
+        [] -> []
+        nil -> []
+        _ ->
+          hot_jobs =
+            List.flatten(runlists)
+            |> Enum.reject(fn op -> op.dots == nil end)
 
-      grouped_ops = Enum.group_by(hot_jobs, &(&1.job))
-      keys_to_keep = [:id, :job,:description, :customer, :part_number, :make_quantity, :dots, :currentop, :job_sched_end]
-      Enum.map(grouped_ops, fn {_job, operations} ->
-        Enum.max_by(operations, &(&1.sequence))
-      end)
-      |> Enum.map(&Map.take(&1, keys_to_keep))
-      |> Enum.sort_by(&(&1.job_sched_end), Date)
-      |> Enum.slice(0..9) #displays the first 9 entries
-    else
-      []
+          grouped_ops = Enum.group_by(hot_jobs, &(&1.job))
+          keys_to_keep = [:id, :job,:description, :customer, :part_number, :make_quantity, :dots, :currentop, :job_sched_end]
+          Enum.map(grouped_ops, fn {_job, operations} ->
+            Enum.max_by(operations, &(&1.sequence))
+          end)
+          |> Enum.map(&Map.take(&1, keys_to_keep))
+          |> Enum.sort_by(&(&1.job_sched_end), Date)
+          |> Enum.slice(0..9) #displays the first 9 entries
     end
   end
 

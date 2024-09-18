@@ -30,8 +30,9 @@ defmodule ShophawkWeb.HotjobsFullScreenComponent do
                     <tr
                       :for={job <- @hot_jobs}
                       id="hot_jobs"
-                      class={["text-stone-950 border border-stone-800", bg_class(job.dots)]}
+                      class={["text-stone-950 border border-stone-800 hover:cursor-pointer", bg_class(job.dots)]}
                       style={@height.style}
+                      phx-click="show_job" phx-value-job={job.job}
                     >
                       <td class="py-1 truncate font-bold" style=""><%= job.job %></td>
                       <td class="py-1 truncate"><img class="grid justify-items-start" src={display_dots(job.dots)} /></td>
@@ -62,9 +63,9 @@ defmodule ShophawkWeb.HotjobsFullScreenComponent do
 
   def bg_class(dots) do
     case dots do
-      1 -> "bg-cyan-500/30"
-      2 -> "bg-amber-500/30"
-      3 -> "bg-red-600/30"
+      1 -> "bg-cyan-500/30 hover:bg-cyan-600/30"
+      2 -> "bg-cyan-500/30 hover:bg-cyan-600/30"
+      3 -> "bg-red-600/30 hover:bg-red-700/30"
       _ -> ""
     end
   end

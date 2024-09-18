@@ -754,30 +754,29 @@ defmodule ShophawkWeb.CoreComponents do
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
           class="relative divide-y divide-zinc-100 border-t border-zinc-400 text-lg leading-6 text-zinc-800"
         >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-zinc-400 text-center">
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-zinc-300 text-center">
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
               class={["relative p-0", @row_click && "hover:cursor-pointer"]}
             >
               <div class="block py-4 pr-6">
-                <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-300 sm:rounded-l-xl" />
+                <span class="absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl" />
                 <span class={["relative", i == 0 && "font-semibold text-zinc-800"]}>
                   <%= render_slot(col, @row_item.(row)) %>
                 </span>
               </div>
-            </td>
-            <td :if={@action != []} class="relative w-14 p-0">
-              <div class="relative whitespace-nowrap py-4 text-right text-lg font-medium">
-                <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-cyan-500 sm:rounded-r-xl" />
-                <span
-                  :for={action <- @action}
-                  class="relative ml-4 font-semibold leading-6 text-zinc-200 hover:text-zinc-700"
-                >
-                  <%= render_slot(action, @row_item.(row)) %>
-                </span>
-              </div>
-            </td>
+              </td>
+              <td>
+                <%= if String.length(row.operation_note_text) != 0 do %>
+                <div class="bg-cyan-800 p-2 w-1 shadow-lg rounded-lg"></div>
+                <% end %>
+              </td>
+              <td class="relative">
+                <div style="white-space: pre-line;" class="hidden group-hover:grid fixed bottom-0 right-0 z-50 mb-4 mr-8 p-2 text-white bg-cyan-800 shadow-lg rounded-lg">
+                  <%= if row.operation_note_text != nil, do: String.trim(row.operation_note_text) %>
+                </div>
+              </td>
           </tr>
         </tbody>
       </table>
@@ -1088,7 +1087,7 @@ defmodule ShophawkWeb.CoreComponents do
           <%= case i do %>
             <% 0 -> %> <%= Calendar.strftime(@row.sched_start, "%m-%d-%y") %>
             <% 2 -> %> <%= if Map.has_key?(@row, :est_total_hrs), do: "~#{@row.est_total_hrs}" %>
-            <% 3 -> %> Hours of Work <%= if Map.has_key?(@row, :hour_percentage), do: "(" <> @row.hour_percentage <> "%)" %>
+            <% 3 -> %> Hours of Work <%= if Map.has_key?(@row, :hour_percentage), do: if(is_binary(@row.hour_percentage), do: "(" <> @row.hour_percentage <> "%)") %>
             <% _ -> %> <div></div>
           <% end %>
         </span>
