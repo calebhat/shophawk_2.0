@@ -9,7 +9,6 @@ defmodule ShophawkWeb.SlideshowLive.FormComponent do
     <div>
       <.header>
         <%= @title %>
-        <:subtitle>Use this form to manage slideshow records in your database.</:subtitle>
       </.header>
 
       <.simple_form
@@ -22,56 +21,100 @@ defmodule ShophawkWeb.SlideshowLive.FormComponent do
       <div class="grid grid-cols-2">
         <div class="bg-cyan-700 rounded-lg m-4">
           <div class="mt-4 text-2xl flex justify-center border-b-4 border-black">Current Week</div>
-          <div class="grid grid-cols-3 gap-4 content-center justify-around p-2 m-2 text-xl">
-            <div class="grid content-center">Monday</div>
+          <div class="grid grid-cols-4 gap-4 content-center justify-around p-2 m-2 text-xl">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div class="text-center">Closed</div>
+            <div class="grid content-center justify-center">Monday</div>
             <.input field={@form[:mondayo1]} type="time" label="" />
             <.input field={@form[:mondayc1]} type="time" label="" />
-            <div class="grid content-center">Tuesday</div>
+            <div class=" m-auto">
+              <.input field={@form[:monday1closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Tuesday</div>
             <.input field={@form[:tuesdayo1]} type="time" label="" />
             <.input field={@form[:tuesdayc1]} type="time" label="" />
-            <div class="grid content-center">Wednesday</div>
+            <div class=" m-auto">
+              <.input field={@form[:tuesday1closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Wednesday</div>
             <.input field={@form[:wednesdayo1]} type="time" label="" />
             <.input field={@form[:wednesdayc1]} type="time" label="" />
-            <div class="grid content-center">Thursday</div>
+            <div class=" m-auto">
+              <.input field={@form[:wednesday1closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Thursday</div>
             <.input field={@form[:thursdayo1]} type="time" label="" />
             <.input field={@form[:thursdayc1]} type="time" label="" />
-            <div class="grid content-center">Friday</div>
+            <div class=" m-auto">
+              <.input field={@form[:thursday1closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Friday</div>
             <.input field={@form[:fridayo1]} type="time" label="" />
             <.input field={@form[:fridayc1]} type="time" label="" />
-            <div class="grid content-center">Saturday</div>
+            <div class=" m-auto">
+              <.input field={@form[:friday1closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Saturday</div>
             <.input field={@form[:saturdayo1]} type="time" label="" />
             <.input field={@form[:saturdayc1]} type="time" label="" />
-          </div>
-          <div class="grid grid-cols-2 content-center text-xl mb-4">
-            <div class="flex justify-center">Show Saturday:</div>
-            <.input field={@form[:showsaturday1]} type="checkbox" label="" />
+            <div></div>
+            <div class="grid content-center justify-center col-span-2">Show Saturday:</div>
+            <div class=" m-auto">
+              <.input field={@form[:showsaturday1]} type="checkbox" label=""/>
+            </div>
+            <div></div>
+            <div></div>
           </div>
         </div>
         <div class="bg-cyan-700 rounded-lg m-4">
           <div class="mt-4 text-2xl flex justify-center border-b-4 border-black">Next Week</div>
-          <div class="grid grid-cols-3 gap-4 content-center justify-around p-2 m-2 text-xl">
-            <div class="cflex justify-center grid content-center">Monday</div>
+          <div class="grid grid-cols-4 gap-4 content-center justify-around p-2 m-2 text-xl">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div class="text-center">Closed</div>
+            <div class="grid content-center justify-center">Monday</div>
             <.input field={@form[:mondayo2]} type="time" label="" />
             <.input field={@form[:mondayc2]} type="time" label="" />
-            <div class="grid content-center">Tuesday</div>
+            <div class=" m-auto">
+              <.input field={@form[:monday2closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Tuesday</div>
             <.input field={@form[:tuesdayo2]} type="time" label="" />
             <.input field={@form[:tuesdayc2]} type="time" label="" />
-            <div class="grid content-center">Wednesday</div>
+            <div class=" m-auto">
+              <.input field={@form[:tuesday2closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Wednesday</div>
             <.input field={@form[:wednesdayo2]} type="time" label="" />
             <.input field={@form[:wednesdayc2]} type="time" label="" />
-            <div class="grid content-center">Thursday</div>
+            <div class=" m-auto">
+              <.input field={@form[:wednesday2closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Thursday</div>
             <.input field={@form[:thursdayo2]} type="time" label="" />
             <.input field={@form[:thursdayc2]} type="time" label="" />
-            <div class="grid content-center">Friday</div>
+            <div class=" m-auto">
+              <.input field={@form[:thursday2closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Friday</div>
             <.input field={@form[:fridayo2]} type="time" label="" />
             <.input field={@form[:fridayc2]} type="time" label="" />
-            <div class="grid content-center">Saturday</div>
+            <div class=" m-auto">
+              <.input field={@form[:friday2closed]} type="checkbox" label="" />
+            </div>
+            <div class="grid content-center justify-center">Saturday</div>
             <.input field={@form[:saturdayo2]} type="time" label="" />
             <.input field={@form[:saturdayc2]} type="time" label="" />
-          </div>
-          <div class="grid grid-cols-2 content-center text-xl mb-4">
-            <div class="flex justify-center">Show Saturday:</div>
-            <.input field={@form[:showsaturday2]} type="checkbox" label=""/>
+            <div></div>
+            <div class="grid content-center justify-center col-span-2">Show Saturday:</div>
+            <div class=" m-auto">
+              <.input field={@form[:showsaturday2]} type="checkbox" label="" />
+            </div>
+            <div></div>
+            <div></div>
           </div>
         </div>
       </div>
@@ -92,36 +135,79 @@ end
 
   @impl true
   def update(%{slideshow: slideshow} = assigns, socket) do
-    map_keys = [:mondayo1, :mondayc1, :tuesdayo1, :tuesdayc1, :wednesdayo1, :wednesdayc1, :thursdayo1, :thursdayc1, :fridayo1, :fridayc1, :saturdayo1, :saturdayc1, :mondayo2, :mondayc2, :tuesdayo2, :tuesdayc2, :wednesdayo2, :wednesdayc2, :thursdayo2, :thursdayc2, :fridayo2, :fridayc2, :saturdayo2, :saturdayc2, :showsaturday1, :showsaturday2]
-    slideshow =
-      String.split(slideshow.workhours, ",")
-      |> Enum.map(fn x ->
-        case x do
-          "true" -> true
-          "false" -> false
-          _ -> x
-        end
-      end)
-      |> Enum.zip(map_keys)
-      |> Enum.reduce(slideshow, fn {value, key}, acc ->
-        Map.put(acc, key, value)
-      end)
-    changeset = Shopinfo.change_slideshow(slideshow)
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_form(changeset)}
+     |> assign_form(Shopinfo.change_slideshow(slideshow))}
   end
 
   @impl true
-  def handle_event("validate", %{"slideshow" => slideshow_params}, socket) do
-    slideshow_params = combine_hours(slideshow_params)
+  def handle_event("validate", %{"slideshow" => slideshow_params} = params, socket) do
+    slideshow_params = case String.contains?(Enum.at(params["_target"], 1), "closed") do
+      true ->
+        toggle_closed_hours(Enum.at(params["_target"], 1), slideshow_params)
+        |> combine_hours()
+      false -> slideshow_params
+    end
     changeset =
       socket.assigns.slideshow
       |> Shopinfo.change_slideshow(slideshow_params)
       |> Map.put(:action, :validate)
-
     {:noreply, assign_form(socket, changeset)}
+  end
+
+  def toggle_closed_hours(day, params) do
+
+    case Map.get(params, day) do
+      "true" ->
+        cond do
+          String.contains?(day, "1") -> #week 1
+            cond do
+              String.contains?(day, "monday") -> set_closed_hours("monday", "1", params)
+              String.contains?(day, "tuesday") -> set_closed_hours("tuesday", "1", params)
+              String.contains?(day, "wednesday") -> set_closed_hours("wednesday", "1", params)
+              String.contains?(day, "thursday") -> set_closed_hours("thursday", "1", params)
+              String.contains?(day, "friday") -> set_closed_hours("friday", "1", params)
+            end
+          String.contains?(day, "2") -> #week 2
+            cond do
+              String.contains?(day, "monday") -> set_closed_hours("monday", "2", params)
+              String.contains?(day, "tuesday") -> set_closed_hours("tuesday", "2", params)
+              String.contains?(day, "wednesday") -> set_closed_hours("wednesday", "2", params)
+              String.contains?(day, "thursday") -> set_closed_hours("thursday", "2", params)
+              String.contains?(day, "friday") -> set_closed_hours("friday", "2", params)
+            end
+        end
+      "false" ->
+        cond do
+          String.contains?(day, "1") -> #week 1
+            cond do
+              String.contains?(day, "monday") -> set_open_hours("monday", "1", params)
+              String.contains?(day, "tuesday") -> set_open_hours("tuesday", "1", params)
+              String.contains?(day, "wednesday") -> set_open_hours("wednesday", "1", params)
+              String.contains?(day, "thursday") -> set_open_hours("thursday", "1", params)
+              String.contains?(day, "friday") -> set_open_hours("friday", "1", params)
+            end
+          String.contains?(day, "2") -> #week 2
+            cond do
+              String.contains?(day, "monday") -> set_open_hours("monday", "2", params)
+              String.contains?(day, "tuesday") -> set_open_hours("tuesday", "2", params)
+              String.contains?(day, "wednesday") -> set_open_hours("wednesday", "2", params)
+              String.contains?(day, "thursday") -> set_open_hours("thursday", "2", params)
+              String.contains?(day, "friday") -> set_open_hours("friday", "2", params)
+            end
+        end
+    end
+  end
+  def set_closed_hours(day, week, params) do
+    open = "#{day}o#{week}"
+    close = "#{day}c#{week}"
+    params = Map.put(params, open, "") |> Map.put(close, "")
+  end
+  def set_open_hours(day, week, params) do
+    open = "#{day}o#{week}"
+    close = "#{day}c#{week}"
+    params = Map.put(params, open, "07:00") |> Map.put(close, "16:00")
   end
 
   def handle_event("save", %{"slideshow" => slideshow_params}, socket) do

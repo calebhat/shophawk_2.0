@@ -37,6 +37,18 @@ defmodule Shophawk.Shopinfo.Slideshow do
     field :showsaturday1, :boolean, virtual: true, default: false
     field :showsaturday2, :boolean, virtual: true, default: false
 
+    field :monday1closed, :boolean, virtual: true, default: false
+    field :tuesday1closed, :boolean, virtual: true, default: false
+    field :wednesday1closed, :boolean, virtual: true, default: false
+    field :thursday1closed, :boolean, virtual: true, default: false
+    field :friday1closed, :boolean, virtual: true, default: false
+    field :monday2closed, :boolean, virtual: true, default: false
+    field :tuesday2closed, :boolean, virtual: true, default: false
+    field :wednesday2closed, :boolean, virtual: true, default: false
+    field :thursday2closed, :boolean, virtual: true, default: false
+    field :friday2closed, :boolean, virtual: true, default: false
+
+
     timestamps()
   end
 

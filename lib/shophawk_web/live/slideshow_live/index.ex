@@ -31,9 +31,36 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
+    map_keys = [:mondayo1, :mondayc1, :tuesdayo1, :tuesdayc1, :wednesdayo1, :wednesdayc1, :thursdayo1, :thursdayc1, :fridayo1, :fridayc1, :saturdayo1, :saturdayc1, :mondayo2, :mondayc2, :tuesdayo2, :tuesdayc2, :wednesdayo2, :wednesdayc2, :thursdayo2, :thursdayc2, :fridayo2, :fridayc2, :saturdayo2, :saturdayc2, :showsaturday1, :showsaturday2]
+    slideshow = Shopinfo.get_slideshow!(id)
+    slideshow =
+      String.split(slideshow.workhours, ",")
+      |> Enum.map(fn x ->
+        case x do
+          "true" -> true
+          "false" -> false
+          _ -> x
+        end
+      end)
+      |> Enum.zip(map_keys)
+      |> Enum.reduce(slideshow, fn {value, key}, acc ->
+        Map.put(acc, key, value)
+      end)
+    #Preset closed checkboxes
+    slideshow = if slideshow.mondayo1 == "" and slideshow.mondayc1 == "", do: Map.put(slideshow, :monday1closed, true), else: Map.put(slideshow, :monday1closed, false)
+    slideshow = if slideshow.tuesdayo1 == "" and slideshow.tuesdayc1 == "", do: Map.put(slideshow, :tuesday1closed, true), else: Map.put(slideshow, :tuesday1closed, false)
+    slideshow = if slideshow.wednesdayo1 == "" and slideshow.wednesdayc1 == "", do: Map.put(slideshow, :wednesday1closed, true), else: Map.put(slideshow, :wednesday1closed, false)
+    slideshow = if slideshow.thursdayo1 == "" and slideshow.thursdayc1 == "", do: Map.put(slideshow, :thursday1closed, true), else: Map.put(slideshow, :thursday1closed, false)
+    slideshow = if slideshow.fridayo1 == "" and slideshow.fridayc1 == "", do: Map.put(slideshow, :friday1closed, true), else: Map.put(slideshow, :friday1closed, false)
+    slideshow = if slideshow.mondayo2 == "" and slideshow.mondayc2 == "", do: Map.put(slideshow, :monday2closed, true), else: Map.put(slideshow, :monday2closed, false)
+    slideshow = if slideshow.tuesdayo2 == "" and slideshow.tuesdayc2 == "", do: Map.put(slideshow, :tuesday2closed, true), else: Map.put(slideshow, :tuesday2closed, false)
+    slideshow = if slideshow.wednesdayo2 == "" and slideshow.wednesdayc2 == "", do: Map.put(slideshow, :wednesday2closed, true), else: Map.put(slideshow, :wednesday2closed, false)
+    slideshow = if slideshow.thursdayo2 == "" and slideshow.thursdayc2 == "", do: Map.put(slideshow, :thursday2closed, true), else: Map.put(slideshow, :thursday2closed, false)
+    slideshow = if slideshow.fridayo2 == "" and slideshow.fridayc2 == "", do: Map.put(slideshow, :friday2closed, true), else: Map.put(slideshow, :friday2closed, false)
+
     socket
     |> assign(:page_title, "Edit Slideshow")
-    |> assign(:slideshow, Shopinfo.get_slideshow!(id))
+    |> assign(:slideshow, slideshow)
   end
 
   defp apply_action(socket, :new, _params) do
