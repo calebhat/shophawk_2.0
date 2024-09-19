@@ -32,7 +32,7 @@ defmodule ShophawkWeb.YearlySalesChartComponent do
         <%= if @yearly_sales_loading == false do  %>
           <%= if @yearly_sales_data != [] do %>
             <div class="text-md bg-cyan-800 rounded m-2 p-2 h-[78%] 2xl:h-[83%] text-black">
-                <div id="YearlySales_Chart" phx-hook="yearly_sales_Chart" data-yearlysales-chart={@yearly_sales_data}></div>
+                <div id="YearlySales_Chart" phx-hook="yearly_sales_Chart" data-yearlysales-chart={@yearly_sales_data} data-total-sales={@total_sales}></div>
             </div>
             <% end %>
         <% else %>

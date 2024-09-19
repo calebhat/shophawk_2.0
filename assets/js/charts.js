@@ -245,6 +245,7 @@ ChartHooks.monthly_sales_chart = {
 ChartHooks.yearly_sales_Chart = {
   mounted() {
     let chartData = JSON.parse(this.el.dataset.yearlysalesChart);
+    let totalSales = parseFloat(this.el.dataset.totalSales);
   
     // Prepend empty bars if the number of entries is less than 11
     while (chartData.series.length < 11) {
@@ -277,33 +278,19 @@ ChartHooks.yearly_sales_Chart = {
         }
       },
       colors: [
-        '#b71c1c',  // Dark Red
-        '#c62828',  // Crimson Red
-        '#bf360c',  // Burnt Orange
-        '#d84315',  // Dark Orange
-        '#ff6f00',  // Dark Amber
-        '#ff8f00',  // Amber            
-        '#ffb300',  // Dark Yellow  
-        '#33691e',  // Olive Green
-        '#1b5e20',  // Forest Green
-        '#004d40',  // Dark Green
-        '#00695c'   // Teal Green
-      ], // Color array for each bar
+        '#b71c1c', '#c62828', '#bf360c', '#d84315', '#ff6f00',
+        '#ff8f00', '#ffb300', '#33691e', '#1b5e20', '#004d40', '#00695c'
+      ],
       dataLabels: {
         enabled: true,
         textAnchor: 'start',
         style: {
-          colors: ['#ffffff'], // Set all text to white
-          fontSize: '20px' // Increase the font size for data labels
+          colors: ['#ffffff'],
+          fontSize: '20px'
         },
         formatter: function (val, opt) {
-          // Calculate the total sum of all series data
-          const total = chartData.series.reduce((sum, value) => sum + value, 0);
+          const percentage = ((val / totalSales) * 100).toFixed(2);
           
-          // Calculate the percentage
-          const percentage = ((val / total) * 100).toFixed(2);
-          
-          // Display the customer name, sales value, and percentage inside the bar
           return `${chartData.labels[opt.dataPointIndex]}: ${val.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD'
@@ -319,17 +306,17 @@ ChartHooks.yearly_sales_Chart = {
         colors: ['#fff']
       },
       xaxis: {
-        categories: chartData.labels, // Customer names as categories
+        categories: chartData.labels,
         labels: {
           style: {
-            colors: '#ffffff', // Set x-axis text color to white
-            fontSize: '16px' // Set x-axis font size
+            colors: '#ffffff',
+            fontSize: '16px'
           }
         }
       },
       yaxis: {
         labels: {
-          show: false // Hide y-axis labels
+          show: false
         }
       },
       title: {
@@ -337,15 +324,15 @@ ChartHooks.yearly_sales_Chart = {
         align: 'center',
         floating: true,
         style: {
-          color: '#ffffff', // Set title color to white
-          fontSize: '20px' // Increase title font size
+          color: '#ffffff',
+          fontSize: '20px'
         }
       },
       legend: {
         show: false,
         labels: {
-          colors: '#ffffff', // Set legend text color to white
-          fontSize: '18px' // Increase legend text size
+          colors: '#ffffff',
+          fontSize: '18px'
         }
       },
       tooltip: {
@@ -369,30 +356,25 @@ ChartHooks.yearly_sales_Chart = {
   
   updated() {
     let updatedChartData = JSON.parse(this.el.dataset.yearlysalesChart);
+    let updatedTotalSales = parseFloat(this.el.dataset.totalSales);
   
     // Prepend empty bars if the number of entries is less than 11
     while (updatedChartData.series.length < 11) {
-      updatedChartData.series.unshift(0);  // Add empty bar (value 0)
-      updatedChartData.labels.unshift(''); // Add an empty label
+      updatedChartData.series.unshift(0);
+      updatedChartData.labels.unshift('');
     }
   
-    // Update the chart with the new data and formatted labels
     this.chart.updateOptions({
       series: [{
-        data: updatedChartData.series // Update the sales data
+        data: updatedChartData.series
       }],
       xaxis: {
-        categories: updatedChartData.labels // Update the customer names
+        categories: updatedChartData.labels
       },
       dataLabels: {
         formatter: function (val, opt) {
-          // Calculate the total sum of all series data
-          const total = updatedChartData.series.reduce((sum, value) => sum + value, 0);
+          const percentage = ((val / updatedTotalSales) * 100).toFixed(2);
           
-          // Calculate the percentage
-          const percentage = ((val / total) * 100).toFixed(2);
-          
-          // Display the customer name, sales value, and percentage inside the bar after update
           return `${updatedChartData.labels[opt.dataPointIndex]}: ${val.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD'
