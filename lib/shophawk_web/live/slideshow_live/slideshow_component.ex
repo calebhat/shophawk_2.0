@@ -16,29 +16,59 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
               <div class="mt-1 pb-4 text-4xl flex justify-center border-b-4 border-black"><%= @slideshow.this_week%></div>
 
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
-                  <div class="grid justify-center">Monday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayo1, true)]}><%= @slideshow.mondayo1 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayc1, false)]}><%= @slideshow.mondayc1 %> </div>
+                <div class="grid justify-center">Monday</div>
+                  <%= case @slideshow.mondayo1 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayo1, true)]}><%= @slideshow.mondayo1 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayc1, false)]}><%= @slideshow.mondayc1 %> </div>
+                  <% end %>
                 </div>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center">Tuesday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayo1, true)]}><%= @slideshow.tuesdayo1 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayc1, false)]}><%= @slideshow.tuesdayc1 %> </div>
+                  <%= case @slideshow.tuesdayo1 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayo1, true)]}><%= @slideshow.tuesdayo1 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayc1, false)]}><%= @slideshow.tuesdayc1 %> </div>
+                  <% end %>
                 </div>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center" style="font-size: 4vh">Wednesday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayo1, true)]}><%= @slideshow.wednesdayo1 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayc1, false)]}><%= @slideshow.wednesdayc1 %> </div>
+                  <%= case @slideshow.wednesdayo1 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayo1, true)]}><%= @slideshow.wednesdayo1 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayc1, false)]}><%= @slideshow.wednesdayc1 %> </div>
+                  <% end %>
                 </div>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center">Thursday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayo1, true)]}><%= @slideshow.thursdayo1 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayc1, false)]}><%= @slideshow.thursdayc1 %> </div>
+                  <%= case @slideshow.thursdayo1 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayo1, true)]}><%= @slideshow.thursdayo1 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayc1, false)]}><%= @slideshow.thursdayc1 %> </div>
+                  <% end %>
                 </div>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center">Friday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayo1, true)]}><%= @slideshow.fridayo1 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayc1, false)]}><%= @slideshow.fridayc1 %> </div>
+                  <%= case @slideshow.fridayo1 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayo1, true)]}><%= @slideshow.fridayo1 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayc1, false)]}><%= @slideshow.fridayc1 %> </div>
+                  <% end %>
                 </div>
                 <%= if @slideshow.showsaturday1 == true do %>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
@@ -49,32 +79,62 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
                 <% end %>
             </div>
             <div class="bg-stone-800 text-white rounded-lg m-4 p-4"  style="font-size: 5vh">
-              <div class="mt-4 text-6xl flex justify-center">Next Week</div>
+              <div class="text-6xl flex justify-center">Next Week</div>
               <div class="mt-1 pb-4 text-4xl flex justify-center border-b-4 border-black"><%= @slideshow.next_week%></div>
               <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center">Monday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayo2, true)]}><%= @slideshow.mondayo2 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayc2, false)]}><%= @slideshow.mondayc2 %> </div>
+                  <%= case @slideshow.mondayo2 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayo2, true)]}><%= @slideshow.mondayo2 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.mondayc2, false)]}><%= @slideshow.mondayc2 %> </div>
+                  <% end %>
                 </div>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center">Tuesday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayo2, true)]}><%= @slideshow.tuesdayo2 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayc2, false)]}><%= @slideshow.tuesdayc2 %> </div>
+                  <%= case @slideshow.tuesdayo2 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayo2, true)]}><%= @slideshow.tuesdayo2 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.tuesdayc2, false)]}><%= @slideshow.tuesdayc2 %> </div>
+                  <% end %>
                 </div>
-                <div class="grid grid-cols-3 py-4 border-b-4 border-black">
-                  <div class="grid justify-center" style="font-size: 4vh">Wednesday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayo2, true)]}><%= @slideshow.wednesdayo2 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayc2, false)]}><%= @slideshow.wednesdayc2 %> </div>
+                <div class="grid grid-cols-3 py-4 border-b-4 border-black" style="font-size: 4vh">
+                  <div class="grid justify-center">Wednesday</div>
+                  <%= case @slideshow.wednesdayo2 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayo2, true)]}><%= @slideshow.wednesdayo2 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.wednesdayc2, false)]}><%= @slideshow.wednesdayc2 %> </div>
+                  <% end %>
                 </div>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center">Thursday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayo2, true)]}><%= @slideshow.thursdayo2 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayc2, false)]}><%= @slideshow.thursdayc2 %> </div>
+                  <%= case @slideshow.thursdayo2 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayo2, true)]}><%= @slideshow.thursdayo2 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.thursdayc2, false)]}><%= @slideshow.thursdayc2 %> </div>
+                  <% end %>
                 </div>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
                   <div class="grid justify-center">Friday</div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayo2, true)]}><%= @slideshow.fridayo2 %> </div>
-                  <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayc2, false)]}><%= @slideshow.fridayc2 %> </div>
+                  <%= case @slideshow.fridayo2 do %>
+                  <% "" -> %>
+                    <div class="col-span-2 grid justify-center mx-12 px-6 rounded-lg">Closed</div>
+                    <div></div>
+                  <% _ -> %>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayo2, true)]}><%= @slideshow.fridayo2 %> </div>
+                    <div class={["grid justify-center mx-12 px-6 rounded-lg", Parent.calculate_cell_color(@slideshow.fridayc2, false)]}><%= @slideshow.fridayc2 %> </div>
+                  <% end %>
                 </div>
                 <%= if @slideshow.showsaturday2 == true do %>
                 <div class="grid grid-cols-3 py-4 border-b-4 border-black">
@@ -156,7 +216,7 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
         <% :photo -> %><img style="object-fit: cover;  height: 90vh" src={@slideshow.photo}>
         <% :birthdays -> %>
           <div class="h-screen w-[90vw] flex flex-col justify-between">
-            <div class="text-center grid grid-cols-3 flex">
+            <div class="text-center grid grid-cols-3">
               <div><img class="grid justify-items-start" src={~p"/images/party_flags.svg"} width="200" /></div>
               <div style="font-size: clamp(3vw, 5vw, 8vw)" class="border-black border-b-4 w-max content-end">Happy Birthday! </div>
               <div class="grid justify-items-end"><img src={~p"/images/party_flags.svg"} width="200" class="rotate90" /></div>
@@ -168,7 +228,7 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
                 <% end %>
               </div>
             </div>
-            <div class="text-center grid grid-cols-2 flex items-end mb-10">
+            <div class="text-center grid grid-cols-2 items-end mb-10">
               <div><img class="grid justify-items-start" src={~p"/images/party-blower.svg"} width="200" /></div>
               <div class="grid justify-items-end"><img src={~p"/images/party-confetti.svg"} width="200" class="rotate-90" /></div>
             </div>
