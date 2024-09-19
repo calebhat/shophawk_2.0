@@ -273,12 +273,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
     #if this months sales are less than the min value from other months, don't add it to the chart data
     #This keeps the y axis autoscaled correctly
-    min_amount = Enum.min_by(sales_table_data, fn m -> m.amount end)
+    min_amount = Enum.min_by(sales_table_data, fn m -> m.amount end).amount
     sales_chart_data =
-      if current_months_sales.amount > min_amount do
+      if current_months_sales.amount >= min_amount do
         case Enum.find(sales_table_data, fn month -> month.date == beginning_of_this_month end) do
           nil -> [%{date: beginning_of_this_month, amount: current_months_sales.amount} | sales_table_data]
-          found_month -> Map.put(found_month, :amount, current_months_sales.amount)
+          found_month -> [Map.put(found_month, :amount, current_months_sales.amount) | sales_table_data]
         end
       else
         sales_table_data
@@ -312,7 +312,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:sales_table_data, final_sales_table_data)
     |> assign(:this_months_sales, current_months_sales.amount)
     |> assign(:this_years_sales, this_years_sales)
-    |> assign(:projected_yearly_sales, (this_years_sales / Date.utc_today().month) * 12)
+    |> assign(:projected_yearly_sales, (this_years_sales / (Date.utc_today().month + (Date.utc_today().day / Date.days_in_month(Date.utc_today()))) * 12))
     |> assign(:monthly_average, monthly_average)
   end
   def generate_monthly_sales(start_date, end_date, list \\ []) do
