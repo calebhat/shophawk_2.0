@@ -406,14 +406,18 @@ defmodule Shophawk.Jobboss_db do
     |> Enum.uniq
     operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
     [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
-    runlist = List.flatten(runlist)
-    skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc -> #removes all operations that have a job that gets updated
-      Enum.reject(acc, fn op -> job == op.job end)
-    end)
-    new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
-      if op.job_status == "Active", do: [op | acc]
-    end)
-    :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
+    case runlist do
+      nil -> {:ok}
+      _ ->
+        runlist = List.flatten(runlist)
+        skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc -> #removes all operations that have a job that gets updated
+          Enum.reject(acc, fn op -> job == op.job end)
+        end)
+        new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
+          if op.job_status == "Active", do: [op | acc]
+        end)
+        :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
+    end
   end
 
   def failsafed_query(query, retries \\ 3, delay \\ 100) do #For jobboss db queries
