@@ -3,7 +3,7 @@ defmodule Shophawk.Jobboss_db do
     alias DateTime
     alias Shophawk.Jb_job
     alias Shophawk.Jb_job_operation
-    alias Shophawk.Jb_material
+    alias Shophawk.Jb_material_req
     alias Shophawk.Jb_job_operation_time
     alias Shophawk.Jb_user_values
     alias Shophawk.Jb_employees
@@ -16,6 +16,8 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_delivery
     alias Shophawk.Jb_job_note_text
     alias Shophawk.Jb_address
+    alias Shophawk.Jb_material
+    alias Shophawk.Jb_material_location
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
 
@@ -67,7 +69,7 @@ defmodule Shophawk.Jobboss_db do
     job_operation_numbers = Enum.map(operations_map, fn op -> op.job_operation end)
     user_values_list = Enum.map(jobs_map, fn job -> job.user_values end)
 
-    query = from r in Jb_material, where: r.job in ^job_numbers
+    query = from r in Jb_material_req, where: r.job in ^job_numbers
     mats_map = failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> rename_key(:status, :mat_status) |> rename_key(:description, :mat_description) end)
     #IO.puts("mat map loaded")
     query = from r in Jb_job_operation_time, where: r.job_operation in ^job_operation_numbers
@@ -81,7 +83,7 @@ defmodule Shophawk.Jobboss_db do
     |> Enum.map(fn %{job: job} = op -> #merge material info
       matching_maps = Enum.filter(mats_map, fn mat -> mat.job == job end)
       case Enum.count(matching_maps) do #case if multiple maps found in the list, ie multiple materials
-        0 -> Map.merge(op, Map.from_struct(%Jb_material{}) |> Map.drop([:__meta__]) |> Map.drop([:job]) |> Map.drop([:status]) |> Map.drop([:description])) |> Map.put(:material, "Customer Supplied") #in case no material
+        0 -> Map.merge(op, Map.from_struct(%Jb_material_req{}) |> Map.drop([:__meta__]) |> Map.drop([:job]) |> Map.drop([:status]) |> Map.drop([:description])) |> Map.put(:material, "Customer Supplied") #in case no material
         1 -> Map.merge(op, Enum.at(matching_maps, 0))
         _ ->
           merged_matching_maps = Enum.reduce(matching_maps, %{}, fn map, acc ->
@@ -395,7 +397,7 @@ defmodule Shophawk.Jobboss_db do
     jobs = failsafed_query(query)
     query = from r in Jb_job_operation, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
     job_operation_jobs = failsafed_query(query)
-    query = from r in Jb_material, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
+    query = from r in Jb_material_req, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
     material_jobs = failsafed_query(query)
     query = from r in Jb_job_operation_time, where: r.last_updated >= ^previous_check, select: r.job_operation, distinct: true
     job_operation_time_ops = failsafed_query(query)
@@ -406,18 +408,14 @@ defmodule Shophawk.Jobboss_db do
     |> Enum.uniq
     operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
     [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
-    case runlist do
-      nil -> {:ok}
-      _ ->
-        runlist = List.flatten(runlist)
-        skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc -> #removes all operations that have a job that gets updated
-          Enum.reject(acc, fn op -> job == op.job end)
-        end)
-        new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
-          if op.job_status == "Active", do: [op | acc]
-        end)
-        :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
-    end
+    runlist = List.flatten(runlist)
+    skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc -> #removes all operations that have a job that gets updated
+      Enum.reject(acc, fn op -> job == op.job end)
+    end)
+    new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
+      if op.job_status == "Active", do: [op | acc], else: acc
+    end)
+    :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
   end
 
   def failsafed_query(query, retries \\ 3, delay \\ 100) do #For jobboss db queries
@@ -544,16 +542,16 @@ defmodule Shophawk.Jobboss_db do
   end
 
   def load_late_delivery_history() do #All active deliveries
-  query =
-    from r in Jb_delivery,
-    where: r.shipped_date > r.promised_date and
-          not like(r.job, "%lbr%") and
-          not like(r.job, "%lvl%")
+    query =
+      from r in Jb_delivery,
+      where: r.shipped_date > r.promised_date and
+            not like(r.job, "%lbr%") and
+            not like(r.job, "%lvl%")
 
-  failsafed_query(query)
-    |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
-    |> Enum.sort_by(&(&1.job), :desc)
-end
+    failsafed_query(query)
+      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+      |> Enum.sort_by(&(&1.job), :desc)
+  end
 
   def load_deliveries(job_numbers) do
     query =
@@ -634,6 +632,89 @@ end
 
     failsafed_query(query)
     |> Enum.sum()
+  end
+
+  def load_material_information(material_name) do
+    query =
+      from r in Jb_material,
+      where: r.material == ^material_name,
+      where: r.pick_buy_indicator == "P",
+      where: r.stocked_uofm == "ft",
+      where: r.status == "Active"
+    material =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+      end)
+      |> List.first
+
+      merge_material_location(material)
+  end
+
+  def merge_material_location(material) do
+    query =
+      from r in Jb_material_location,
+      where: r.material == ^material.material
+    material_location =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+      end)
+      |> List.first
+    Map.merge(material, material_location)
+  end
+
+  def load_materials_and_sizes_into_cache() do
+    query =
+      from r in Jb_material,
+      where: r.pick_buy_indicator == "P",
+      where: r.stocked_uofm == "ft",
+      where: r.shape == "Round",
+      where: r.status == "Active"
+    material =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+      end)
+      |> Enum.reject(fn mat -> String.contains?(mat.material, ["GROB", "MC907", "NGSM", "NMSM", "NNSM", "TEST", "ATN"]) end)
+
+    Enum.reduce(material, %{}, fn mat, acc ->
+      IO.inspect(mat)
+      case String.split(mat.material, "X", parts: 2) do
+        [_] -> acc
+        [size, material_name] ->
+          IO.inspect(material_name)
+          IO.inspect(size)
+            case Map.has_key?(acc, material_name) do
+              false -> Map.put_new(acc, material_name, convert_string_to_float(size))
+              true -> acc
+            end
+            #|> IO.inspect
+        _ -> acc
+      end
+    end)
+    #IO.inspect(Enum.count(material))
+
+      #query =
+      #  from r in Jb_material_location,
+      #  where: r.material == ^material_name
+      #material_location =
+      #  failsafed_query(query)
+      #  |> Enum.map(fn op ->
+      #    Map.from_struct(op)
+      #    |> Map.drop([:__meta__])
+      #  end)
+      #  |> List.first
+
+    #Map.merge(material, material_location)
+  end
+
+  def convert_string_to_float(string) do
+    string = if String.at(string, 0) == ".", do: "0" <> string, else: string
+    elem(Float.parse(string), 0)
   end
 
 end

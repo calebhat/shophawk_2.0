@@ -1,0 +1,28 @@
+<.header>
+  Stocked material <%= @stocked_material.id %>
+  <:subtitle>This is a stocked_material record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/stockedmaterials/#{@stocked_material}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit stocked_material</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Material"><%= @stocked_material.material %></:item>
+  <:item title="Bars"><%= @stocked_material.bars %></:item>
+  <:item title="Slugs"><%= @stocked_material.slugs %></:item>
+</.list>
+
+<.back navigate={~p"/stockedmaterials"}>Back to stockedmaterials</.back>
+
+<.modal :if={@live_action == :edit} id="stocked_material-modal" show on_cancel={JS.patch(~p"/stockedmaterials/#{@stocked_material}")}>
+  <.live_component
+    module={ShophawkWeb.StockedMaterialLive.FormComponent}
+    id={@stocked_material.id}
+    title={@page_title}
+    action={@live_action}
+    stocked_material={@stocked_material}
+    patch={~p"/stockedmaterials/#{@stocked_material}"}
+  />
+</.modal>

@@ -65,6 +65,13 @@ defmodule ShophawkWeb.Router do
 
     live "/dashboard/shop_meeting", DashboardLive.ShopMeeting, :index
 
+    live "/stockedmaterials", StockedMaterialLive.Index, :index
+    live "/stockedmaterials/new", StockedMaterialLive.Index, :new
+    live "/stockedmaterials/:id/edit", StockedMaterialLive.Index, :edit
+
+    live "/stockedmaterials/:id", StockedMaterialLive.Show, :show
+    live "/stockedmaterials/:id/show/edit", StockedMaterialLive.Show, :edit
+
   end
 
   # Other scopes may use custom stacks.

@@ -5,21 +5,23 @@ defmodule Shophawk.Jb_material do
   @primary_key false
   @schema_prefix "dbo"  # Explicitly setting the schema if needed
 
-  schema "material_req" do
-    field :job, :string
+  schema "material" do
     field :material, :string
-    field :vendor, :string
+    field :primary_vendor, :string
+    field :shape, :string
+    field :location_id, :string
     field :description, :string
+    field :stocked_uofm, :string
+    field :selling_price, :float
     field :pick_buy_indicator, :string
     field :status, :string
-    field :last_updated, :naive_datetime
     #timestamps()
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :material, :vendor, :description, :pick_buy_indicator, :status, :last_updated])
-    |> validate_required([:job, :material])
+    |> cast(attrs, [:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status])
+    |> validate_required([:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status])
   end
 end
