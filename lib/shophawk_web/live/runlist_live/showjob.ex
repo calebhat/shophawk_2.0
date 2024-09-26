@@ -28,7 +28,7 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
           <div class="underline text-base">Customer PO </div>
           <div class="text-lg"><%= assigns.job_info.description %> </div>
           <div class="text-lg"><%= assigns.job_info.material %> </div>
-          <div class="text-lg"><%= assigns.job_info.customer_po <> ", line: " <> assigns.job_info.customer_po_line %> </div>
+          <div class="text-lg"><%= (assigns.job_info.customer_po || "") <> ", line: " <> (assigns.job_info.customer_po_line || "") %> </div>
 
         </div>
       </div>

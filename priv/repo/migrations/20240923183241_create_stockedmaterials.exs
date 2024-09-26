@@ -4,8 +4,16 @@ defmodule Shophawk.Repo.Migrations.CreateStockedmaterials do
   def change do
     create table(:stockedmaterials) do
       add :material, :string
-      add :bars, {:array, :float}, default: []
-      add :slugs, {:array, :float}, default: []
+      add :bar_length, :float
+      add :slug_length, :float
+      add :number_of_slugs, :integer
+      add :purchase_date, :date
+      add :purchase_price, :float #$/lb
+      add :vendor, :string
+      add :being_quoted, :boolean, default: false
+      add :ordered, :boolean, default: false
+      add :in_house, :boolean, default: false
+      add :bar_used, :boolean, default: false
 
       timestamps()
     end

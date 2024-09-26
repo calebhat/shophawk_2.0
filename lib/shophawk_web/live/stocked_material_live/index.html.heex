@@ -1,12 +1,91 @@
-<div class="">
-  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[8rem] pb-10 pl-4 pr-6 overflow-y-auto">
-    hi
+<div>
+  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">
+    <div 
+    :for={material <- @material_list}
+    class={["rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
+    phx-click="load_material_sizes"
+    phx-value-selected-material={material.material}
+    phx-value-selected-size={@selected_size}>    
+      <%=material.material %>
+    </div>
   </div>
-  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-10 pl-4 pr-6 overflow-y-auto">
-    hi
+  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+    <div 
+    :for={size <- @selected_sizes}
+    class={["w-[6.5rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size)]}
+    phx-click="load_material_size"
+    phx-value-selected-size={size}
+    phx-value-selected-material={@selected_material}>
+      <%= size %>
+    </div>
   </div>
-  <div class="bg-cyan-900 rounded ml-[17rem]">
-    <.button class="w-20" phx-click="test">hi</.button>
-    hi
+
+  <div class="absolute bg-cyan-900 rounded ml-[17rem] top-[5.71rem] right-[1vw] left-[2vw] bottom-[1rem]">
+    
+    
+    <div>
+      <%= if @material_info != nil do %>
+      <div id="main-content" style={if @loading, do: "display: none;"}>
+        <div class="pt-4 grid grid-cols-3 text-center content-center">
+          <div>
+            <.link patch={~p"/stockedmaterials/new"}>
+              <.button>New Stocked material</.button>
+            </.link>
+          </div>
+          <div class="text-stone-200 text-4xl underline"><%= @material_info.material %> - On Hand: <%= @material_info.on_hand_qty %></div>
+          <div><.button class="w-20" phx-click="test">hi</.button></div>
+        </div>
+        <div class="grid grid-cols-3 m-2">
+          <div>
+            
+          </div>
+          <div>
+            <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
+              <div class="text-xl underline text-center">Bars In Stock</div>
+              
+              <div :for={bar <- @bars_form}>
+                <.form
+                  for={bar}
+                  id={"bar-#{bar.id}"}
+                  phx-change="validate"
+                  phx-submit="save_bar"
+                >   
+                  <% IO.inspect(bar.data.bar_length) %>   
+                  <div class="flex p-1">
+                    <div class="grow">
+                      <div class="bg-black rounded text-left" style={"width: #{bar.data.bar_length * 100 / 12 / 12}%"}><%= "#{bar.data.bar_length / 12}" %>'</div>
+                    </div>
+                    <div>
+                      <div  class="hidden"><.input field={bar[:id]} type="text" /></div>
+                      <.input field={bar[:bar_length]} type="number" placeholder="New Length" />
+                      <.button phx-disable-with="Saving...">Save Stocked material</.button>
+                    </div>
+                  </div>
+                </.form>
+              </div>
+            </div>
+          </div>
+          <div></div>
+        </div>
+
+      </div>
+      <% end %>
+      <div id="loading-content" class="loader" style={if !@loading, do: "display: none;"}>Loading...</div>
+    </div>
+
+
+    
   </div>
 </div>
+
+
+<.modal :if={@live_action in [:new, :edit]} id="stocked_material-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
+  <.live_component
+    module={ShophawkWeb.StockedMaterialLive.FormComponent}
+    id={@stocked_material.id || :new}
+    title={@page_title}
+    action={@live_action}
+    stocked_material={@stocked_material}
+    patch={~p"/stockedmaterials"}
+  />
+</.modal>

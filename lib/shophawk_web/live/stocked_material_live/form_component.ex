@@ -20,8 +20,17 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
         phx-submit="save"
       >
         <.input field={@form[:material]} type="text" label="Material" />
-        <.input field={@form[:bars]} type="text" label="Bars" />
-        <.input field={@form[:slugs]} type="text" label="Slugs" />
+        <.input field={@form[:bar_length]} type="number" label="Bar Length" />
+        <.input field={@form[:slug_length]} type="number" label="Slug Length" />
+        <.input field={@form[:number_of_slugs]} type="number" label="Number of Slugs" />
+        <.input field={@form[:purchase_date]} type="date" label="Purchase Date" />
+        <.input field={@form[:purchase_price]} type="number" label="Purchase Price" />
+        <.input field={@form[:vendor]} type="text" label="Vendor" />
+        <.input field={@form[:being_quoted]} type="checkbox" label="Being quoted?" />
+        <.input field={@form[:ordered]} type="checkbox" label="Ordered?" />
+        <.input field={@form[:in_house]} type="checkbox" label="In House?" />
+        <.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" />
+
         <:actions>
           <.button phx-disable-with="Saving...">Save Stocked material</.button>
         </:actions>

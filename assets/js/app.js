@@ -28,6 +28,8 @@ import ChartHooks from "./charts";
 // Register hooks with LiveSocket
 let Hooks = {...ChartHooks}; // Merge ChartHooks with other hooks if you have more
 
+
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },

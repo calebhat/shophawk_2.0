@@ -663,7 +663,11 @@ defmodule Shophawk.Jobboss_db do
         |> Map.drop([:__meta__])
       end)
       |> List.first
-    Map.merge(material, material_location)
+    case material_location do
+      nil -> Map.merge(material, %Shophawk.Jb_material_location{} |> Map.from_struct() |> Map.drop([:__meta__, :material, :location_id]) )
+      _ -> Map.merge(material, material_location)
+    end
+
   end
 
   def load_materials_and_sizes_into_cache() do
@@ -681,22 +685,24 @@ defmodule Shophawk.Jobboss_db do
       end)
       |> Enum.reject(fn mat -> String.contains?(mat.material, ["GROB", "MC907", "NGSM", "NMSM", "NNSM", "TEST", "ATN"]) end)
 
-    Enum.reduce(material, %{}, fn mat, acc ->
-      IO.inspect(mat)
+    round_stock = Enum.reduce(material, [], fn mat, acc ->
       case String.split(mat.material, "X", parts: 2) do
         [_] -> acc
-        [size, material_name] ->
-          IO.inspect(material_name)
-          IO.inspect(size)
-            case Map.has_key?(acc, material_name) do
-              false -> Map.put_new(acc, material_name, convert_string_to_float(size))
-              true -> acc
+        [size, material] ->
+            case Enum.find(acc, fn mat -> mat.material == material end) do
+              nil -> [%{material: material, sizes: [convert_string_to_float(size)]} | acc]
+              found_material ->
+                updated_map = Map.update!(found_material, :sizes, fn existing_sizes -> [convert_string_to_float(size) | existing_sizes] end)
+                updated_acc = Enum.reject(acc, fn mat -> mat.material == found_material.material end)
+                [updated_map | updated_acc]
             end
-            #|> IO.inspect
         _ -> acc
       end
     end)
-    #IO.inspect(Enum.count(material))
+    |> Enum.map(fn material -> Map.put(material, :sizes, Enum.sort(material.sizes, :asc))
+    end)
+    |> Enum.uniq_by(&(&1.material))
+    |> Enum.sort_by(&(&1.material), :asc)
 
       #query =
       #  from r in Jb_material_location,
