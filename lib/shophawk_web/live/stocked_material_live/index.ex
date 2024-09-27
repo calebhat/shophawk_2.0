@@ -51,7 +51,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     Process.demonitor(ref, [:flush])
 
     #IO.inspect(Material.list_stocked_material_by_material(material_info.material))
-    bars_list = Material.list_stocked_material_by_material(material_info.material)
+    bars_list = Material.list_stocked_material_by_material(material_info.material) |> Enum.sort_by(&(&1.bar_length))
     bars_changeset = Enum.map(bars_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
     #IO.inspect(bars_changeset)
 
@@ -66,7 +66,24 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def handle_event("validate", %{"stocked_material" => stocked_material_params}, socket) do
-    found_bar = Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end)
+    {:noreply, load_bar_forms(stocked_material_params, socket, :validate)}
+  end
+
+  def handle_event("save_bar_length", %{"stocked_material" => stocked_material_params}, socket) do
+    found_bar =
+      Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end)
+      |> Map.put(:bar_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
+      |> Map.put(:saved, true)
+    Material.update_stocked_material(found_bar , stocked_material_params |> Map.delete("id"))
+    {:noreply, load_bar_forms(stocked_material_params, socket, :save)}
+  end
+
+  defp load_bar_forms(stocked_material_params, socket, action) do
+    found_bar = #toggles visability of save button.
+      case action do
+        :validate -> Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end) |> Map.put(:saved, false)
+        :save -> Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end) |> Map.put(:saved, true)
+      end
     updated_changeset = Material.change_stocked_material(found_bar, stocked_material_params)
     updated_bar = Map.merge(found_bar, updated_changeset.changes)
     bars_list =
@@ -77,28 +94,10 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
           _ -> bar
         end
       end)
+      |> Enum.sort_by(fn bar -> if action == :save, do: bar.bar_length, else: nil end)
 
     bars_changeset = Enum.map(bars_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
-    #IO.inspect(socket.assigns)
-    #bars = Material.list_stocked_material_by_material(material_info.material)
-    #bars_changeset = Enum.map(bars, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
-
-    #changeset =
-    #  Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end)
-    #  |> Material.change_stocked_material(stocked_material_params)
-    #  |> IO.inspect()
-    #  |> Map.put(:action, :validate)
-
-
-
-    #bars_list = Material.list_stocked_material_by_material(material_info.material)
-    #bars_changeset = Enum.map(bars_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
-
-    #{:noreply, assign_bar_form(socket, changeset)}
-    {:noreply,
-    socket
-    |> assign(bars_list: bars_list)
-    |> assign(bars_form: bars_changeset)}
+    socket |> assign(bars_list: bars_list) |> assign(bars_form: bars_changeset)
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
@@ -112,7 +111,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     #Jobboss_db.load_material_information("10XGI") |> IO.inspect
     #material_list = Jobboss_db.load_materials_and_sizes_into_cache
     #|> IO.inspect
-    {:noreply, assign(socket, :loading, !socket.assigns.loading)}
+    {:noreply, socket}
   end
 
   def handle_event("load_material_sizes", %{"selected-material" => selected_material, "selected-size" => selected_size}, socket) do
@@ -157,14 +156,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   defp set_bg_color(entity, selected_entity) do
     selected_entity = if is_float(selected_entity) == true, do: Float.to_string(selected_entity), else: selected_entity
-    #IO.inspect(entity)
-    #IO.inspect(selected_entity)
     if selected_entity == entity, do: "bg-cyan-500 ml-2", else: "bg-stone-200"
   end
-
-  defp assign_bar_form(socket, %Ecto.Changeset{} = changeset) do
-    assign(socket, :bars, to_form(changeset))
-  end
-
 
 end

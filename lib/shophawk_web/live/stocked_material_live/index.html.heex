@@ -48,17 +48,31 @@
                   for={bar}
                   id={"bar-#{bar.id}"}
                   phx-change="validate"
-                  phx-submit="save_bar"
-                >   
-                  <% IO.inspect(bar.data.bar_length) %>   
+                  phx-submit="save_bar_length"
+                >
                   <div class="flex p-1">
-                    <div class="grow">
-                      <div class="bg-black rounded text-left" style={"width: #{bar.data.bar_length * 100 / 12 / 12}%"}><%= "#{bar.data.bar_length / 12}" %>'</div>
+                    <div class="grow relative">
+                      <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{bar.data.bar_length * 100 / 12 / 12}%"}>
+                        <span class="absolute inset-0 flex justify-center items-center">
+                          <%= "#{Float.round(bar.data.bar_length / 12, 2)} ft" %>
+                        </span>
+                      </div>
                     </div>
                     <div>
-                      <div  class="hidden"><.input field={bar[:id]} type="text" /></div>
-                      <.input field={bar[:bar_length]} type="number" placeholder="New Length" />
-                      <.button phx-disable-with="Saving...">Save Stocked material</.button>
+                      <div class="hidden"><.input field={bar[:id]} type="text" /></div>
+                      <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="New Length" step=".01" /></div>            
+                    </div>
+                    <div class="">
+                      <%= if bar.data.saved == false do %> 
+                        <img class="pl-2 pt-3" src={~p"/images/red_x.svg"} />
+                        <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
+                      <% else %>
+                      <div class="flex">
+                        <img class="pl-2 pt-3" src={~p"/images/black_checkmark.svg"} />
+                        <div class="pl-2 pt-3"><.button phx-click="bar_used">delete</.button></div>
+                        <div class="pl-2 pt-3"><.button phx-click="make_slug">slug</.button></div>
+                        </div>
+                      <% end %>
                     </div>
                   </div>
                 </.form>

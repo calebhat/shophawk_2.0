@@ -14,6 +14,7 @@ defmodule Shophawk.Material.StockedMaterial do
     field :ordered, :boolean, default: false
     field :in_house, :boolean, default: false
     field :bar_used, :boolean, default: false
+    field :saved, :boolean, default: true, virtual: true
 
     timestamps()
   end
@@ -23,6 +24,28 @@ defmodule Shophawk.Material.StockedMaterial do
     stocked_material
     |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used])
     |> validate_required([:material, :bar_length, :being_quoted, :ordered, :in_house, :bar_used])
+    |> round_floats()
+    |> IO.inspect
+  end
+
+  # Custom function to round float fields to 2 decimal places
+  defp round_floats(changeset) do
+    changeset
+    |> round_field(:bar_length)
+    |> round_field(:slug_length)
+  end
+
+  # Rounds a field's value and puts it back into the changeset
+  defp round_field(changeset, field) do
+    # Use `get_field/3` to get the field value, whether changed or not
+    value = get_field(changeset, field)
+
+    if is_float(value) do
+      # Put the rounded value back into the changeset
+      put_change(changeset, field, Float.round(value, 2))
+    else
+      changeset
+    end
   end
 
 end
