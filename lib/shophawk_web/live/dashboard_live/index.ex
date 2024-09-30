@@ -141,11 +141,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
     last_statement = List.first(bank_statements)
     ending_balance = last_statement.ending_balance
 
-
     {:ok, days_to_load} = NaiveDateTime.new(Date.add(last_statement.statement_date, -30), ~T[00:00:00.000])
 
     checkbook_entries = #journal entries from 30 days before last bank statement
-      Jobboss_db.journal_entry(days_to_load, NaiveDateTime.utc_now())
+      Jobboss_db.journal_entry(days_to_load, elem(NaiveDateTime.new(Date.utc_today(), ~T[00:00:00.000]), 1))
       |> Enum.map(fn entry -> if entry.reference == "9999", do: Map.put(entry, :reference, "9999 - ACH Check"), else: entry end)
       |> Enum.reverse
 

@@ -465,7 +465,8 @@ defmodule Shophawk.Jobboss_db do
     query =
       from r in Jb_JournalEntry,
       where: r.transaction_date >= ^start_date and r.transaction_date <= ^end_date,
-      where: r.gl_account == "104"
+      where: r.gl_account == "104",
+      order_by: [asc: r.transaction_date]
     failsafed_query(query)
     |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
