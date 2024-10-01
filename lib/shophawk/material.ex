@@ -37,7 +37,7 @@ defmodule Shophawk.Material do
   """
   def get_stocked_material!(id), do: Repo.get!(StockedMaterial, id)
 
-  def list_stocked_material_by_material(material), do: Repo.all(from r in StockedMaterial, where: r.material == ^material)
+  def list_stocked_material_by_material(material), do: Repo.all(from r in StockedMaterial, where: r.material == ^material and r.bar_used != true)
 
   @doc """
   Creates a stocked_material.

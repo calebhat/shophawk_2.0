@@ -55,7 +55,6 @@ defmodule Shophawk.Jobboss_db do
         |> rename_key(:status, :job_status)
         |> rename_key(:customer_po_ln, :customer_po_line)
       end)
-      #IO.puts("job map loaded")
 
     query = from r in Jb_job_operation, where: r.job in ^job_numbers
     operations_map =
@@ -153,6 +152,113 @@ defmodule Shophawk.Jobboss_db do
     |> set_current_op()
     |> set_material_waiting() #This function flattens the grouped ops as well.
     |> set_assignment_from_note_text_if_op_started
+  end
+
+  def load_job_history(job_numbers) do #loads a job that is complete
+    query = from r in Jb_job, where: r.job in ^job_numbers
+    jobs_map =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> rename_key(:sched_end, :job_sched_end)
+        |> rename_key(:sched_start, :job_sched_start)
+        |> rename_key(:status, :job_status)
+        |> rename_key(:customer_po_ln, :customer_po_line)
+      end)
+
+    query = from r in Jb_job_operation, where: r.job in ^job_numbers
+    operations_map =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> rename_key(:note_text, :operation_note_text)
+      end)
+      #IO.puts("job ops map loaded")
+    job_operation_numbers = Enum.map(operations_map, fn op -> op.job_operation end)
+    user_values_list = Enum.map(jobs_map, fn job -> job.user_values end)
+
+    query = from r in Jb_material_req, where: r.job in ^job_numbers
+    mats_map = failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> rename_key(:status, :mat_status) |> rename_key(:description, :mat_description) end)
+    #IO.puts("mat map loaded")
+    query = from r in Jb_job_operation_time, where: r.job_operation in ^job_operation_numbers
+    operation_time_map = failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) end)
+    #IO.puts("operation time map loaded")
+    query = from r in Jb_user_values, where: r.user_values in ^user_values_list
+    user_values_map = failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.put(:text1, dots_calc(op.text1)) |> rename_key(:text1, :dots) end)
+    #IO.puts("user value map loaded")
+    operations_map
+    |> Enum.map(fn %{job: job} = op -> Map.merge(op, Enum.find(jobs_map, &(&1.job == job))) end) #merge job info
+    |> Enum.map(fn %{job: job} = op -> #merge material info
+      matching_maps = Enum.filter(mats_map, fn mat -> mat.job == job end)
+      case Enum.count(matching_maps) do #case if multiple maps found in the list, ie multiple materials
+        0 -> Map.merge(op, Map.from_struct(%Jb_material_req{}) |> Map.drop([:__meta__]) |> Map.drop([:job]) |> Map.drop([:status]) |> Map.drop([:description])) |> Map.put(:material, "Customer Supplied") #in case no material
+        1 -> Map.merge(op, Enum.at(matching_maps, 0))
+        _ ->
+          merged_matching_maps = Enum.reduce(matching_maps, %{}, fn map, acc ->
+            map_without_job = Map.drop(map, [:job])
+            Map.merge(acc, map_without_job, fn _, value1, value2 ->
+              "#{value1} | #{value2}"
+            end)
+          end)
+          Map.merge(op, merged_matching_maps)
+      end
+    end)
+    |> Enum.map(fn %{job_operation: job_operation} = op -> #Merge Job Operation Time
+      matching_data = Enum.filter(operation_time_map, &((&1.job_operation) == job_operation))
+      starting_map =  Map.from_struct(%Jb_job_operation_time{}) |> Map.drop([:__meta__]) |> Map.drop([:job_operation])
+      combined_data_collection = #merge all matching data together before merging with operations
+        if matching_data != [] do
+          Enum.reduce(matching_data, starting_map, fn row, acc ->
+            acc
+            |> Map.put(:act_run_hrs, (row.act_run_hrs || 0) + acc.act_run_hrs)
+            |> Map.put(:act_run_qty, (row.act_run_qty || 0) + acc.act_run_qty)
+            |> Map.put(:act_scrap_qty, (row.act_scrap_qty || 0) + acc.act_scrap_qty)
+            |> Map.put(:employee,
+              case row.employee do
+                "" -> acc.employee
+                nil -> acc.employee
+                _ -> acc.employee <> " | " <> row.employee <> ": " <> Calendar.strftime(row.work_date, "%m-%d-%y")
+              end)
+          end)
+        else
+          starting_map
+        end
+      new_map = Map.merge(op, combined_data_collection)
+      trimmed_employee =
+        if new_map.employee != nil do
+          new_map.employee
+          |> String.split("|")
+          |> Enum.map(&String.trim/1)
+          |> Enum.filter(fn x -> x != "" end)
+          |> Enum.uniq
+          |> Enum.join(" | ")
+        else
+          op.employee
+        end
+      Map.put(new_map, :employee, trimmed_employee)
+    end)
+    |> Enum.map(fn %{user_values: user_value} = op -> #Merge User Values
+      new_user_data = Enum.find(user_values_map, &(&1.user_values == user_value))
+      if new_user_data do
+        Map.merge(op, new_user_data)
+      else
+        Map.merge(op, Map.from_struct(%Jb_user_values{}) |> Map.drop([:__meta__]) |> Map.put(:text1, nil) |> rename_key(:text1, :dots))
+      end
+    end)
+    |> Enum.map(fn map -> #add in extra keys used for runlist
+      sanitize_map(map) #checks for strings with the wrong encoding for special characters. also converts naivedatetime to date format.
+      |> Map.put(:id, "op-#{map.job_operation}")
+      |> Map.put(:assignment, nil)
+      |> Map.put(:currentop, nil)
+      |> Map.put(:material_waiting, false)
+      |> Map.put(:runner, false)
+      |> Map.put(:date_row_identifer, nil)
+    end)
+    |> merge_shophawk_runlist_db(job_operation_numbers)
+    |> Enum.group_by(&{&1.job})
+    |> Map.values
   end
 
   def sanitize_map(map) do #makes sure all values are in correct formats for the app.
@@ -635,7 +741,10 @@ defmodule Shophawk.Jobboss_db do
     |> Enum.sum()
   end
 
-  def load_material_information(material_name) do
+
+  ### MATERIAL PAGE FUNCTIONS ###
+
+  def load_jb_material_information(material_name) do
     query =
       from r in Jb_material,
       where: r.material == ^material_name,
@@ -668,10 +777,26 @@ defmodule Shophawk.Jobboss_db do
       nil -> Map.merge(material, %Shophawk.Jb_material_location{} |> Map.from_struct() |> Map.drop([:__meta__, :material, :location_id]) )
       _ -> Map.merge(material, material_location)
     end
-
   end
 
-  def load_materials_and_sizes_into_cache() do
+  def load_all_jb_material_on_hand(material_list) do
+    query =
+      from r in Jb_material_location,
+      where: r.material in ^material_list
+    material =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+      end)
+    #rename materail key:
+    Enum.map(material, fn mat ->
+      Map.put(mat, :material_name, mat.material)
+      |> Map.delete(:material)
+    end)
+  end
+
+  def load_materials_and_sizes_into_cache() do #doesn't load into cache right now
     query =
       from r in Jb_material,
       where: r.pick_buy_indicator == "P",
@@ -685,38 +810,52 @@ defmodule Shophawk.Jobboss_db do
         |> Map.drop([:__meta__])
       end)
       |> Enum.reject(fn mat -> String.contains?(mat.material, ["GROB", "MC907", "NGSM", "NMSM", "NNSM", "TEST", "ATN"]) end)
-
+    mat_reqs = load_material_requirements()
+    all_material_info =
+      Enum.map(material, fn mat -> mat.material end)
+      |> load_all_jb_material_on_hand()
     round_stock = Enum.reduce(material, [], fn mat, acc ->
       case String.split(mat.material, "X", parts: 2) do
         [_] -> acc
         [size, material] ->
-            case Enum.find(acc, fn mat -> mat.material == material end) do
-              nil -> [%{material: material, sizes: [convert_string_to_float(size)]} | acc]
-              found_material ->
-                updated_map = Map.update!(found_material, :sizes, fn existing_sizes -> [convert_string_to_float(size) | existing_sizes] end)
-                updated_acc = Enum.reject(acc, fn mat -> mat.material == found_material.material end)
-                [updated_map | updated_acc]
+          matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material), do: [req | acc], else: acc end)
+          matching_size_reqs = Enum.reduce(matching_mat_reqs, [], fn req, acc -> if String.starts_with?(req.material, size), do: [req | acc], else: acc end)
+          matching_jobs = Enum.map(matching_size_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty} end) |> Enum.sort_by(&(&1.qty), :asc)
+          material_info =
+            case Enum.find(all_material_info, fn mat_info -> mat_info.material_name == mat.material end) do
+              nil ->  %{material_name: mat.material, location_id: "", on_hand_qty: 0.0}
+              found_mat_info -> found_mat_info
             end
+          case Enum.find(acc, fn mat -> mat.material == material end) do
+            nil ->
+              [%{material: material, sizes: [%{size: convert_string_to_float(size), jobs_using_size: Enum.count(matching_size_reqs), matching_jobs: matching_jobs, material_info: material_info}], mat_reqs_count: Enum.count(matching_mat_reqs)} | acc]
+            found_material -> #add new sizes to existing material in list.
+              updated_map = Map.update!(found_material, :sizes, fn existing_sizes -> [%{size: convert_string_to_float(size), jobs_using_size: Enum.count(matching_size_reqs), matching_jobs: matching_jobs, material_info: material_info} | existing_sizes] end)
+              updated_acc = Enum.reject(acc, fn mat -> mat.material == found_material.material end) #removes previous material for replacement with updated_map
+              [updated_map | updated_acc]
+          end
         _ -> acc
       end
     end)
-    |> Enum.map(fn material -> Map.put(material, :sizes, Enum.sort(material.sizes, :asc))
+    |> Enum.map(fn material ->
+      Map.put(material, :sizes, Enum.sort_by(material.sizes, & &1.size, :asc))
     end)
     |> Enum.uniq_by(&(&1.material))
     |> Enum.sort_by(&(&1.material), :asc)
+  end
 
-      #query =
-      #  from r in Jb_material_location,
-      #  where: r.material == ^material_name
-      #material_location =
-      #  failsafed_query(query)
-      #  |> Enum.map(fn op ->
-      #    Map.from_struct(op)
-      #    |> Map.drop([:__meta__])
-      #  end)
-      #  |> List.first
-
-    #Map.merge(material, material_location)
+  def load_material_requirements do
+    query =
+      from r in Jb_material_req,
+      where: r.status == "O",
+      where: r.pick_buy_indicator == "P",
+      where: r.uofm == "ft"
+    material_jobs =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+      end)
   end
 
   def convert_string_to_float(string) do

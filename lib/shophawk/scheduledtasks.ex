@@ -16,13 +16,13 @@ defmodule ScheduledTasks do
     :ets.insert(:employees, {:data, Shophawk.Jobboss_db.employee_data})
 
     #inital Loading of Active jobs into cache
-    #Shophawk.Jobboss_db.load_all_active_jobs
+    Shophawk.Jobboss_db.load_all_active_jobs
     IO.puts("active jobs loaded into cache")
 
     # Initial scheduled tasks
     load_current_week_birthdays()
     save_weekly_dates()
-    #update_all_runlist_loads()
+    update_all_runlist_loads()
     ShophawkWeb.DashboardLive.Index.save_last_months_sales()
     ShophawkWeb.DashboardLive.Index.save_this_weeks_revenue()
 

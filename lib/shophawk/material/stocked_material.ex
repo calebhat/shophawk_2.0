@@ -23,9 +23,8 @@ defmodule Shophawk.Material.StockedMaterial do
   def changeset(stocked_material, attrs) do
     stocked_material
     |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used])
-    |> validate_required([:material, :bar_length, :being_quoted, :ordered, :in_house, :bar_used])
+    |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used])
     |> round_floats()
-    |> IO.inspect
   end
 
   # Custom function to round float fields to 2 decimal places

@@ -11,9 +11,14 @@ defmodule Shophawk.Shop do
   alias Shophawk.Shop.Assignment
 
   def list_job(job) do #loads all operations for a job
+  found_jobs =
+    case Shophawk.RunlistCache.job(job) do
+      [] -> Shophawk.Jobboss_db.load_job_history([job]) |> List.flatten #Function here to load job history directly from JB (not active job in cache(part history))
+      active_job -> active_job
+    end
+
     job_ops =
-    Shophawk.RunlistCache.job(job)
-    |> Enum.map(fn map ->
+    Enum.map(found_jobs, fn map ->
       map = case map do
         %{operation_service: nil} -> Map.put(map, :operation_service, nil)
         %{operation_service: ""} -> Map.put(map, :operation_service, nil)

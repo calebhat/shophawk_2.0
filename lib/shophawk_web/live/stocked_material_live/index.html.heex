@@ -1,39 +1,63 @@
 <div>
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">
     <div 
-    :for={material <- @material_list}
-    class={["rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
-    phx-click="load_material_sizes"
-    phx-value-selected-material={material.material}
-    phx-value-selected-size={@selected_size}>    
-      <%=material.material %>
+      :for={material <- @material_list}
+      class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
+      phx-click="load_material_sizes"
+      phx-value-selected-material={material.material}
+      phx-value-selected-size={@selected_size}
+      phx-value-material-name={@material_name}>
+      <span><%= material.material %></span>
+      <%= if material.mat_reqs_count > 0 do %>
+        <span class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1">
+          <%= material.mat_reqs_count %>
+        </span>
+      <% end %>
     </div>
   </div>
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
     <div 
     :for={size <- @selected_sizes}
-    class={["w-[6.5rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size)]}
+    class={["flex justify-between items-center w-[6.5rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
     phx-click="load_material_size"
-    phx-value-selected-size={size}
-    phx-value-selected-material={@selected_material}>
-      <%= size %>
+    phx-value-selected-size={size.size}
+    phx-value-selected-material={@selected_material}
+    phx-value-material-name={size.material_info.material_name}>
+      <span><%= size.size %></span>
+      <%= if size.jobs_using_size > 0 do %>
+        <span class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1">
+          <%= size.jobs_using_size %>
+        </span>
+      <% end %>
     </div>
   </div>
 
   <div class="absolute bg-cyan-900 rounded ml-[17rem] top-[5.71rem] right-[1vw] left-[2vw] bottom-[1rem]">
-    
-    
     <div>
       <%= if @material_info != nil do %>
-      <div id="main-content" style={if @loading, do: "display: none;"}>
+      <div id="main-content" style={if @loading, do: "display: none;"} class="">
         <div class="pt-4 grid grid-cols-3 text-center content-center">
-          <div>
+          <div class="relative inline-block">
+            <.button phx-click="show_related_jobs">Jobs to Saw</.button>
+            <%= if @show_related_jobs do %>
+             <div class="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-cyan-700 text-stone-200 border border-gray-300 shadow-lg rounded p-4">
+              <div :for={job <- @related_jobs} 
+              class="py-0.5 font-semibold rounded hover:bg-cyan-500 hover:cursor-pointer hover:text-black" 
+              phx-click="show_job" 
+              phx-value-job={job.job}>
+                <div class="m-1">
+                <%= "#{job.job} - #{job.qty} ft" %>
+                </div>
+              </div>
+            </div>
+            <% end %>
+          </div>
+          <div class="text-stone-200 text-4xl underline"><%= @material_info.material_name %> - On Hand: <%= @material_info.on_hand_qty %></div>
+          <div><.button class="w-20" phx-click="test">hi</.button>
             <.link patch={~p"/stockedmaterials/new"}>
               <.button>New Stocked material</.button>
             </.link>
           </div>
-          <div class="text-stone-200 text-4xl underline"><%= @material_info.material %> - On Hand: <%= @material_info.on_hand_qty %></div>
-          <div><.button class="w-20" phx-click="test">hi</.button></div>
         </div>
         <div class="grid grid-cols-3 m-2">
           <div>
@@ -41,36 +65,61 @@
           </div>
           <div>
             <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
-              <div class="text-xl underline text-center">Bars In Stock</div>
-              
+              <div class="grid grid-cols-3 pb-2">
+                <div></div>
+                <div class="text-xl underline text-center">Bars</div>    
+                <div class="text-center">
+                  <.button type="button" phx-click="new_bar" phx-value-selected-material={@selected_material} phx-value-selected-size={@selected_size}>
+                    New Bar
+                  </.button>
+                </div>    
+              </div>      
               <div :for={bar <- @bars_form}>
                 <.form
                   for={bar}
                   id={"bar-#{bar.id}"}
-                  phx-change="validate"
+                  phx-change="validate_bars"
                   phx-submit="save_bar_length"
                 >
                   <div class="flex p-1">
                     <div class="grow relative">
-                      <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{bar.data.bar_length * 100 / 12 / 12}%"}>
+                      <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
                         <span class="absolute inset-0 flex justify-center items-center">
-                          <%= "#{Float.round(bar.data.bar_length / 12, 2)} ft" %>
+                          <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                         </span>
                       </div>
                     </div>
                     <div>
                       <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                      <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="New Length" step=".01" /></div>            
+                      <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>            
                     </div>
-                    <div class="">
+                    <div class="w-40">
                       <%= if bar.data.saved == false do %> 
                         <img class="pl-2 pt-3" src={~p"/images/red_x.svg"} />
                         <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
                       <% else %>
                       <div class="flex">
                         <img class="pl-2 pt-3" src={~p"/images/black_checkmark.svg"} />
-                        <div class="pl-2 pt-3"><.button phx-click="bar_used">delete</.button></div>
-                        <div class="pl-2 pt-3"><.button phx-click="make_slug">slug</.button></div>
+                        <div class="pl-2 pt-3">
+                          <.button 
+                          type="button"
+                          phx-click="make_slug"
+                          phx-value-selected-material={@selected_material} 
+                          phx-value-selected-size={@selected_size}
+                          phx-value-id={bar.data.id}>
+                            slug
+                          </.button>
+                        </div>
+                        <div class="pl-2 pt-3">
+                          <.delete_button 
+                          type="button"
+                          phx-click="bar_used" 
+                          phx-value-selected-material={@selected_material} 
+                          phx-value-selected-size={@selected_size}
+                          phx-value-id={bar.data.id}>
+                            Used
+                          </.delete_button>
+                        </div>                        
                         </div>
                       <% end %>
                     </div>
@@ -79,7 +128,63 @@
               </div>
             </div>
           </div>
-          <div></div>
+          <div>
+            <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
+              <div class="grid grid-cols-3">
+                <div></div>
+                <div class="text-xl underline text-center">Slugs</div>
+                <div class="text-center">
+                  <.button type="button" phx-click="new_slug" phx-value-selected-material={@selected_material} phx-value-selected-size={@selected_size}>
+                    New Slug
+                  </.button>
+                </div>
+              </div>
+              <br>
+              <%= if @slugs_list != [] do %>
+              <div class="grid grid-cols-3 text-center place-content-center">
+                <div>Length (in)</div>
+                <div>Slugs</div>
+                <div></div>
+              </div>
+              <% end %>
+              <div :for={bar <- @slugs_form}>
+                <.form
+                  for={bar}
+                  id={"bar-#{bar.id}"}
+                  phx-change="validate_slugs"
+                  phx-submit="save_slug_length"
+                >
+                  <div class="grid grid-cols-3 place-content-center justify-items-center p-1">
+                    <div class="">
+                      <div class="hidden"><.input field={bar[:id]} type="text" /></div>
+                      <div class="w-24 pb-2 pl-2"><.input field={bar[:slug_length]} type="number" step=".01" /></div> 
+                    </div>
+                    <div class="w-24 pb-2 pl-2"><.input field={bar[:number_of_slugs]} type="number" step="1.0" /></div> 
+                    <div class="w-40">
+                      <%= if bar.data.saved == false do %> 
+                        <img class="pl-2 pt-3" src={~p"/images/red_x.svg"} />
+                        <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
+                      <% else %>
+                      <div class="flex">
+                        <img class="pl-2 pt-3" src={~p"/images/black_checkmark.svg"} />
+                        <div class="pl-2 pt-3">
+                          <.delete_button 
+                          type="button"
+                          phx-click="bar_used" 
+                          phx-value-selected-material={@selected_material} 
+                          phx-value-selected-size={@selected_size}
+                          phx-value-id={bar.data.id}>
+                            Used
+                          </.delete_button>
+                        </div>                        
+                      </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </.form>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -103,3 +208,24 @@
     patch={~p"/stockedmaterials"}
   />
 </.modal>
+
+    <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
+    <.live_component
+        module={ShophawkWeb.RunlistLive.ShowJob}
+        id={@id || :show_job}
+        job_ops={@job_ops}
+        job_info={@job_info}
+        title={@page_title}
+        action={@live_action}
+    />
+    </.modal>
+
+    <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
+    <.live_component
+        module={ShophawkWeb.RunlistLive.JobAttachments}
+        id={@id || :job_attachments}
+        attachments={@attachments}
+        title={@page_title}
+        action={@live_action}
+    />
+    </.modal>
