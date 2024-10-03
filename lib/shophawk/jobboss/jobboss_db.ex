@@ -672,14 +672,13 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.sort_by(&(&1.job), :desc)
   end
 
-  def load_deliveries(start_date, end_date) do
-        start_date = NaiveDateTime.new(start_date, ~T[00:00:00]) |> elem(1)
-        end_date = NaiveDateTime.new(end_date, ~T[00:00:00]) |> elem(1)
-        query =
-          from r in Jb_delivery,
-          where: not is_nil(r.shipped_date),
-          where: r.shipped_date >= ^start_date and r.shipped_date <= ^end_date
-        failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  def load_invoices(start_date, end_date) do
+    start_date = NaiveDateTime.new(start_date, ~T[00:00:00]) |> elem(1)
+    end_date = NaiveDateTime.new(end_date, ~T[00:00:00]) |> elem(1)
+    query =
+      from r in Jb_InvoiceHeader,
+      where: r.document_date >= ^start_date and r.document_date <= ^end_date
+    failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 
   def load_jobs(job_numbers) do

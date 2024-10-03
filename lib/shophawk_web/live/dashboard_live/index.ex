@@ -68,7 +68,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:week2_timeoff, [])
 
     #Yearly Sales Chart
-    |> assign(:yearly_sales_loading, false)
     |> assign(:yearly_sales_data, [])
     |> assign(:total_sales, 0)
     |> assign(:complete_yearly_sales_data, [])
@@ -97,14 +96,15 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      #|> load_checkbook_component() #5 seconds
-      #|> load_open_invoices_component() #5 sec
-      #|> load_travelors_released_componenet() #1 second
-      #|> load_anticipated_revenue_component() #2 sec
-      #|> load_monthly_sales_chart_component() #instant
-      #|> load_hot_jobs()
-      #|> load_time_off()
-      #|> load_late_shipments()
+      |> load_checkbook_component() #5 seconds
+      |> load_open_invoices_component() #5 sec
+      |> load_travelors_released_componenet() #1 second
+      |> load_anticipated_revenue_component() #2 sec
+      |> load_monthly_sales_chart_component() #instant
+      |> load_hot_jobs()
+      |> load_time_off()
+      |> load_late_shipments()
+      |> load_yearly_sales_chart()
     }
   end
 
@@ -116,21 +116,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
     # Handle task errors
     {:noreply, assign(socket, loading: false, error: reason)}
-  end
-
-  def handle_info({ref, result}, socket) do #load chart data once complete
-    if socket.assigns.task.ref == ref do
-      # Update the socket with the result of the task and stop loading
-      socket =
-        socket
-        |> assign(:yearly_sales_data, result.yearly_sales_data)
-        |> assign(:total_sales, result.total_sales)
-        |> assign(:complete_yearly_sales_data, result.complete_yearly_sales_data)
-        |> assign(:yearly_sales_loading, false)
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
   end
 
   def load_checkbook_component(socket) do
@@ -323,18 +308,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
       list
     else
       start_date = Date.beginning_of_month(start_date)
-      case Jobboss_db.load_deliveries(start_date, Date.end_of_month(start_date)) do
+      case Jobboss_db.load_invoices(start_date, Date.end_of_month(start_date)) do
         [] -> list #if no deliveries found
-        deliveries ->
-          jobs = Enum.map(deliveries, fn d -> d.job end) |> Jobboss_db.load_delivery_jobs()
-          merged_deliveries = Enum.reduce(deliveries, [], fn d, acc ->
-            job = Enum.find(jobs, fn job -> job.job == d.job end)
-            acc ++ [Map.merge(d, job)]
-            end)
-            |> Enum.sort_by(&(&1.promised_date), Date)
-          total_sales =
-            %{amount: Enum.reduce(merged_deliveries, 0, fn d, acc -> Float.round((d.promised_quantity * d.unit_price) + acc, 2) end),
-              date: start_date}
+        invoices ->
+          invoice_total = Enum.reduce(invoices, 0, fn inv, acc -> inv.orig_invoice_amt + acc end)
+          total_sales = %{amount: invoice_total, date: start_date}
           generate_monthly_sales(Date.add(start_date, 35), end_date, [total_sales | list])
       end
     end
@@ -410,7 +388,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     assign(socket, :hot_jobs, Shophawk.Shop.get_hot_jobs())
   end
 
-  def load_yearly_sales_chart() do
+  def load_yearly_sales_chart(socket) do
     first_day_of_year = Date.new!(Date.utc_today().year, 1, 1)
     matching_map = %{
       ["alro"] => "Alro Plastics",
@@ -441,50 +419,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
       ["tyson"] => "Tyson Foods",
       ["valmet"] => "Valmet"
     }
-    #deliveries_this_year = case Jobboss_db.load_deliveries(~D[2024-08-01], Date.utc_today()) do
-    deliveries_this_year = case Jobboss_db.load_deliveries(first_day_of_year, Date.utc_today()) do
+    deliveries_this_year = case Jobboss_db.load_invoices(first_day_of_year, Date.utc_today()) do
       [] -> [] #if no deliveries found
-      deliveries ->
-        jobs =
-          Enum.chunk_every(deliveries, 1000)
-          |> Enum.map(fn chunk ->
-            Enum.map(chunk, fn d -> d.job end)
-            |> Jobboss_db.load_delivery_jobs()
-          end)
-          |> List.flatten()
-        addresses =
-          Enum.chunk_every(jobs, 1000)
-          |> Enum.map(fn chunk ->
-            Enum.map(chunk, fn d -> d.ship_to end)
-            |> Jobboss_db.load_addresses()
-          end)
-          |> List.flatten()
-          |> Enum.uniq
-        updated_jobs =
-          Enum.reduce(jobs, [], fn job, acc ->
-            address =
-              case job.customer do
-                "EDG GEAR" ->
-                  ad = Enum.find(addresses, fn ad -> ad.address == job.ship_to end)
-                  case ad.name do
-                    "MARQUIP WARD UNITED" -> %{customer: "bw"}
-                    _ -> %{}
-                  end
-                _ -> %{}
-              end
-            acc ++ [Map.merge(job, address)]
-          end)
-        Enum.reduce(deliveries, [], fn d, acc ->
-          job = Enum.find(updated_jobs, fn job -> job.job == d.job end)
-
-          acc ++ [Map.merge(d, job)]
-        end)
-        |> Enum.sort_by(&(&1.promised_date), Date)
+      invoices -> invoices
     end
     |> Enum.group_by(&customer_key(&1, matching_map))
     |> Enum.map(fn {customer, sales_list} ->
-      total_sales = Enum.reduce(sales_list, 0, fn map, acc -> (map.unit_price * map.promised_quantity) + acc end)
-      %{customer: customer, sales: Float.round(total_sales, 2)}
+      total_sales = Enum.reduce(sales_list, 0, fn map, acc -> map.orig_invoice_amt + acc end) |> Float.round(2)
+      %{customer: customer, sales: total_sales}
     end)
     |> Enum.sort_by(&(&1.sales), :desc)
     top_ten_customers = Enum.take(deliveries_this_year, 10)
@@ -496,7 +438,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
         series: Enum.map(top_ten_customers, &(&1.sales)) ++ [rest_of_customers_sales],
         labels: Enum.map(top_ten_customers, &(&1.customer)) ++ ["All Customers Minus the Top 10"]
       }
-    %{yearly_sales_data: Jason.encode!(yearly_sales_data), total_sales: total_sales, complete_yearly_sales_data: yearly_sales_data}
+    socket =
+      socket
+      |> assign(:yearly_sales_data, Jason.encode!(yearly_sales_data))
+      |> assign(:total_sales, total_sales)
+      |> assign(:complete_yearly_sales_data, yearly_sales_data)
   end
 
   def load_late_shipments(socket) do
@@ -612,11 +558,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply, assign(socket, :yearly_sales_data, Jason.encode!(updated_yearly_sales_data))}
   end
 
-  def handle_event("load_yearly_sales_customer", _, socket) do
-    task = Task.async(fn -> load_yearly_sales_chart() end)
-    {:noreply, assign(socket, :task, task) |> assign(:yearly_sales_loading, true)}
-  end
-
   def handle_event("monthly_sales_toggle", _, socket) do
     {:noreply, assign(socket, :show_monthly_sales_table, !socket.assigns.show_monthly_sales_table)}
   end
@@ -657,12 +598,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_event("test_click", _params, socket) do
 
     #IO.inspect()
-    save_last_months_sales()
+    #save_last_months_sales()
 
     #save_this_weeks_revenue()
 
     ######################Functions to load history into db for first load with new dashboard####################
-    #load_10_year_history_into_db()
+    load_10_year_history_into_db()
     {:noreply, socket}
   end
 
@@ -684,10 +625,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     case Dashboard.list_monthly_sales(beginning_of_last_month) do
       [] ->
         last_months_sales = List.first(generate_monthly_sales(beginning_of_last_month, end_of_last_month))
-        |> IO.inspect
-        IO.inspect(beginning_of_last_month)
-        IO.inspect(end_of_last_month)
-        #Shophawk.Dashboard.create_monthly_sales(last_months_sales)
+        Shophawk.Dashboard.create_monthly_sales(last_months_sales)
       _ -> :ok
     end
     IO.puts("monthly sales saved")
@@ -713,7 +651,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   ###############################################
     #Function to load history and save to DB
     def load_10_year_history_into_db() do
-      save_revenue_history() #10 years of revenue history
+      #save_revenue_history() #10 years of revenue history
       save_monthly_sales(Date.add(Date.utc_today, -4015), Date.utc_today) #10 years of monthly sales history
     end
 
