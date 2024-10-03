@@ -14,6 +14,8 @@ defmodule Shophawk.Jb_material_req do
     field :pick_buy_indicator, :string
     field :status, :string
     field :uofm, :string
+    field :part_length, :float
+    field :cutoff, :float
     field :last_updated, :naive_datetime
     #timestamps()
   end

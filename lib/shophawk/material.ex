@@ -21,6 +21,10 @@ defmodule Shophawk.Material do
     Repo.all(StockedMaterial)
   end
 
+  def list_stockedmaterials_on_floor do
+    Repo.all(from r in StockedMaterial, where: r.in_house == true and r.bar_used == false)
+  end
+
   @doc """
   Gets a single stocked_material.
 

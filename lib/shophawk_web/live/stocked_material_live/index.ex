@@ -90,12 +90,12 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   def handle_event("new_bar", %{"selected-size" => selected_size, "selected-material" => selected_material}, socket) do
-    Material.create_stocked_material(%{material: socket.assigns.material_info.material_name, bar_length: "0.0"})
+    Material.create_stocked_material(%{material: socket.assigns.material_info.material_name, bar_length: "0.0", in_house: true})
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
   def handle_event("new_slug", %{"selected-size" => selected_size, "selected-material" => selected_material}, socket) do
-    Material.create_stocked_material(%{material: socket.assigns.material_info.material_name, slug_length: "0.0", number_of_slugs: "1"})
+    Material.create_stocked_material(%{material: socket.assigns.material_info.material_name, slug_length: "0.0", number_of_slugs: "1", in_house: true})
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
@@ -190,9 +190,10 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   def handle_event("close_job_attachments", _params, socket), do: {:noreply, assign(socket, live_action: :show_job)}
 
   def handle_event("test", _params, socket) do
-    open_material_reqs = Jobboss_db.load_material_requirements
-    IO.inspect(Enum.count(open_material_reqs))
-    IO.inspect(Enum.count(socket.assigns.material_list))
+    #open_material_reqs = Jobboss_db.load_material_requirements
+    #IO.inspect(Enum.count(open_material_reqs))
+    #IO.inspect(Enum.count(socket.assigns.material_list))
+    find_material_to_order(socket)
     #IO.inspect(socket.assigns.material_list)
     #Jobboss_db.load_jb_material_information("10XGI") |> IO.inspect
     #material_list = Jobboss_db.load_materials_and_sizes_into_cache
@@ -277,6 +278,40 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   def find_material_to_order(socket) do
+    #IO.inspect(socket.assigns.material_list)
+    material_that_needs_cutting =
+      Enum.flat_map(socket.assigns.material_list, fn map -> map.sizes end)
+      |> Enum.filter(fn size_map -> size_map.matching_jobs != [] end)
+
+    #need_to_order_material =
+    #  Enum.filter(material_that_needs_cutting, fn mat ->
+    #    ft_needed = Enum.reduce(mat.matching_jobs, 0.0, fn job, acc -> job.qty + acc end)
+    #    ft_needed > mat.material_info.on_hand_qty
+    #  end)
+    #  |> IO.inspect
+
+      Enum.map(socket.assigns.material_list, fn material ->
+        material_to_order =
+          Enum.find(material_that_needs_cutting, fn map ->
+            case String.split(map.material_info.material_name, "X", parts: 2) do
+              [_] -> nil
+              [size, material_name] -> material_name == material.material
+            end
+          end)
+          |> IO.inspect
+
+          case material_to_order do
+            nil -> material
+            x ->
+              amount_to_order = Enum.reduce(x.matching_jobs, 0.0, fn job, acc -> job.qty + acc end)
+              Map.put(material_to_order, :need_to_order_amt, amount_to_order)
+              |> IO.inspect
+            end
+
+
+          #Map.put(material, need_to_order_amt: material_to_order.
+
+      end)
     #Jobboss_db.load_jb_material_information(prepare_size_for_query(selected_size) <> "X" <> selected_material)
     #related_jobs = Enum.find(socket.assigns.selected_sizes, fn size -> size.size == String.to_float(socket.assigns.selected_size) end).matching_jobs
     #total_qty_needed =  Enum.reduce(related_jobs, 0.0, fn job, acc -> job.qty + acc end) |> IO.inspect

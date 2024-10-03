@@ -3,6 +3,7 @@ defmodule Shophawk.Jobboss_db do
     alias DateTime
     alias Shophawk.Jb_job
     alias Shophawk.Jb_job_operation
+    alias Shophawk.Jb_job_qty
     alias Shophawk.Jb_material_req
     alias Shophawk.Jb_job_operation_time
     alias Shophawk.Jb_user_values
@@ -18,6 +19,7 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_address
     alias Shophawk.Jb_material
     alias Shophawk.Jb_material_location
+    alias Shophawk.Material
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
 
@@ -744,7 +746,7 @@ defmodule Shophawk.Jobboss_db do
 
   ### MATERIAL PAGE FUNCTIONS ###
 
-  def load_jb_material_information(material_name) do
+  def load_jb_material_information(material_name) do #NOT USED????
     query =
       from r in Jb_material,
       where: r.material == ^material_name,
@@ -811,26 +813,60 @@ defmodule Shophawk.Jobboss_db do
       end)
       |> Enum.reject(fn mat -> String.contains?(mat.material, ["GROB", "MC907", "NGSM", "NMSM", "NNSM", "TEST", "ATN"]) end)
     mat_reqs = load_material_requirements()
-    all_material_info =
+    all_jb_material_info =
       Enum.map(material, fn mat -> mat.material end)
       |> load_all_jb_material_on_hand()
+    all_material_on_floor = Material.list_stockedmaterials_on_floor
+
     round_stock = Enum.reduce(material, [], fn mat, acc ->
       case String.split(mat.material, "X", parts: 2) do
         [_] -> acc
         [size, material] ->
           matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material), do: [req | acc], else: acc end)
           matching_size_reqs = Enum.reduce(matching_mat_reqs, [], fn req, acc -> if String.starts_with?(req.material, size), do: [req | acc], else: acc end)
+
+          #bars & slugs
+          matching_material_on_floor = Enum.filter(all_material_on_floor, fn floor_mat -> floor_mat.material == mat.material end)
+
+          #IO.inspect(matching_material_on_floor)
+          #IO.inspect(matching_size_reqs)
+
+          #calculate total amount needed by multiplying parts needed + cutoff + blade width is saed
+          #Reduce through sizes, and assign slugs/bars to use for each. Start with smallest slugs and go up
+          #Maybe just flield for :assigned? & :slugs_assigned? make it a map that includes job number and length used?
+          #don't save to db, make this functions end result the used list for everything.
+          #|> IO.inspect
+
+
           matching_jobs = Enum.map(matching_size_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty} end) |> Enum.sort_by(&(&1.qty), :asc)
           material_info =
-            case Enum.find(all_material_info, fn mat_info -> mat_info.material_name == mat.material end) do
+            case Enum.find(all_jb_material_info, fn mat_info -> mat_info.material_name == mat.material end) do
               nil ->  %{material_name: mat.material, location_id: "", on_hand_qty: 0.0}
               found_mat_info -> found_mat_info
             end
           case Enum.find(acc, fn mat -> mat.material == material end) do
-            nil ->
-              [%{material: material, sizes: [%{size: convert_string_to_float(size), jobs_using_size: Enum.count(matching_size_reqs), matching_jobs: matching_jobs, material_info: material_info}], mat_reqs_count: Enum.count(matching_mat_reqs)} | acc]
+            nil -> #new material/size not in list already
+              [%{
+                material: material,
+                mat_reqs_count: Enum.count(matching_mat_reqs),
+                sizes:
+                  [%{size: convert_string_to_float(size),
+                  jobs_using_size: Enum.count(matching_size_reqs),
+                  matching_jobs: matching_jobs,
+                  material_info: material_info,
+                  need_to_order_amt: 0.0}]
+                } | acc]
             found_material -> #add new sizes to existing material in list.
-              updated_map = Map.update!(found_material, :sizes, fn existing_sizes -> [%{size: convert_string_to_float(size), jobs_using_size: Enum.count(matching_size_reqs), matching_jobs: matching_jobs, material_info: material_info} | existing_sizes] end)
+              updated_map =
+                Map.update!(found_material, :sizes, fn existing_sizes ->
+                  [
+                    %{size: convert_string_to_float(size),
+                    jobs_using_size: Enum.count(matching_size_reqs),
+                    matching_jobs: matching_jobs,
+                    material_info: material_info,
+                    need_to_order_amt: 0.0
+                    } | existing_sizes]
+                  end)
               updated_acc = Enum.reject(acc, fn mat -> mat.material == found_material.material end) #removes previous material for replacement with updated_map
               [updated_map | updated_acc]
           end
@@ -850,11 +886,28 @@ defmodule Shophawk.Jobboss_db do
       where: r.status == "O",
       where: r.pick_buy_indicator == "P",
       where: r.uofm == "ft"
-    material_jobs =
+    mat_reqs =
       failsafed_query(query)
       |> Enum.map(fn op ->
         Map.from_struct(op)
         |> Map.drop([:__meta__])
+        |> Map.update!(:cutoff, &(Float.round(&1, 2)))
+        |> Map.update!(:part_length, &(Float.round(&1, 2)))
+        |> Map.update!(:est_qty, &(Float.round(&1, 2)))
+      end)
+      job_numbers = Enum.map(mat_reqs, fn mat -> mat.job end) |> Enum.uniq
+      query = from r in Jb_job_qty, where: r.job in ^job_numbers
+      jobs = #grab make_qty and merge
+        failsafed_query(query)
+        |> Enum.map(fn op ->
+          Map.from_struct(op)
+          |> Map.drop([:__meta__])
+        end)
+      Enum.map(mat_reqs, fn mat ->
+        case Enum.find(jobs, fn job -> job.job == mat.job end) do
+          nil -> mat
+          found_job -> Map.merge(mat, found_job)
+        end
       end)
   end
 

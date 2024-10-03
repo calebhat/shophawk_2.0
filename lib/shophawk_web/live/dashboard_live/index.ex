@@ -97,14 +97,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      |> load_checkbook_component() #5 seconds
-      |> load_open_invoices_component() #5 sec
-      |> load_travelors_released_componenet() #1 second
-      |> load_anticipated_revenue_component() #2 sec
-      |> load_monthly_sales_chart_component() #instant
-      |> load_hot_jobs()
-      |> load_time_off()
-      |> load_late_shipments()
+      #|> load_checkbook_component() #5 seconds
+      #|> load_open_invoices_component() #5 sec
+      #|> load_travelors_released_componenet() #1 second
+      #|> load_anticipated_revenue_component() #2 sec
+      #|> load_monthly_sales_chart_component() #instant
+      #|> load_hot_jobs()
+      #|> load_time_off()
+      #|> load_late_shipments()
     }
   end
 
@@ -148,6 +148,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> Enum.map(fn entry -> if entry.reference == "9999", do: Map.put(entry, :reference, "9999 - ACH Check"), else: entry end)
       |> Enum.reverse
 
+    checkbook_entries_as_strings = #journal entries from 30 days before last bank statement
+      Enum.map(checkbook_entries, fn entry ->
+      entry = Map.put(entry, :amount, Float.to_string(entry.amount, decimals: 2)) end)
+
     current_balance =
       Enum.filter(checkbook_entries, fn entry -> Date.after?(entry.transaction_date, last_statement.statement_date) end)
       |> Enum.reduce(ending_balance, fn entry, acc ->
@@ -158,7 +162,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
       socket
       |> assign(:current_balance, current_balance)
-      |> assign(:checkbook_entries, checkbook_entries)
+      |> assign(:checkbook_entries, checkbook_entries_as_strings)
   end
 
   def load_open_invoices_component(socket) do
@@ -617,17 +621,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply, assign(socket, :show_monthly_sales_table, !socket.assigns.show_monthly_sales_table)}
   end
 
-  def handle_event("test_click", _params, socket) do
-
-    #IO.inspect()
-    #save_last_months_sales()
-    #save_this_weeks_revenue()
-
-    ######################Functions to load history into db for first load with new dashboard####################
-    #load_10_year_history_into_db()
-    {:noreply, socket}
-  end
-
    ###### Showjob and attachments downloads ########
    def handle_event("show_job", %{"job" => job}, socket) do
     #Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
@@ -661,6 +654,18 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply, assign(socket, live_action: :show_job)}
   end
 
+  def handle_event("test_click", _params, socket) do
+
+    #IO.inspect()
+    save_last_months_sales()
+
+    #save_this_weeks_revenue()
+
+    ######################Functions to load history into db for first load with new dashboard####################
+    #load_10_year_history_into_db()
+    {:noreply, socket}
+  end
+
   def customer_key(map, matching_map) do
     Enum.find(matching_map, fn {substrings, _group} ->
       Enum.any?(substrings, fn substring -> String.contains?(String.downcase(map.customer), substring) end)
@@ -679,7 +684,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
     case Dashboard.list_monthly_sales(beginning_of_last_month) do
       [] ->
         last_months_sales = List.first(generate_monthly_sales(beginning_of_last_month, end_of_last_month))
-        Shophawk.Dashboard.create_monthly_sales(last_months_sales)
+        |> IO.inspect
+        IO.inspect(beginning_of_last_month)
+        IO.inspect(end_of_last_month)
+        #Shophawk.Dashboard.create_monthly_sales(last_months_sales)
       _ -> :ok
     end
     IO.puts("monthly sales saved")
