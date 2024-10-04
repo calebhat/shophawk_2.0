@@ -17,6 +17,7 @@ defmodule Shophawk.Jb_material_req do
     field :part_length, :float
     field :cutoff, :float
     field :last_updated, :naive_datetime
+    field :due_date, :naive_datetime
     #timestamps()
   end
 

@@ -822,9 +822,12 @@ defmodule Shophawk.Jobboss_db do
         [_] -> acc
         [size, material] ->
           matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material), do: [req | acc], else: acc end)
-          matching_size_reqs = Enum.reduce(matching_mat_reqs, [], fn req, acc -> if String.starts_with?(req.material, size), do: [req | acc], else: acc end)
-
-          #bars & slugs
+          matching_size_reqs = Enum.reduce(matching_mat_reqs, [], fn req, acc ->
+            matching_size = case String.split(req.material, "X", parts: 2) do
+              [size_to_find, _material] -> if size_to_find == size, do: [req | acc], else: acc
+              _ -> acc
+            end
+          end)
           matching_material_on_floor = Enum.filter(all_material_on_floor, fn floor_mat -> floor_mat.material == mat.material end)
 
           #if material == "4140HT" and size == "16" do
@@ -1020,7 +1023,8 @@ defmodule Shophawk.Jobboss_db do
       from r in Jb_material_req,
       where: r.status == "O",
       where: r.pick_buy_indicator == "P",
-      where: r.uofm == "ft"
+      where: r.uofm == "ft",
+      where: not is_nil(r.due_date)
     mat_reqs =
       failsafed_query(query)
       |> Enum.map(fn op ->
