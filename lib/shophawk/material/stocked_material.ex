@@ -15,6 +15,7 @@ defmodule Shophawk.Material.StockedMaterial do
     field :in_house, :boolean, default: false
     field :bar_used, :boolean, default: false
     field :saved, :boolean, default: true, virtual: true
+    field :job_assignments, {:array, :map}, default: [], virtual: true
 
     timestamps()
   end
