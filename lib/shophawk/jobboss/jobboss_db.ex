@@ -276,7 +276,6 @@ defmodule Shophawk.Jobboss_db do
   def convert_binary_to_string(value) when is_binary(value) do
     case :unicode.characters_to_binary(value, :latin1, :utf8) do
       {:error, _, _} ->
-        ##IO.puts("Failed to convert string to UTF-8: #{inspect(value)}")
         :unicode.characters_to_binary(value, :latin1, :utf8)
       string -> string
     end
@@ -831,19 +830,16 @@ defmodule Shophawk.Jobboss_db do
           matching_material_on_floor = Enum.filter(all_material_on_floor, fn floor_mat -> floor_mat.material == mat.material end)
 
           #if material == "4140HT" and size == "16" do
-
-            #FILTER OUT JOBS THAT AREN'T RELEASED YET SOMEHOW
-            #1x4140HT and 1.625x4140HT are sharing jobs??
             jobs =
               Enum.map(matching_size_reqs, fn job ->
                 %{job: job.job, length: Float.round((job.part_length + 0.05), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
               end)
               |> Enum.sort_by(&(&1.make_qty), :desc)
-              #|> IO.inspect
 
+              #WORKS
+              #need to update material or make map with list of %{material, size, length needed} for ordering page
               {matching_material_on_floor, material_needed} = assign_jobs_to_material(jobs, matching_material_on_floor)
-              #|> IO.inspect
-
+              |> IO.inspect
           #end
 
           #calculate total amount needed by multiplying parts needed + cutoff + blade width is sawed
@@ -918,16 +914,13 @@ defmodule Shophawk.Jobboss_db do
           else
             {materials_with_bars, remaining_qty}
           end
-        length_needed_to_order = Float.round((remaining_qty * sawed_length) + length_needed_to_order, 2)# |> IO.inspect
-        #IO.inspect("job: #{job.job}, length_needed: #{length_needed_to_order}")
+        length_needed_to_order = Float.round((remaining_qty * sawed_length) + length_needed_to_order, 2)
         {assigned_bars, length_needed_to_order}
       end)
     else
       length_needed_to_order = Enum.reduce(jobs, 0.0, fn job, acc -> ((job.length + job.cutoff + 0.05) * job.make_qty) + acc end)
-      if length_needed_to_order > 1000.0, do: IO.inspect(jobs)
       {stocked_materials, Float.round(length_needed_to_order, 2)}
     end
-    #|> IO.inspect
   end
 
   defp assign_to_slugs(materials, %{length: length_needed, make_qty: make_qty, job: job_id}) do
