@@ -830,23 +830,13 @@ defmodule Shophawk.Jobboss_db do
           matching_material_on_floor = Enum.filter(all_material_on_floor, fn floor_mat -> floor_mat.material == mat.material end)
 
           #if material == "4140HT" and size == "16" do
-            jobs =
-              Enum.map(matching_size_reqs, fn job ->
-                %{job: job.job, length: Float.round((job.part_length + 0.05), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
-              end)
-              |> Enum.sort_by(&(&1.make_qty), :desc)
+          jobs =
+            Enum.map(matching_size_reqs, fn job ->
+              %{job: job.job, length: Float.round((job.part_length + 0.05), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
+            end)
+            |> Enum.sort_by(&(&1.make_qty), :desc)
 
-              #WORKS
-              #need to update material or make map with list of %{material, size, length needed} for ordering page
-              {matching_material_on_floor, material_needed} = assign_jobs_to_material(jobs, matching_material_on_floor)
-              |> IO.inspect
-          #end
-
-          #calculate total amount needed by multiplying parts needed + cutoff + blade width is sawed
-          #Reduce through sizes, and assign slugs/bars to use for each. Start with smallest slugs and go up
-          #Maybe just flield for :assigned? & :slugs_assigned? make it a map that includes job number and length used?
-          #don't save to db, make this functions end result the used list for everything.
-
+          {matching_material_on_floor, need_to_order_amt} = assign_jobs_to_material(jobs, matching_material_on_floor)
 
           matching_jobs = Enum.map(matching_size_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty} end) |> Enum.sort_by(&(&1.qty), :asc)
           material_info =
@@ -863,8 +853,10 @@ defmodule Shophawk.Jobboss_db do
                   [%{size: convert_string_to_float(size),
                   jobs_using_size: Enum.count(matching_size_reqs),
                   matching_jobs: matching_jobs,
-                  material_info: material_info,
-                  need_to_order_amt: 0.0}]
+                  material_name: material_info.material_name,
+                  location_id: material_info.location_id,
+                  on_hand_qty: material_info.on_hand_qty,
+                  need_to_order_amt: need_to_order_amt}]
                 } | acc]
             found_material -> #add new sizes to existing material in list.
               updated_map =
@@ -873,8 +865,10 @@ defmodule Shophawk.Jobboss_db do
                     %{size: convert_string_to_float(size),
                     jobs_using_size: Enum.count(matching_size_reqs),
                     matching_jobs: matching_jobs,
-                    material_info: material_info,
-                    need_to_order_amt: 0.0
+                    material_name: material_info.material_name,
+                    location_id: material_info.location_id,
+                    on_hand_qty: material_info.on_hand_qty,
+                    need_to_order_amt: need_to_order_amt
                     } | existing_sizes]
                   end)
               updated_acc = Enum.reject(acc, fn mat -> mat.material == found_material.material end) #removes previous material for replacement with updated_map

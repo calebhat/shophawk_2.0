@@ -8,14 +8,15 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
+      full_material_list = Jobboss_db.load_materials_and_sizes_into_cache
       socket =
         socket
-        |> assign(:material_list, Jobboss_db.load_materials_and_sizes_into_cache)
+        |> assign(:material_list, full_material_list)
         |> assign(:selected_material, "")
         |> assign(:selected_sizes, [])
         |> assign(:selected_size, "0.0")
         |> assign(:loading, false)
-        |> assign(:material_info, nil)
+        |> assign(:size_info, nil)
         |> assign(:show_related_jobs, false)
         |> assign(:material_name, "")
 
@@ -28,7 +29,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
         |> assign(:selected_sizes, [])
         |> assign(:selected_size, "0.0")
         |> assign(:loading, false)
-        |> assign(:material_info, nil)
+        |> assign(:size_info, nil)
         |> assign(:show_related_jobs, false)
         |> assign(:material_name, "")
 
@@ -128,20 +129,20 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     sizes = Enum.find(socket.assigns.material_list, fn mat -> mat.material == selected_material end).sizes
     socket =
       if String.to_float(selected_size) in Enum.map(sizes, fn size -> size.size end) do
-        material_info =
+        size_info =
           case Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end) do
             nil -> nil
-            material -> material.material_info
+            size_info -> size_info
           end
         socket
         |> assign(:selected_size, selected_size)
-        |> assign(:material_info, material_info)
+        |> assign(:size_info, size_info)
         |> assign(:selected_sizes, sizes)
-        |> load_material_forms(material_info)
+        |> load_material_forms(%{material_name: size_info.material_name, location_id: size_info.location_id, on_hand_qty: size_info.location_id})
       else
         socket
         |> assign(:selected_size, "0.0")
-        |> assign(:material_info, nil)
+        |> assign(:size_info, nil)
         |> assign(:selected_sizes, sizes)
       end
     {:noreply, socket |> assign(:selected_material, selected_material)
@@ -150,16 +151,17 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   def handle_event("load_material_size", %{"selected-size" => selected_size, "selected-material" => selected_material, "material-name" => material_name}, socket) do
     sizes = Enum.find(socket.assigns.material_list, fn mat -> mat.material == selected_material end).sizes
-    material_info =
+    size_info =
       case Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end) do
         nil -> nil
-        material -> material.material_info
+        size_info -> size_info
       end
+      IO.inspect(sizes)
     socket =
       socket
       |> assign(:selected_size, selected_size)
-      |> assign(:material_info, material_info)
-    {:noreply, load_material_forms(socket, material_info)}
+      |> assign(:size_info, size_info)
+    {:noreply, load_material_forms(socket, %{material_name: size_info.material_name, location_id: size_info.location_id, on_hand_qty: size_info.location_id})}
   end
 
   def handle_event("show_related_jobs", _params, socket), do: {:noreply, assign(socket, :show_related_jobs, !socket.assigns.show_related_jobs)}
