@@ -52,7 +52,7 @@
             </div>
             <% end %>
           </div>
-          <div class="text-stone-200 text-4xl underline"><%= @size_info.material_name %> - On Hand: <%= @size_info.on_hand_qty %> - <%= @size_info.need_to_order_amt %></div>
+          <div class="text-stone-200 text-4xl underline"><%= @size_info.material_name %> - On Hand: <%= @size_info.on_hand_qty %> - need to order: <%= @size_info.need_to_order_amt %></div>
           <div><.button class="w-20" phx-click="test">hi</.button>
             <.link patch={~p"/stockedmaterials/new"}>
               <.button>New Stocked material</.button>
@@ -84,9 +84,40 @@
                   <div class="flex p-1">
                     <div class="grow relative">
                       <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
-                        <span class="absolute inset-0 flex justify-center items-center">
+                        <span class="absolute inset-0 flex justify-center items-center" style="z-index: 11;">
                           <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                         </span>
+                        <% if bar.data.in_house == false do %>
+                          <!-- Make bar that can't be edited? -->
+                        <% end %>
+                        <!-- Loop through job assignments and display colored sections -->
+                        <div class="relative h-full w-full">
+                          <% # Initialize a cumulative percentage variable to keep track of where the current assignment should start %>
+                          <% cumulative_percentage = 0 %>
+
+                          <!-- Loop through job assignments -->
+                          <%= for assignment <- bar.data.job_assignments do %>
+
+                            <!-- Create a div for the current job assignment -->
+                            <div
+                              class="absolute h-full border border-dashed border-violet-500 dark-tooltip-container"
+                              style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
+                            >
+                              <div class="tooltip w-52 mt-14" style="z-index: 10;">
+                                <div><%= "Job: #{assignment.job}" %></div>
+                                <div><%= "Length Needed: #{assignment.length_to_use}\"" %></div>
+                                <div><%= "Parts From Bar: #{assignment.parts_from_bar}" %></div>
+                              </div>
+                            </div>
+
+                            <% # Update the cumulative percentage for the next assignment %>
+                            <% cumulative_percentage = cumulative_percentage + assignment.percentage_of_bar %>
+                          <% end %>
+                        </div>
+
+
+
+                        
                       </div>
                     </div>
                     <div>

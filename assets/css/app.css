@@ -30,7 +30,7 @@
     display: block;
     position: absolute;
     background-color: #373635  ;
-    @apply p-4 mx-2 content-center rounded-lg ml-24
+    @apply p-2 content-center rounded-lg
     /* Add more styling as needed */
   }
   
