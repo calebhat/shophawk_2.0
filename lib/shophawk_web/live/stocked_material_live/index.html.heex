@@ -3,7 +3,7 @@
     <div 
       :for={material <- @material_list}
       class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
-      phx-click="load_material_sizes"
+      phx-click="load_material"
       phx-value-selected-material={material.material}
       phx-value-selected-size={@selected_size}
       phx-value-material-name={@material_name}>
@@ -19,7 +19,7 @@
     <div 
     :for={size <- @selected_sizes}
     class={["flex justify-between items-center w-[6.5rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
-    phx-click="load_material_size"
+    phx-click="load_material"
     phx-value-selected-size={size.size}
     phx-value-selected-material={@selected_material}
     phx-value-material-name={size.material_name}>
@@ -79,41 +79,38 @@
                   for={bar}
                   id={"bar-#{bar.id}"}
                   phx-change="validate_bars"
-                  phx-submit="save_bar_length"
+                  phx-submit="save_material"
                 >
                   <div class="flex p-1">
-                    <div class="grow relative">
+                    <div class="grow relative dark-tooltip-container">
                       <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
-                        <span class="absolute inset-0 flex justify-center items-center" style="z-index: 11;">
+                        <span class="absolute inset-0 flex justify-center items-center">
                           <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                         </span>
-                        <% if bar.data.in_house == false do %>
-                          <!-- Make bar that can't be edited? -->
-                        <% end %>
+
                         <!-- Loop through job assignments and display colored sections -->
                         <div class="relative h-full w-full">
-                          <% # Initialize a cumulative percentage variable to keep track of where the current assignment should start %>
-                          <% cumulative_percentage = 0 %>
-
-                          <!-- Loop through job assignments -->
                           <%= for assignment <- bar.data.job_assignments do %>
-
-                            <!-- Create a div for the current job assignment -->
                             <div
-                              class="absolute h-full border border-dashed border-violet-500 dark-tooltip-container"
+                              class="absolute h-full border border-dashed border-violet-500 "
                               style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
                             >
-                              <div class="tooltip w-52 mt-14" style="z-index: 10;">
-                                <div><%= "Job: #{assignment.job}" %></div>
-                                <div><%= "Length Needed: #{assignment.length_to_use}\"" %></div>
-                                <div><%= "Parts From Bar: #{assignment.parts_from_bar}" %></div>
-                              </div>
                             </div>
-
-                            <% # Update the cumulative percentage for the next assignment %>
-                            <% cumulative_percentage = cumulative_percentage + assignment.percentage_of_bar %>
                           <% end %>
+                          <div class="tooltip mt-14" style="z-index: 12;">
+                            <.fixed_widths_table 
+                            id="bar_assignments" 
+                            rows={Enum.reverse(bar.data.job_assignments)} 
+                            row_click={fn row_data -> "show_job" end}
+                            >                            
+                              <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                              <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
+                              <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
+                            </.fixed_widths_table>
+                          </div>
                         </div>
+
+
 
 
 
@@ -183,7 +180,7 @@
                   for={bar}
                   id={"bar-#{bar.id}"}
                   phx-change="validate_slugs"
-                  phx-submit="save_slug_length"
+                  phx-submit="save_material"
                 >
                   <div class="grid grid-cols-3 place-content-center justify-items-center p-1">
                     <div class="">

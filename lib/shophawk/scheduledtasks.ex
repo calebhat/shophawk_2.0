@@ -14,6 +14,7 @@ defmodule ScheduledTasks do
     :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     :ets.insert(:runlist_loads, {:data, [%{department: "ShopHawk Restarting, refresh in 1 minute", department_id: 0, weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}]})  # Store the data in ETS
     :ets.insert(:employees, {:data, Shophawk.Jobboss_db.employee_data})
+    :ets.insert(:material_list, {:data, Shophawk.MaterialCache.load_all_material_and_sizes()})
 
     #inital Loading of Active jobs into cache
     Shophawk.Jobboss_db.load_all_active_jobs

@@ -796,280 +796,20 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
-  def load_materials_and_sizes_into_cache() do #doesn't load into cache right now
+  def load_materials_and_sizes() do #doesn't load into cache right now
     query =
       from r in Jb_material,
       where: r.pick_buy_indicator == "P",
       where: r.stocked_uofm == "ft",
       where: r.shape == "Round",
       where: r.status == "Active"
-    material =
-      failsafed_query(query)
-      |> Enum.map(fn op ->
-        Map.from_struct(op)
-        |> Map.drop([:__meta__])
-      end)
-      |> Enum.reject(fn mat -> String.contains?(mat.material, ["GROB", "MC907", "NGSM", "NMSM", "NNSM", "TEST", "ATN"]) end)
-    mat_reqs = load_material_requirements()
-    all_jb_material_info =
-      Enum.map(material, fn mat -> mat.material end)
-      |> load_all_jb_material_on_hand()
-    all_material_on_floor = Material.list_stocked_materials_on_floor_and_to_order
-
-    round_stock = Enum.reduce(material, [], fn mat, acc ->
-      case String.split(mat.material, "X", parts: 2) do
-        [_] -> acc
-        [size, material] ->
-          matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material), do: [req | acc], else: acc end)
-          matching_size_reqs = Enum.reduce(matching_mat_reqs, [], fn req, acc ->
-            matching_size = case String.split(req.material, "X", parts: 2) do
-              [size_to_find, _material] -> if size_to_find == size, do: [req | acc], else: acc
-              _ -> acc
-            end
-          end)
-          matching_material_on_floor = Enum.filter(all_material_on_floor, fn floor_mat -> floor_mat.material == mat.material end)
-
-
-          jobs =
-            Enum.map(matching_size_reqs, fn job ->
-              %{job: job.job, length: Float.round((job.part_length + 0.05), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
-            end)
-            |> Enum.sort_by(&(&1.make_qty), :desc)
-
-          #WORKS
-          #need to update material or make map with list of %{material, size, length needed} for ordering page
-          {assigned_material_info, need_to_order_amt} = assign_jobs_to_material(jobs, matching_material_on_floor, mat.material)
-          assigned_material_info =
-            Enum.reduce(assigned_material_info, [], fn bar, acc -> if bar.job_assignments != [], do: [bar.job_assignments | acc], else: acc end)
-            |> List.flatten
-          matching_jobs = Enum.map(matching_size_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty} end) |> Enum.sort_by(&(&1.qty), :asc)
-          material_info =
-            case Enum.find(all_jb_material_info, fn mat_info -> mat_info.material_name == mat.material end) do
-              nil ->  %{material_name: mat.material, location_id: "", on_hand_qty: 0.0}
-              found_mat_info -> found_mat_info
-            end
-          case Enum.find(acc, fn mat -> mat.material == material end) do
-            nil -> #new material/size not in list already
-              [%{
-                material: material,
-                mat_reqs_count: Enum.count(matching_mat_reqs),
-                sizes:
-                  [%{size: convert_string_to_float(size),
-                  jobs_using_size: Enum.count(matching_size_reqs),
-                  matching_jobs: matching_jobs,
-                  material_name: material_info.material_name,
-                  location_id: material_info.location_id,
-                  on_hand_qty: material_info.on_hand_qty,
-                  need_to_order_amt: need_to_order_amt,
-                  assigned_material_info: assigned_material_info}]
-                } | acc]
-            found_material -> #add new sizes to existing material in list.
-              updated_map =
-                Map.update!(found_material, :sizes, fn existing_sizes ->
-                  [
-                    %{size: convert_string_to_float(size),
-                    jobs_using_size: Enum.count(matching_size_reqs),
-                    matching_jobs: matching_jobs,
-                    material_name: material_info.material_name,
-                    location_id: material_info.location_id,
-                    on_hand_qty: material_info.on_hand_qty,
-                    need_to_order_amt: need_to_order_amt,
-                    assigned_material_info: assigned_material_info
-                    } | existing_sizes]
-                  end)
-              updated_acc = Enum.reject(acc, fn mat -> mat.material == found_material.material end) #removes previous material for replacement with updated_map
-              [updated_map | updated_acc]
-          end
-        _ -> acc
-      end
+    failsafed_query(query)
+    |> Enum.map(fn op ->
+      Map.from_struct(op)
+      |> Map.drop([:__meta__])
     end)
-    |> Enum.map(fn material ->
-      Map.put(material, :sizes, Enum.sort_by(material.sizes, & &1.size, :asc))
-    end)
-    |> Enum.uniq_by(&(&1.material))
-    |> Enum.sort_by(&(&1.material), :asc)
+    |> Enum.reject(fn mat -> String.contains?(mat.material, ["GROB", "MC907", "NGSM", "NMSM", "NNSM", "TEST", "ATN"]) end)
   end
-
-  def assign_jobs_to_material(jobs, stocked_materials, material_name) do
-    if stocked_materials != [] do
-      Enum.reduce(jobs, {stocked_materials, 0.0}, fn job, {materials, length_needed_to_order} ->
-        sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
-
-        #use slugs within .25" of length
-        {materials_with_slugs, remaining_qty} = assign_to_slugs(materials, job)
-        #assign to Bars
-        {materials_with_bars, remaining_qty} =
-          if remaining_qty > 0 do
-            #add cutoff and blade width for cutting
-            job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: remaining_qty}
-            assign_to_bars(materials_with_slugs, job_that_needs_sawing)
-          else
-            {materials_with_slugs, remaining_qty}
-          end
-
-        #assign to any long slugs
-        {assigned_bars, remaining_qty} =
-          if remaining_qty > 0 do #use longer slugs if nothing else works
-            #revert to length without saw cuts
-            longer_slugs_needed = Map.put(job, :make_qty, remaining_qty)
-            last_resort_assign_to_slugs(materials_with_bars, longer_slugs_needed)
-          else
-            {materials_with_bars, remaining_qty}
-          end
-        length_needed_to_order = Float.round((remaining_qty * sawed_length) + length_needed_to_order, 2)
-
-        #Create bar here with to order.
-        #Make bar a different color or greyed out to show it's needed to order.
-        #Assign remaining material to that bar so it's the same color as the other assignments
-        #make line to seperate bar on index page.
-        #make sure bar is availabe to use for other jobs if needed.
-        #Create max bar length? (ductile max 6', if 15" stock, cut in 8' length?)
-
-        assigned_bars =
-          if length_needed_to_order > 0.0 do
-            bar_to_order = create_new_stocked_material_to_order(assigned_bars, length_needed_to_order, material_name)
-            assigned_bars = Enum.reject(assigned_bars, fn bar -> bar.in_house && bar.ordered == false end)
-            job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: remaining_qty}
-            assign_to_bars(assigned_bars, job_that_needs_sawing)
-            [bar_to_order | assigned_bars]
-          else
-            assigned_bars
-          end
-
-          assigned_bars = assign_used_material_percentages(assigned_bars)
-
-        {assigned_bars, length_needed_to_order}
-      end)
-    else #if no stocked material
-      length_needed_to_order = Enum.reduce(jobs, 0.0, fn job, acc ->
-        ((job.length + job.cutoff + 0.1) * job.make_qty) + acc
-      end)
-      bar_to_order = [create_new_stocked_material_to_order([], length_needed_to_order, material_name)]
-
-      assigned_bars =
-        Enum.reduce(jobs, bar_to_order, fn job, materials ->
-          sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
-          #add cutoff and blade width for cutting
-          job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: job.make_qty}
-
-          {assigned_bars, _remaining_qty} = assign_to_bars(materials, job_that_needs_sawing)
-
-          assigned_bars
-        end)
-
-      assigned_bars = assign_used_material_percentages(assigned_bars)
-
-      {assigned_bars, Float.round(length_needed_to_order, 2)}
-    end
-  end
-
-  defp assign_used_material_percentages(assigned_bars) do
-    Enum.map(assigned_bars, fn bar ->
-      {updated_map, _cumulative_percentage} =
-        Enum.reduce(bar.job_assignments, {[], 0.0}, fn map, {acc, cumulative_percentage} ->
-          percentage_of_bar = map.length_to_use / bar.bar_length * 100.0
-          left_offset =
-          updated_assignments =
-            Map.put(map, :percentage_of_bar, percentage_of_bar)
-            |> Map.put(:left_offset, cumulative_percentage)
-          {acc ++ [updated_assignments], cumulative_percentage + percentage_of_bar}
-        end)
-      Map.put(bar, :job_assignments, updated_map)
-    end)
-  end
-
-  defp create_new_stocked_material_to_order(assigned_bars, length_needed_to_order, material_name) do
-    case Enum.find(assigned_bars, fn bar -> bar.in_house && bar.ordered == false end) do
-      nil -> Material.create_stocked_material(%{material: material_name, bar_length: "#{length_needed_to_order}", in_house: false}) |> elem(1)
-      bar -> Map.put(bar, :bar_length, (bar.bar_length + length_needed_to_order) |> Float.round(2)) #add length to existing bar
-    end
-  end
-
-  defp assign_to_slugs(materials, %{length: length_needed, make_qty: make_qty, job: job_id}) do
-    Enum.reduce_while(materials, {[], make_qty}, fn material, {acc, remaining_qty} ->
-      #if slug is withing .25" of length needed, assign to slug
-      if material.slug_length >= length_needed and material.slug_length <= (length_needed + 0.25) do
-        assignments = Map.get(material, :job_assignments, [])
-        slugs_left =
-          case assignments do
-            [] -> 0
-            list ->
-              slugs_used = Enum.reduce(list, 0.0, fn x, acc -> x.slug_qty + acc end)
-              material.number_of_slugs - slugs_used
-          end
-        if slugs_left > 0 do
-          updated_assignments = [%{material_id: material.id, job: job_id, slug_qty: min(remaining_qty, material.number_of_slugs), length_to_use: 0.0, parts_from_bar: 0} | assignments]
-          remaining_qty = max(0, remaining_qty - material.number_of_slugs)
-
-          updated_material = Map.put(material, :job_assignments, updated_assignments)
-          {:cont, {[updated_material | acc], remaining_qty}}
-        else
-          {:cont, {[material | acc], remaining_qty}}
-        end
-      else
-        {:cont, {[material | acc], remaining_qty}}
-      end
-    end)
-  end
-
-  defp assign_to_bars(materials, %{job: job, sawed_length: sawed_length, remaining_qty: remaining_qty}) do
-    Enum.reduce_while(materials, {[], remaining_qty}, fn material, {acc, remaining_qty} ->
-      if material.bar_length != nil && remaining_qty != 0 do
-        assignments = Map.get(material, :job_assignments, [])
-          non_assigned_bar_length =
-            case assignments do
-              [] -> material.bar_length
-              list ->
-                bar_length_assigned = Enum.reduce(list, 0.0, fn x, acc -> x.length_to_use + acc end)
-                Float.round(material.bar_length - bar_length_assigned, 2)
-            end
-        if non_assigned_bar_length >= sawed_length do
-          parts_from_bar = min(remaining_qty, floor(non_assigned_bar_length / sawed_length))
-          length_to_use = Float.round(sawed_length * parts_from_bar, 2)
-          remaining_qty = max(0, remaining_qty - parts_from_bar)
-          updated_assignments = [%{material_id: material.id, job: job, length_to_use: length_to_use, parts_from_bar: parts_from_bar, slug_qty: 0} | assignments]
-          updated_material = Map.put(material, :job_assignments, updated_assignments)
-          {:cont, {[updated_material | acc], remaining_qty}}
-        else
-          {:cont, {[material | acc], remaining_qty}}
-        end
-      else
-        {:cont, {[material | acc], remaining_qty}}
-      end
-    end)
-  end
-
-  defp last_resort_assign_to_slugs(materials, %{length: length_needed, make_qty: make_qty, job: job_id}) do
-    Enum.reduce_while(materials, {[], make_qty}, fn material, {acc, remaining_qty} ->
-      #if slug is withing .25" of length needed, assign to slug
-      if material.slug_length != nil do
-        if material.slug_length >= length_needed do
-          assignments = Map.get(material, :job_assignments, [])
-          slugs_left =
-            case assignments do
-              [] -> material.number_of_slugs
-              list ->
-                slugs_used = Enum.reduce(list, 0.0, fn x, acc -> x.slug_qty + acc end)
-                material.number_of_slugs - slugs_used
-            end
-          if slugs_left > 0 do
-            updated_assignments = [%{material_id: material.id, job: job_id, slug_qty: min(remaining_qty, material.number_of_slugs), length_to_use: 0.0, parts_from_bar: 0} | assignments]
-            remaining_qty = max(0, remaining_qty - material.number_of_slugs)
-
-            updated_material = Map.put(material, :job_assignments, updated_assignments)
-            {:cont, {[updated_material | acc], remaining_qty}}
-          else
-            {:cont, {[material | acc], remaining_qty}}
-          end
-        else
-          {:cont, {[material | acc], remaining_qty}}
-        end
-      else
-        {:cont, {[material | acc], remaining_qty}}
-      end
-    end)
-  end
-
 
   def load_material_requirements do
     query =
@@ -1103,9 +843,43 @@ defmodule Shophawk.Jobboss_db do
       end)
   end
 
+  def load_single_material_requirements(material) do
+    query =
+      from r in Jb_material_req,
+      where: r.status == "O",
+      where: r.pick_buy_indicator == "P",
+      where: r.uofm == "ft",
+      where: not is_nil(r.due_date),
+      where: r.material == ^material
+    mat_reqs =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> Map.update!(:cutoff, &(Float.round(&1, 2)))
+        |> Map.update!(:part_length, &(Float.round(&1, 2)))
+        |> Map.update!(:est_qty, &(Float.round(&1, 2)))
+      end)
+      job_numbers = Enum.map(mat_reqs, fn mat -> mat.job end) |> Enum.uniq
+      query = from r in Jb_job_qty, where: r.job in ^job_numbers
+      jobs = #grab make_qty and merge
+        failsafed_query(query)
+        |> Enum.map(fn op ->
+          Map.from_struct(op)
+          |> Map.drop([:__meta__])
+        end)
+      Enum.map(mat_reqs, fn mat ->
+        case Enum.find(jobs, fn job -> job.job == mat.job end) do
+          nil -> mat
+          found_job -> Map.merge(mat, found_job)
+        end
+      end)
+  end
+
   def convert_string_to_float(string) do
     string = if String.at(string, 0) == ".", do: "0" <> string, else: string
     elem(Float.parse(string), 0)
   end
+
 
 end

@@ -14,6 +14,7 @@ defmodule Shophawk.Application do
     :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
     :ets.new(:employees, [:set, :named_table, :public, read_concurrency: true])
+    :ets.new(:material_list, [:set, :named_table, :public, read_concurrency: true])
 
     children = [
       # Start the Telemetry supervisor
