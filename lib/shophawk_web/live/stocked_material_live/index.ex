@@ -59,26 +59,29 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def handle_event("validate_bars", %{"stocked_material" => stocked_material_params}, socket) do
-    found_bar =
-      Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end)
-      |> Map.put(:saved, false)
-    updated_changeset = Material.change_stocked_material(found_bar, stocked_material_params)
-    updated_bar = Map.merge(found_bar, updated_changeset.changes)
-    bars_list =
-      Enum.map(socket.assigns.bars_list, fn bar ->
-        case bar.id == updated_bar.id do
-          true -> updated_bar
-          _ -> bar
-        end
-      end)
-    bars_changeset = Enum.map(bars_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
-    {:noreply, socket |> assign(bars_list: bars_list) |> assign(bars_form: bars_changeset)}
+    found_bar = Material.get_stocked_material!(stocked_material_params["id"]) |> Map.put(:saved, false)
+    socket =
+      if found_bar.in_house == true do
+        bar_in_stock_list =
+          Material.list_stocked_material_by_material(found_bar.material)
+          |> Enum.reject(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
+          |> Enum.map(fn bar -> if bar.id == found_bar.id, do: found_bar, else: bar end)
+        bars_in_stock_changeset = Enum.map(bar_in_stock_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+
+        assign(socket, bars_in_stock_form: bars_in_stock_changeset)
+      else
+        bar_to_order_list  =
+          Material.list_stocked_material_by_material(found_bar.material)
+          |> Enum.map(fn bar -> if bar.id == found_bar.id, do: found_bar, else: bar end)
+          bars_to_order_changeset  = Enum.map(bar_to_order_list , fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+
+        assign(socket, bars_to_order_form: bars_to_order_changeset)
+      end
+    {:noreply, socket}
   end
 
   def handle_event("validate_slugs", %{"stocked_material" => stocked_material_params}, socket) do
-    found_bar =
-      Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end)
-      |> Map.put(:saved, false)
+    found_bar = Material.get_stocked_material!(stocked_material_params["id"]) |> Map.put(:saved, false)
     updated_changeset = Material.change_stocked_material(found_bar, stocked_material_params)
     updated_slug = Map.merge(found_bar, updated_changeset.changes)
     slugs_list =
@@ -134,7 +137,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   #Replace above two functions with this.
   def handle_event("save_material", %{"stocked_material" => stocked_material_params}, socket) do
     found_bar =
-      Enum.find(socket.assigns.bars_list, fn bar -> bar.id == String.to_integer(stocked_material_params["id"]) end)
+      Material.get_stocked_material!(stocked_material_params["id"])
       |> Map.put(:bar_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
       |> Map.put(:slug_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
       |> Map.put(:saved, true)
@@ -142,7 +145,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
     #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
     #Currently this function re-checks for new mat_reqs in JB, change to only update current reqs?
-    updated_material_list = Shophawk.MaterialCache.load_specific_material_and_size_into_cache(saved_material.material, socket)
+    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(saved_material.material, socket)
 
     {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
   end
@@ -236,18 +239,17 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
           end)
         %{bar | job_assignments: assigned_jobs}
       end)
-
-    #updated_material_list = Shophawk.MaterialCache.load_specific_material_and_size_into_cache(List.first(single_material_and_size).material, socket)
-
-    bars_list = Enum.filter(single_material_and_size, fn bar -> bar.bar_length != nil end) |> Enum.sort_by(&(&1.bar_length))
+    bar_in_stock_list = Enum.filter(single_material_and_size, fn bar -> bar.bar_length != nil && bar.in_house == true end) |> Enum.sort_by(&(&1.bar_length))
+    bar_to_order_list = Enum.filter(single_material_and_size, fn bar -> bar.bar_length != nil && bar.in_house == false end) |> Enum.sort_by(&(&1.bar_length))
     slugs_list = Enum.filter(single_material_and_size, fn slug -> slug.slug_length != nil end) |> Enum.sort_by(&(&1.slug_length))
-    bars_changeset = Enum.map(bars_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+    bars_in_stock_changeset = Enum.map(bar_in_stock_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+    bars_to_order_changeset = Enum.map(bar_to_order_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
     slugs_changeset = Enum.map(slugs_list, fn slug -> Material.change_stocked_material(slug, %{}) |> to_form() end)
     related_jobs = Enum.find(socket.assigns.selected_sizes, fn size -> size.size == String.to_float(socket.assigns.selected_size) end).matching_jobs
 
     socket
-    |> assign(bars_list: bars_list)
-    |> assign(bars_form: bars_changeset)
+    |> assign(bars_in_stock_form: bars_in_stock_changeset)
+    |> assign(bars_to_order_form: bars_to_order_changeset)
     |> assign(slugs_list: slugs_list)
     |> assign(slugs_form: slugs_changeset)
     |> assign(related_jobs: related_jobs) #list of job numbers to saw for material

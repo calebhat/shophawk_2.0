@@ -90,14 +90,16 @@ defmodule Shophawk.MaterialCache do
   def load_specific_material_and_size_into_cache(material, socket) do
     [size, material_name] = String.split(material, "X", parts: 2)
     mat_reqs = Jobboss_db.load_single_material_requirements(material)
-    material_on_floor = Material.list_stocked_material_by_material(material)
+    material_on_floor = Material.list_stocked_material_by_material(material) |> Enum.reject(fn mat -> mat.in_house == false end)
     material_info = Jobboss_db.load_all_jb_material_on_hand([material]) |> List.first()
     jobs_to_assign =
       Enum.map(mat_reqs, fn job ->
         %{job: job.job, length: Float.round((job.part_length + 0.05), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
       end)
       |> Enum.sort_by(&(&1.make_qty), :desc)
+
     {assigned_material_info, need_to_order_amt} = new_assign_jobs_to_material(jobs_to_assign, material_on_floor, material)
+
     assigned_material_info =
       Enum.reduce(assigned_material_info, [], fn bar, acc -> if bar.job_assignments != [], do: [bar.job_assignments | acc], else: acc end)
       |> List.flatten
@@ -178,7 +180,7 @@ defmodule Shophawk.MaterialCache do
     elem(Float.parse(string), 0)
   end
 
-  def new_assign_jobs_to_material(jobs, material_on_floor, material_name) do
+  def new_assign_jobs_to_material(jobs, material_on_floor, material) do
     if material_on_floor != [] do
       updated_material_on_floor = Enum.map(material_on_floor, fn map -> Map.put(map, :remaining_length_not_assigned, map.bar_length) end)
       {materials, length_needed_to_order} =
@@ -208,26 +210,31 @@ defmodule Shophawk.MaterialCache do
 
           # Calculate length needed to order new material
           length_needed_to_order = Float.round((remaining_qty * sawed_length) + length_needed_to_order, 2)
-          |> IO.inspect
+
 
           #update bar to order with new value, leaving the bars in house alone.
           materials =
             if length_needed_to_order > 0.0 do #create new bar if needed for ordering
               #find previous bar to order if any
-              previous_bar_to_order = Enum.find(materials, fn bar -> bar.in_house == false end)
+              IO.inspect(material)
+              previous_bar_to_order =
+                Material.list_stocked_material_by_material(material)
+                |> Enum.find(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
+
               previous_bar_length = if previous_bar_to_order == nil, do: 0.0, else: previous_bar_to_order.bar_length
               previous_bar_assignments = if previous_bar_to_order == nil, do: %{}, else: previous_bar_to_order.job_assignments
               #create a new bar to order add the previous length to order
-              bar_to_order = Material.create_stocked_material(%{material: material_name, bar_length: length_needed_to_order + previous_bar_length, in_house: false, remaining_length_not_assigned: length_needed_to_order}) |> elem(1)
-
-              #remove the previous bar to order
-              updated_materials = Enum.reject(materials, fn bar -> bar.in_house && bar.ordered && bar.being_quoted == false end)
+              bar_to_order =
+                if previous_bar_to_order == nil do
+                  Material.create_stocked_material(%{material: material, bar_length: length_needed_to_order + previous_bar_length, in_house: false, remaining_length_not_assigned: length_needed_to_order}) |> elem(1)
+                else
+                  Material.update_stocked_material(previous_bar_to_order, %{bar_length: length_needed_to_order, remaining_length_not_assigned: length_needed_to_order}) |> elem(1)
+                end
 
               job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: remaining_qty}
               #assign current job to bar
               {assigned_bar_to_order, remaining_qty} = assign_to_bars([bar_to_order], job_that_needs_sawing)
               assigned_bar_to_order = List.first(assigned_bar_to_order)
-              #|> IO.inspect
               #merge previous bar to order assignments to bar
               merged_assignments =
                 if previous_bar_to_order == nil do
@@ -235,12 +242,15 @@ defmodule Shophawk.MaterialCache do
                 else
                   [assigned_bar_to_order.job_assignments | previous_bar_assignments]
                 end
+                |> List.flatten
               assigned_and_merged_bar_to_order = Map.put(assigned_bar_to_order, :job_assignments, merged_assignments)
 
-          #WORKS!! Now it's not removing previous bars needed to order though.
-
-              [assigned_and_merged_bar_to_order | updated_materials]
+              [assigned_and_merged_bar_to_order | materials]
             else
+              previous_bar_to_order =
+                Material.list_stocked_material_by_material(material)
+                |> Enum.find(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
+              if previous_bar_to_order != nil, do: Material.delete_stocked_material(previous_bar_to_order)
               materials
             end
 
@@ -252,7 +262,7 @@ defmodule Shophawk.MaterialCache do
       length_needed_to_order = Enum.reduce(jobs, 0.0, fn job, acc ->
         ((job.length + job.cutoff + 0.1) * job.make_qty) + acc
       end)
-      bar_to_order = if length_needed_to_order > 0.0, do: [create_new_stocked_material_to_order([], length_needed_to_order, material_name)], else: []
+      bar_to_order = if length_needed_to_order > 0.0, do: [create_new_stocked_material_to_order([], length_needed_to_order, material)], else: []
 
       assigned_bars =
         Enum.reduce(jobs, bar_to_order, fn job, materials ->
