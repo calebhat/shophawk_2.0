@@ -139,7 +139,6 @@ defmodule Shophawk.MaterialCache do
                   } | existing_sizes
                 ]
               end)
-
             updated_acc = Enum.reject(acc, fn mat -> mat.material == found_material.material end)
             [updated_map | updated_acc]
         end
@@ -149,7 +148,6 @@ defmodule Shophawk.MaterialCache do
     end)
     |> Enum.uniq_by(&(&1.material))
     |> Enum.sort_by(&(&1.material), :asc)
-
 
     replacement_size_info = List.first(material_to_insert_into_material_list).sizes |> List.first()
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
@@ -170,7 +168,6 @@ defmodule Shophawk.MaterialCache do
           mat
         end
       end)
-
     :ets.insert(:material_list, {:data, updated_material_list})
     updated_material_list
   end
@@ -182,11 +179,16 @@ defmodule Shophawk.MaterialCache do
 
   def new_assign_jobs_to_material(jobs, material_on_floor, material) do
     if material_on_floor != [] do
-      updated_material_on_floor = Enum.map(material_on_floor, fn map -> Map.put(map, :remaining_length_not_assigned, map.bar_length) end)
-      {materials, length_needed_to_order} =
-        Enum.reduce(jobs, {updated_material_on_floor, 0.0}, fn job, {materials, length_needed_to_order} ->
+      updated_material_on_floor =
+        Enum.map(material_on_floor, fn map ->
+          case map.bar_length do
+            nil -> Map.put(map, :remaining_length_not_assigned, 0.0)
+            _ -> Map.put(map, :remaining_length_not_assigned, map.bar_length)
+          end
+        end)
+      {materials, remaining_jobs} =
+        Enum.reduce(jobs, {updated_material_on_floor, []}, fn job, {materials, remaining_jobs} ->
           sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
-
           # Use slugs within .25" of length
           {materials, remaining_qty} = assign_to_slugs(materials, job)
 
@@ -208,56 +210,26 @@ defmodule Shophawk.MaterialCache do
               {materials, remaining_qty}
             end
 
-          # Calculate length needed to order new material
-          length_needed_to_order = Float.round((remaining_qty * sawed_length) + length_needed_to_order, 2)
-
-
-          #update bar to order with new value, leaving the bars in house alone.
-          materials =
-            if length_needed_to_order > 0.0 do #create new bar if needed for ordering
-              #find previous bar to order if any
-              IO.inspect(material)
-              previous_bar_to_order =
-                Material.list_stocked_material_by_material(material)
-                |> Enum.find(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
-
-              previous_bar_length = if previous_bar_to_order == nil, do: 0.0, else: previous_bar_to_order.bar_length
-              previous_bar_assignments = if previous_bar_to_order == nil, do: %{}, else: previous_bar_to_order.job_assignments
-              #create a new bar to order add the previous length to order
-              bar_to_order =
-                if previous_bar_to_order == nil do
-                  Material.create_stocked_material(%{material: material, bar_length: length_needed_to_order + previous_bar_length, in_house: false, remaining_length_not_assigned: length_needed_to_order}) |> elem(1)
-                else
-                  Material.update_stocked_material(previous_bar_to_order, %{bar_length: length_needed_to_order, remaining_length_not_assigned: length_needed_to_order}) |> elem(1)
-                end
-
-              job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: remaining_qty}
-              #assign current job to bar
-              {assigned_bar_to_order, remaining_qty} = assign_to_bars([bar_to_order], job_that_needs_sawing)
-              assigned_bar_to_order = List.first(assigned_bar_to_order)
-              #merge previous bar to order assignments to bar
-              merged_assignments =
-                if previous_bar_to_order == nil do
-                  assigned_bar_to_order.job_assignments
-                else
-                  [assigned_bar_to_order.job_assignments | previous_bar_assignments]
-                end
-                |> List.flatten
-              assigned_and_merged_bar_to_order = Map.put(assigned_bar_to_order, :job_assignments, merged_assignments)
-
-              [assigned_and_merged_bar_to_order | materials]
+          #update the job mat req and save to use for other bars/create bar to order
+          remaining_jobs =
+            if remaining_qty > 0 do
+              remaining_jobs ++ [Map.put(job, :make_qty, remaining_qty)]
             else
-              previous_bar_to_order =
-                Material.list_stocked_material_by_material(material)
-                |> Enum.find(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
-              if previous_bar_to_order != nil, do: Material.delete_stocked_material(previous_bar_to_order)
-              materials
+              remaining_jobs
             end
-
-          {materials, length_needed_to_order}
+          {materials, remaining_jobs}
         end)
+
+      #reduce through remaining jobs to cut and create a bar to order
+      {materials, length_needed_to_order} = create_bar_to_order(materials, remaining_jobs)
+
+
+
+
       materials = assign_used_material_percentages(materials)
+      #{materials, remaining_jobs}
       {materials, length_needed_to_order}
+
     else #if no stocked materialassign_to_bars
       length_needed_to_order = Enum.reduce(jobs, 0.0, fn job, acc ->
         ((job.length + job.cutoff + 0.1) * job.make_qty) + acc
@@ -275,8 +247,44 @@ defmodule Shophawk.MaterialCache do
           assigned_bars
         end)
 
+        #calculate length needed to order at the end
       assigned_bars = assign_used_material_percentages(assigned_bars)
       {assigned_bars, Float.round(length_needed_to_order, 2)}
+    end
+  end
+
+  def create_bar_to_order(materials, remaining_jobs) do
+    material = List.first(materials).material
+    previous_bar_to_order =
+      Material.list_stocked_material_by_material(material)
+      |> Enum.find(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
+
+    if remaining_jobs == [] do #create new bar if needed for ordering
+      if previous_bar_to_order != nil, do: Material.delete_stocked_material(previous_bar_to_order)
+      {materials, 0.0}
+    else
+      length_to_order =
+        Enum.reduce(remaining_jobs, 0.0, fn job, acc ->
+          sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
+          acc + Float.round((job.make_qty * sawed_length), 2)
+        end)
+
+      bar_to_order =
+        if previous_bar_to_order == nil do
+          Material.create_stocked_material(%{material: material, bar_length: length_to_order, in_house: false, remaining_length_not_assigned: length_to_order}) |> elem(1)
+        else
+          Material.update_stocked_material(previous_bar_to_order, %{bar_length: length_to_order, remaining_length_not_assigned: length_to_order}) |> elem(1)
+        end
+
+      {assigned_bar_to_order, _remaining_qty} =
+        Enum.reduce(remaining_jobs, {[bar_to_order], 0.0}, fn job, {acc, remaining_qty} ->
+          sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
+          job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: job.make_qty}
+          {assigned_bar_to_order, remaining_qty} = assign_to_bars(acc, job_that_needs_sawing)
+        end)
+      materials = [List.first(assigned_bar_to_order) | materials]
+
+      {materials, length_to_order}
     end
   end
 
@@ -345,16 +353,20 @@ defmodule Shophawk.MaterialCache do
 
   defp assign_used_material_percentages(assigned_bars) do
     Enum.map(assigned_bars, fn bar ->
-      {updated_map, _cumulative_percentage} =
-        Enum.reduce(bar.job_assignments, {[], 0.0}, fn map, {acc, cumulative_percentage} ->
-          percentage_of_bar = map.length_to_use / bar.bar_length * 100.0
-          left_offset =
-          updated_assignments =
-            Map.put(map, :percentage_of_bar, percentage_of_bar)
-            |> Map.put(:left_offset, cumulative_percentage)
-          {acc ++ [updated_assignments], cumulative_percentage + percentage_of_bar}
-        end)
-      Map.put(bar, :job_assignments, updated_map)
+      case bar.bar_length do
+        nil -> bar
+        _ ->
+          {updated_map, _cumulative_percentage} =
+            Enum.reduce(bar.job_assignments, {[], 0.0}, fn map, {acc, cumulative_percentage} ->
+              percentage_of_bar = map.length_to_use / bar.bar_length * 100.0
+              left_offset =
+              updated_assignments =
+                Map.put(map, :percentage_of_bar, percentage_of_bar)
+                |> Map.put(:left_offset, cumulative_percentage)
+              {acc ++ [updated_assignments], cumulative_percentage + percentage_of_bar}
+            end)
+          Map.put(bar, :job_assignments, updated_map)
+      end
     end)
   end
 
@@ -368,16 +380,16 @@ defmodule Shophawk.MaterialCache do
   defp assign_to_slugs(materials, %{length: length_needed, make_qty: make_qty, job: job_id}) do
     Enum.reduce_while(materials, {[], make_qty}, fn material, {acc, remaining_qty} ->
       #if slug is withing .25" of length needed, assign to slug
-      if material.slug_length >= length_needed and material.slug_length <= (length_needed + 0.25) do
+      if material.slug_length >= (length_needed + 0.03) and material.slug_length <= (length_needed + 0.25) do
         assignments = Map.get(material, :job_assignments, [])
-        slugs_left =
+        slugs_available_to_use =
           case assignments do
-            [] -> 0
+            [] -> material.number_of_slugs
             list ->
               slugs_used = Enum.reduce(list, 0.0, fn x, acc -> x.slug_qty + acc end)
               material.number_of_slugs - slugs_used
           end
-        if slugs_left > 0 do
+        if slugs_available_to_use > 0 do
           updated_assignments = [%{material_id: material.id, job: job_id, slug_qty: min(remaining_qty, material.number_of_slugs), length_to_use: 0.0, parts_from_bar: 0} | assignments]
           remaining_qty = max(0, remaining_qty - material.number_of_slugs)
 
@@ -393,9 +405,10 @@ defmodule Shophawk.MaterialCache do
   end
 
   defp assign_to_bars(materials, %{job: job, sawed_length: sawed_length, remaining_qty: remaining_qty}) do
-    Enum.reduce_while(materials, {[], remaining_qty}, fn material, {acc, remaining_qty} ->
-      if remaining_qty == 0 do
-        {:halt, {acc, remaining_qty}} # Stop if no more quantity is needed
+    Enum.reduce(materials, {[], remaining_qty}, fn material, {acc, remaining_qty} ->
+      if remaining_qty <= 0 do
+        # Keep including all materials after remaining_qty is depleted
+        {[material | acc], remaining_qty}
       else
         # Skip material that is fully used or cannot satisfy even one part
         if material.remaining_length_not_assigned >= sawed_length do
@@ -413,13 +426,14 @@ defmodule Shophawk.MaterialCache do
             |> Map.put(:job_assignments, updated_assignments)
             |> Map.put(:remaining_length_not_assigned, remaining_length_not_assigned)
 
-          {:cont, {[updated_material | acc], remaining_qty}}
+          {[updated_material | acc], remaining_qty}
         else
-          {:cont, {[material | acc], remaining_qty}} # Move on to the next material
+          {[material | acc], remaining_qty} # Move on to the next material
         end
       end
     end)
   end
+
 
 
 
