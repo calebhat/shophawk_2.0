@@ -97,16 +97,17 @@
                             >
                             </div>
                           <% end %>
-                          <div class="tooltip mt-14" style="z-index: 12;">
-                            <.fixed_widths_table 
+                          <div class="tooltip mt-14 mr-10" style="z-index: 12;">
+                            <.fixed_widths_table_with_show_job 
                             id="bar_assignments" 
                             rows={Enum.reverse(bar.data.job_assignments)} 
                             row_click={fn row_data -> "show_job" end}
+                            
                             >                            
                               <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
                               <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
                               <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
-                            </.fixed_widths_table>
+                            </.fixed_widths_table_with_show_job>
                           </div>
                         </div>
 
@@ -192,7 +193,7 @@
                             </div>
                           <% end %>
                           <div class="tooltip mt-14" style="z-index: 12;">
-                            <.fixed_widths_table 
+                            <.fixed_widths_table_with_show_job 
                             id="bar_assignments" 
                             rows={Enum.reverse(bar.data.job_assignments)} 
                             row_click={fn row_data -> "show_job" end}
@@ -200,7 +201,7 @@
                               <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
                               <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
                               <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
-                            </.fixed_widths_table>
+                            </.fixed_widths_table_with_show_job>
                           </div>
                         </div>
                         
@@ -278,7 +279,7 @@
                       <div class="w-24 pb-2 pl-2"><.input field={bar[:slug_length]} type="number" step=".01" /></div> 
                     </div>
                     <div class="w-24 pb-2 pl-2"><.input field={bar[:number_of_slugs]} type="number" step="1.0" /></div> 
-                    <div class="w-40">
+                    <div class="w-40 dark-tooltip-container">
                       <%= if bar.data.saved == false do %> 
                         <img class="pl-2 pt-3" src={~p"/images/red_x.svg"} />
                         <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
@@ -297,6 +298,16 @@
                         </div>                        
                       </div>
                       <% end %>
+                      <div class="tooltip mt-2" style="z-index: 12;">
+                            <.fixed_widths_table_with_show_job 
+                            id="bar_assignments" 
+                            rows={Enum.reverse(bar.data.job_assignments)} 
+                            row_click={fn row_data -> "show_job" end}
+                            >             
+                              <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                              <:col :let={bar} label="Slugs to use" width="w-16"><%= bar.slug_qty %></:col>
+                            </.fixed_widths_table_with_show_job>
+                          </div>
                     </div>
                   </div>
                 </.form>
