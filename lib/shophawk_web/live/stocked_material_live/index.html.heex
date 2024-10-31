@@ -1,5 +1,7 @@
 <div>
+
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">
+    <div><.button class="w-20" phx-click="test">hi</.button></div>
     <div 
       :for={material <- @material_list}
       class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}

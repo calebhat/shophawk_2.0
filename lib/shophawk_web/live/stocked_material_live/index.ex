@@ -11,6 +11,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    #IO.inspect(material_list)
 
     #material_list = if connected?(socket), do: Jobboss_db.load_materials_and_sizes_into_cache(), else: []
     socket =
@@ -101,14 +102,14 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       nil -> Material.delete_stocked_material(found_bar)
       _ -> Material.update_stocked_material(found_bar , %{slug_length: nil, bar_length: nil, bar_used: true})
     end
-    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(found_bar.material, socket)
+    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(found_bar.material)
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
   def handle_event("make_slug", %{"selected-size" => selected_size, "selected-material" => selected_material, "id" => id}, socket) do
     found_bar = Material.get_stocked_material!(id)
     Material.update_stocked_material(found_bar , %{slug_length: found_bar.bar_length, number_of_slugs: 1, bar_length: nil})
-    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(found_bar.material, socket)
+    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(found_bar.material)
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
@@ -145,7 +146,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
     #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
     #Currently this function re-checks for new mat_reqs in JB, change to only update current reqs?
-    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(saved_material.material, socket)
+    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(saved_material.material)
 
     {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
   end
@@ -162,12 +163,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
     size_info = Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end)
-  #IO.inspect(selected_size)
   if size_info != nil do
-  IO.inspect(size_info.need_to_order_amt)
   end
-  #IO.inspect(sizes)
-  #IO.inspect(selected_material)
     socket =
       socket
       |> assign(:selected_size, selected_size)
@@ -210,11 +207,12 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   def handle_event("close_job_attachments", _params, socket), do: {:noreply, assign(socket, live_action: :show_job)}
 
   def handle_event("test", _params, socket) do
-    #open_material_reqs = Jobboss_db.load_material_requirements
-    #find_material_to_order(socket)
-    #Jobboss_db.load_jb_material_information("10XGI")
-    #material_list = Jobboss_db.load_materials_and_sizes_into_cache
-    {:noreply, socket}
+    #Shophawk.MaterialCache.create_material_and_sizes_list_for_cache()
+    #:ets.insert(:material_list, {:data, Shophawk.MaterialCache.create_material_and_sizes_list_for_cache()})
+
+    Shophawk.MaterialCache.create_material_cache
+    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    {:noreply, socket |> assign(:material_list, material_list)}
   end
 
   ##### other functions #####
