@@ -102,14 +102,14 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       nil -> Material.delete_stocked_material(found_bar)
       _ -> Material.update_stocked_material(found_bar , %{slug_length: nil, bar_length: nil, bar_used: true})
     end
-    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(found_bar.material)
+    Shophawk.MaterialCache.update_single_material_size_in_cache(found_bar.material)
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
   def handle_event("make_slug", %{"selected-size" => selected_size, "selected-material" => selected_material, "id" => id}, socket) do
     found_bar = Material.get_stocked_material!(id)
     Material.update_stocked_material(found_bar , %{slug_length: found_bar.bar_length, number_of_slugs: 1, bar_length: nil})
-    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(found_bar.material)
+    Shophawk.MaterialCache.update_single_material_size_in_cache(found_bar.material)
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
@@ -146,7 +146,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
     #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
     #Currently this function re-checks for new mat_reqs in JB, change to only update current reqs?
-    Shophawk.MaterialCache.load_specific_material_and_size_into_cache(saved_material.material)
+    Shophawk.MaterialCache.update_single_material_size_in_cache(saved_material.material)
 
     {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
   end
@@ -207,8 +207,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   def handle_event("close_job_attachments", _params, socket), do: {:noreply, assign(socket, live_action: :show_job)}
 
   def handle_event("test", _params, socket) do
-    #Shophawk.MaterialCache.create_material_and_sizes_list_for_cache()
-    #:ets.insert(:material_list, {:data, Shophawk.MaterialCache.create_material_and_sizes_list_for_cache()})
 
     Shophawk.MaterialCache.create_material_cache
     [{:data, material_list}] = :ets.lookup(:material_list, :data)

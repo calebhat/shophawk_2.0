@@ -3,10 +3,9 @@ defmodule Shophawk.MaterialCache do
   alias Shophawk.Material
   #Used for all loading of ETS Caches related to the Material
 
-  #good
   def create_material_cache() do
     #Create bare bones list for material cache and save to cache
-    {material_list, jobboss_material_info} = create_material_and_sizes_list_for_cache()
+    {material_list, jobboss_material_info} = create_barebones_material_list()
     :ets.insert(:material_list, {:data, material_list})
 
     #load all data needed
@@ -49,7 +48,7 @@ defmodule Shophawk.MaterialCache do
               end
 
               #variables going into the function are correct. Something is wrong with how the list of being saved I think.
-              updated_size = new_update_material_list_for_a_single_material_and_size(s, material_name, matching_size_reqs, matching_material_on_floor, matching_material_to_order, matching_jobboss_material_info)
+              updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor, matching_material_to_order, matching_jobboss_material_info)
 
           end)
         Map.put(mat, :sizes, sizes)
@@ -58,8 +57,7 @@ defmodule Shophawk.MaterialCache do
     updated_material_list
   end
 
-  #good
-  def create_material_and_sizes_list_for_cache() do
+  def create_barebones_material_list() do
     jobboss_material_info = Shophawk.Jobboss_db.load_materials_and_sizes()
 
     material_list =
@@ -116,8 +114,7 @@ defmodule Shophawk.MaterialCache do
     {material_list, jobboss_material_info}
   end
 
-  #good
-  def new_update_material_list_for_a_single_material_and_size(s, material, mat_reqs, material_on_floor, matching_material_to_order, material_info) do
+  def populate_single_material_size(s, material, mat_reqs, material_on_floor, matching_material_to_order, material_info) do
     #Delete material to order so it's always just one that reset in this function
     Enum.each(matching_material_to_order, fn mat ->
       Material.delete_stocked_material(mat)
@@ -135,7 +132,7 @@ defmodule Shophawk.MaterialCache do
       end)
       |> Enum.sort_by(&(&1.make_qty), :desc)
 
-    {assigned_material_info, need_to_order_amt} = newer_assign_jobs_to_material(jobs_to_assign, material_on_floor, material)
+    {assigned_material_info, need_to_order_amt} = assign_jobs_to_material(jobs_to_assign, material_on_floor, material)
 
     #remove any empty job_assignments
     assigned_material_info =
@@ -157,11 +154,9 @@ defmodule Shophawk.MaterialCache do
       }
   end
 
-  #good
   #Updates one size and saves updated material_list in cache
-  def load_specific_material_and_size_into_cache(material_name) do
+  def update_single_material_size_in_cache(material_name) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
-
     updated_material_list =
       Enum.map(material_list, fn mat ->
         sizes =
@@ -176,7 +171,7 @@ defmodule Shophawk.MaterialCache do
 
                 matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
 
-                updated_size = new_update_material_list_for_a_single_material_and_size(s, material_name, matching_size_reqs, matching_material_on_floor, matching_material_to_order, matching_jobboss_material_info)
+                updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor, matching_material_to_order, matching_jobboss_material_info)
               _ ->
                 s
             end
@@ -188,14 +183,12 @@ defmodule Shophawk.MaterialCache do
     updated_material_list
   end
 
-  #good
   def convert_string_to_float(string) do
     string = if String.at(string, 0) == ".", do: "0" <> string, else: string
     elem(Float.parse(string), 0)
   end
 
-  #good
-  def newer_assign_jobs_to_material(jobs, material_on_floor, material) do
+  def assign_jobs_to_material(jobs, material_on_floor, material) do
     if material_on_floor != [] do
       updated_material_on_floor =
         Enum.map(material_on_floor, fn map ->
@@ -262,7 +255,7 @@ defmodule Shophawk.MaterialCache do
           assigned_bars
         end)
 
-      materials = assign_used_material_percentages(materials)
+      materials = assign_percentage_used_to_bars(materials)
       {materials, Float.round(length_needed_to_order, 2)}
 
     else #if no stocked material assign_to_bars
@@ -288,13 +281,12 @@ defmodule Shophawk.MaterialCache do
         end)
 
         #calculate length needed to order at the end
-      assigned_bars = assign_used_material_percentages(assigned_bars)
+      assigned_bars = assign_percentage_used_to_bars(assigned_bars)
       {assigned_bars, Float.round(length_needed_to_order, 2)}
     end
   end
 
-  #good
-  defp assign_used_material_percentages(assigned_bars) do
+  defp assign_percentage_used_to_bars(assigned_bars) do
     Enum.map(assigned_bars, fn bar ->
       case bar.bar_length do
         nil -> bar
