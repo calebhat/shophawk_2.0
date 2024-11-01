@@ -306,7 +306,12 @@ defmodule Shophawk.MaterialCache do
   end
 
   defp assign_to_slugs(materials, %{length: length_needed, make_qty: make_qty, job: job_id}) do
-    Enum.reduce_while(materials, {[], make_qty}, fn material, {acc, remaining_qty} ->
+    materials
+    |> Enum.sort_by(fn
+      %{slug_length: nil} -> :infinity  # Treat nil as the furthest distance
+      %{slug_length: slug_length} -> abs(slug_length - length_needed)
+    end)
+    |> Enum.reduce_while({[], make_qty}, fn material, {acc, remaining_qty} ->
       #if slug is withing .25" of length needed, assign to slug
       if material.slug_length >= (length_needed + 0.03) and material.slug_length <= (length_needed + 0.25) do
         assignments = Map.get(material, :job_assignments, [])
