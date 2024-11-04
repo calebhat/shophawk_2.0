@@ -499,7 +499,7 @@ defmodule Shophawk.Jobboss_db do
   end
 
   def sync_recently_updated_jobs(previous_check) do
-    previous_check = NaiveDateTime.add(previous_check, -5, :hour) #convert to local time that jobboss DB uses
+    #previous_check = NaiveDateTime.add(previous_check, -5, :hour) #convert to local time that jobboss DB uses
     query = from r in Jb_job, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
     jobs = failsafed_query(query)
     query = from r in Jb_job_operation, where: r.last_updated >= ^previous_check, select: r.job, distinct: true
@@ -513,6 +513,7 @@ defmodule Shophawk.Jobboss_db do
 
     jobs_to_update = jobs ++ job_operation_jobs ++ material_jobs ++ job_operation_time_jobs
     |> Enum.uniq
+    |> IO.inspect()
     operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
     [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
     runlist = List.flatten(runlist)

@@ -47,6 +47,9 @@ config :shophawk, Shophawk.Scheduler,
     {"@daily", {ShophawkWeb.DashboardLive.Index, :save_this_weeks_revenue, []}}
   ]
 
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",

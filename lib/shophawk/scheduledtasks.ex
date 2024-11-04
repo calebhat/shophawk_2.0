@@ -30,23 +30,34 @@ defmodule ScheduledTasks do
     #tasks less than 1 minutes must be ran in the genserver.
     #All other functions here are ran with Quantum dep that is controlled from /config/config.ex file
 
-    #Process.send_after(self(), :update_from_jobboss, 2000)
+    Process.send_after(self(), :update_from_jobboss, 2000)
     {:ok, nil}
   end
 
   #runs every 7 seconds
   def handle_info(:update_from_jobboss, _state) do
+    timezone = "America/Chicago"  # Set to your local timezone
+
     previous_check =
       case :ets.lookup(:runlist, :refresh_time) do
         [{:refresh_time, previous_check}] -> previous_check
-        [] -> NaiveDateTime.add(NaiveDateTime.utc_now(), -20) #syncs previous 20 seconds if no previos time found.
+        [] ->
+          # Fetch the current time in the specified timezone
+          DateTime.now!(timezone)
+          |> DateTime.add(-20, :second)
       end
-    :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
+
+    current_time = DateTime.now!(timezone)
+
+    # Store the current time with timezone
+    :ets.insert(:runlist, {:refresh_time, current_time})
     Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
 
-    Process.send_after(self(), :update_from_jobboss, 7000) #runs again 7 seconds after finishing function.
+    Process.send_after(self(), :update_from_jobboss, 7000)  # Runs again 7 seconds after finishing function
     {:noreply, nil}
   end
+
+
 
   #runs every 5 minutes
   def update_all_runlist_loads do

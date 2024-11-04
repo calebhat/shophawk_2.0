@@ -55,7 +55,8 @@ defmodule Shophawk.MixProject do
       {:decimal, "~> 2.1"},
       {:number, "~> 1.0"},
       {:tds, "~> 2.3"},
-      {:quantum, "~> 3.0"}
+      {:quantum, "~> 3.0"},
+      {:tzdata, "~> 1.1"}
     ]
   end
 
