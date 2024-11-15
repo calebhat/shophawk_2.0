@@ -1,7 +1,7 @@
 <div>
 
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">
-    <div><.button class="w-20" phx-click="test">hi</.button></div>
+    <div><.button class="" phx-click="test">Reload material</.button></div>
     <div 
       :for={material <- @material_list}
       class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
@@ -36,11 +36,25 @@
 
   <div class="absolute bg-cyan-900 rounded ml-[17rem] top-[5.71rem] right-[1vw] left-[2vw] bottom-[1rem]">
     <div>
+    <%= if @material_to_order_count > 0 and @size_info == nil do %>
+    <.link patch={~p"/stockedmaterials/material_to_order"}>
+      <div class="pl-8 pt-4 m-4"><.button>Material to Order: <%= @material_to_order_count %></.button></div>
+    </.link>
+    <% end %>
       <%= if @size_info != nil do %>
       <div id="main-content" style={if @loading, do: "display: none;"} class="">
         <div class="pt-4 grid grid-cols-3 text-center content-center">
           <div class="relative inline-block">
-            <.button phx-click="show_related_jobs">Jobs to Saw</.button>
+          <div class="grid grid-cols-2">
+            <%= if @material_to_order_count > 0 do %>
+              <.link patch={~p"/stockedmaterials/material_to_order"}>
+                <div class="m-4"><.button class="" phx-click="test">Material to Order: <%= @material_to_order_count %></.button></div>
+              </.link>
+            <% else %>
+              <div></div>
+            <% end %>
+            <div class="m-4"><.button phx-click="show_related_jobs">Jobs to Saw</.button></div>
+            </div>
             <%= if @show_related_jobs do %>
              <div class="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-cyan-700 text-stone-200 border border-gray-300 shadow-lg rounded p-4">
               <div :for={job <- @related_jobs} 

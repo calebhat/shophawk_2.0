@@ -11,7 +11,13 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
-    #IO.inspect(material_list)
+
+    material_needed_to_order_count =
+      Enum.reduce(material_list, 0, fn mat, acc ->
+        acc + mat.mat_reqs_count
+      end)
+
+      #IO.inspect(material_needed_to_order_count)
 
     #material_list = if connected?(socket), do: Jobboss_db.load_materials_and_sizes_into_cache(), else: []
     socket =
@@ -24,6 +30,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       |> assign(:size_info, nil)
       |> assign(:show_related_jobs, false)
       |> assign(:material_name, "")
+      |> assign(:material_to_order_count, material_needed_to_order_count)
 
     {:ok, socket}
   end
@@ -163,8 +170,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
     size_info = Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end)
-  if size_info != nil do
-  end
+
     socket =
       socket
       |> assign(:selected_size, selected_size)

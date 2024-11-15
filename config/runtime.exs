@@ -18,7 +18,7 @@ import Config
 # script that automatically sets the env var above.
 
   config :shophawk, Shophawk.Repo_jb,
-  hostname: "gearserver",
+  hostname: "192.168.2.14",
   instance: "SQLEXPRESS",
   username: "sa",
   password: "job1!boss",
@@ -56,7 +56,7 @@ import Config
     port = String.to_integer(System.get_env("PORT") || "4001")
 
     config :shophawk, ShophawkWeb.Endpoint,
-      check_origin: ["http://192.168.2.73:4001"],
+      check_origin: ["http://192.168.2.15:4001"],
       url: [host: host, port: 443, scheme: "https"],
       http: [
         # Enable IPv6 and bind on all interfaces.

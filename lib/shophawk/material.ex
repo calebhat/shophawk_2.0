@@ -25,6 +25,22 @@ defmodule Shophawk.Material do
     Repo.all(from r in StockedMaterial, where: r.bar_used == false)
   end
 
+  def list_material_needed_to_order do
+    Repo.all(from r in StockedMaterial, where: r.bar_used == false and r.in_house == false and r.ordered == false and r.being_quoted == false)
+  end
+
+  def list_material_being_quoted do
+    Repo.all(from r in StockedMaterial, where: r.bar_used == false and r.in_house == false and r.ordered == false and r.being_quoted == true)
+  end
+
+  def list_material_on_order do
+    Repo.all(from r in StockedMaterial, where: r.bar_used == false and r.in_house == false and r.ordered == true and r.being_quoted == false)
+  end
+
+  def list_stocked_material_by_material(material), do: Repo.all(from r in StockedMaterial, where: r.material == ^material and r.bar_used != true)
+
+
+
   @doc """
   Gets a single stocked_material.
 
@@ -41,7 +57,6 @@ defmodule Shophawk.Material do
   """
   def get_stocked_material!(id), do: Repo.get!(StockedMaterial, id)
 
-  def list_stocked_material_by_material(material), do: Repo.all(from r in StockedMaterial, where: r.material == ^material and r.bar_used != true)
 
   @doc """
   Creates a stocked_material.
