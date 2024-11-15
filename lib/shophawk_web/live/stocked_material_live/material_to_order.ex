@@ -2,6 +2,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   use ShophawkWeb, :live_view
 
   alias Shophawk.Material
+  alias Shophawk.MaterialCache
   #import ShophawkWeb.StockedMaterialLive.Index
 
   @impl true
@@ -10,6 +11,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     <div class="bg-cyan-900 rounded-lg justify-center text-center text-white p-4">
 
       <div class="grid grid-cols-3">
+
         <div class="bg-cyan-800 rounded-lg m-2">
           <div class="mb-4 text-2xl underline">Material To Order</div>
           <div class="grid grid-cols-4 text-lg underline">
@@ -22,8 +24,6 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
             <.form
               for={bar}
               id={"bar-#{bar.id}"}
-              phx-change="validate_bars"
-              phx-submit="save_material"
             >
               <div class="grid grid-cols-4 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
                 <div class="dark-tooltip-container">
@@ -50,7 +50,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
                 </div>
                 <div class="px-2 text-center">
-                  <.button type="button" phx-click="being_quoted" phx-value-material={bar.data.material}>
+                  <.button type="button" phx-click="being_quoted" phx-value-id={bar.data.id}>
                     ->
                   </.button>
                 </div>
@@ -60,71 +60,125 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         </div>
 
         <div class="bg-cyan-800 rounded-lg m-2">
-          <div class="mb-4 text-2xl underline">Quote Request Sent</div>
+          <div class="mb-4 text-2xl underline">Material Wating on a Quote</div>
+          <div class="grid grid-cols-5 text-lg underline">
+            <div>Material</div>
+            <div>Amount Needed</div>
+            <div>Vendor</div>
+            <div>Price</div>
+            <div>On Order</div>
+          </div>
+          <div :for={bar <- @bars_being_quoted_form}>
+            <.form
+              for={bar}
+              id={"bar-#{bar.id}"}
+              phx-change="validate_bars_waiting_on_quote"
+              phx-submit="save_material"
+            >
+              <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
+                <div class="dark-tooltip-container">
+                    <%= "#{bar.data.material}" %>
+                    <!-- Loop through job assignments and display colored sections -->
+                    <div class="relative h-full w-full">
+
+                      <div class="tooltip ml-12 w-60" style="z-index: 12;">
+                        <.fixed_widths_table_with_show_job
+                        id="bar_assignments"
+                        rows={Enum.reverse(bar.data.job_assignments)}
+                        row_click={fn row_data -> "show_job" end}
+                        >
+                          <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                          <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
+                          <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
+                        </.fixed_widths_table_with_show_job>
+                      </div>
+                    </div>
+                </div>
+
+                <div>
+                  <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
+                </div>
+
+                <div>
+                  <div class="w-30 pb-2 pl-2"><.input field={bar[:vendor]} type="text" placeholder="Vendor" /></div>
+
+                </div>
+
+                <div>
+                  <div class="hidden"><.input field={bar[:id]} type="text" /></div>
+                  <div class="w-30 pb-2 pl-2"><.input field={bar[:purchase_price]} type="number" placeholder="Price/Lb" step=".01" /></div>
+
+                </div>
+                <div class="px-2 text-center">
+                  <.button type="button" phx-click="on_order" phx-value-id={bar.data.id}>
+                    ->
+                  </.button>
+                </div>
+              </div>
+            </.form>
+          </div>
         </div>
 
         <div class="bg-cyan-800 rounded-lg m-2">
-          <div class="mb-4 text-2xl underline">On Order</div>
-            <div :for={bar <- @bars_to_order_form}>
-              <.form
-                for={bar}
-                id={"bar-#{bar.id}"}
-                phx-change="validate_bars"
-                phx-submit="save_material"
-              >
-                <div class="flex p-1">
-                  <div class="grow relative dark-tooltip-container">
-                    <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
-                      <span class="absolute inset-0 flex justify-center items-center">
-                        <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
-                        <%= "#{bar.data.material}" %>
-                      </span>
+          <div class="mb-4 text-2xl underline">Material To Receive</div>
+          <div class="grid grid-cols-4 text-lg underline">
+            <div>Material</div>
+            <div>Length Needed</div>
+            <div>Measured Length (Inches)</div>
+            <div></div>
+          </div>
+          <div :for={bar <- @bars_on_order_form}}>
+            <.form
+              for={bar}
+              id={"bar-#{bar.id}"}
+              phx-change="validate_bars"
+              phx-submit="save_material"
+            >
+              <div class="grid grid-cols-4 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
+                <div class="dark-tooltip-container">
+                    <%= "#{bar.data.material}" %>
+                    <!-- Loop through job assignments and display colored sections -->
+                    <div class="relative h-full w-full">
 
-                      <!-- Loop through job assignments and display colored sections -->
-                      <div class="relative h-full w-full">
-                        <%= for assignment <- bar.data.job_assignments do %>
-                          <div
-                            class="absolute h-full border border-dashed border-violet-500 "
-                            style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
-                          >
-                          </div>
-                        <% end %>
-                        <div class="tooltip mt-14 w-60" style="z-index: 12;">
-                          <.fixed_widths_table_with_show_job
-                          id="bar_assignments"
-                          rows={Enum.reverse(bar.data.job_assignments)}
-                          row_click={fn row_data -> "show_job" end}
-                          >
-                            <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                            <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
-                            <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
-                          </.fixed_widths_table_with_show_job>
-                        </div>
+                      <div class="tooltip ml-12 w-60" style="z-index: 12;">
+                        <.fixed_widths_table_with_show_job
+                        id="bar_assignments"
+                        rows={Enum.reverse(bar.data.job_assignments)}
+                        row_click={fn row_data -> "show_job" end}
+                        >
+                          <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                          <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
+                          <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
+                        </.fixed_widths_table_with_show_job>
                       </div>
-
                     </div>
-                  </div>
-                  <div>
 
-                  </div>
+                </div>
+
+                <div>
+                  <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
+                </div>
+
+                <div class="px-2 text-center">
                   <div>
                     <div class="hidden"><.input field={bar[:id]} type="text" /></div>
                     <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>
                   </div>
-                  <div class="pr-2">
-                    <%= if bar.data.saved == false do %>
-                      <img class="pl-2 pt-3" src={~p"/images/red_x.svg"} />
-                      <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
-                    <% else %>
-                    <div class="flex">
-                      <img class="pl-2 pt-3" src={~p"/images/black_checkmark.svg"} />
-
-                      </div>
-                    <% end %>
-                  </div>
                 </div>
-              </.form>
-            </div>
+
+                <div>
+
+                    <div class=""><.button phx-disable-with="Saving...">Receive</.button></div>
+                    <div class="">
+                      <.button type="button" phx-click="add_bar" phx-value-id={bar.data.id}>
+                        Add Bar
+                      </.button>
+                    </div>
+
+                </div>
+              </div>
+            </.form>
+          </div>
         </div>
 
       </div>
@@ -135,12 +189,16 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
   @impl true
   def mount(_params, _session, socket) do
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
-    bars_to_order_changeset = load_material_to_order(material_list)
-    bars_being_quoted_changeset = load_material_being_quoted(material_list)
-    bars_on_order = load_material_on_order(material_list)
 
-    {:ok, socket |> assign(bars_to_order_form: bars_to_order_changeset)}
+    {:ok, update_material_forms(socket)}
+  end
+
+  def update_material_forms(socket) do
+    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    socket
+    |> assign(bars_to_order_form: load_material_to_order(material_list))
+    |> assign(bars_being_quoted_form: load_material_being_quoted(material_list))
+    |> assign(bars_on_order_form: load_material_on_order(material_list))
   end
 
   def load_material_to_order(material_list) do
@@ -266,12 +324,40 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     bars_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
   end
 
-  def handle_event("being_quoted", %{"material" => material}, socket) do
-    IO.inspect(material)
+  def handle_event("being_quoted", %{"id" => id}, socket) do
+    bar = Material.get_stocked_material!(id)
+    Material.update_stocked_material(bar, %{being_quoted: true})
 
-    {:noreply, socket}
+    MaterialCache.update_single_material_size_in_cache(bar.material)
+
+    {:noreply, update_material_forms(socket)}
   end
 
-  @impl true
+  def handle_event("on_order", %{"id" => id}, socket) do
+    bar = Material.get_stocked_material!(id)
+    Material.update_stocked_material(bar, %{being_quoted: false, ordered: true})
+
+    MaterialCache.update_single_material_size_in_cache(bar.material)
+
+    {:noreply, update_material_forms(socket)}
+  end
+
+  def handle_event("validate_bars_waiting_on_quote", %{"stocked_material" => stocked_material_params}, socket) do
+    found_bar = Material.get_stocked_material!(stocked_material_params["id"])
+    updated_bar = Material.change_stocked_material(found_bar, stocked_material_params)
+    |> Map.put(:action, :validate) #makes errors show up
+    |> to_form()
+
+
+    updated_changeset =
+      Enum.map(socket.assigns.bars_being_quoted_form, fn bar ->
+        if bar.data.id == updated_bar.data.id, do: updated_bar, else: bar
+      end)
+
+    {:noreply,
+    socket
+    |> assign(bars_being_quoted_form: updated_changeset)
+  }
+  end
 
 end

@@ -37,7 +37,7 @@ defmodule Shophawk.MaterialCache do
 
             matching_material = Enum.filter(all_material_on_floor, fn floor_mat -> floor_mat.material == material_name end)
 
-            matching_material_on_floor = Enum.reject(matching_material, fn mat -> mat.in_house == false end)
+            matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
             matching_material_to_order = Enum.reject(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered == true end)
 
 
@@ -48,7 +48,7 @@ defmodule Shophawk.MaterialCache do
               end
 
               #variables going into the function are correct. Something is wrong with how the list of being saved I think.
-              updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor, matching_material_to_order, matching_jobboss_material_info)
+              updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
 
           end)
         Map.put(mat, :sizes, sizes)
@@ -166,12 +166,12 @@ defmodule Shophawk.MaterialCache do
                 matching_size_reqs = Jobboss_db.load_single_material_requirements(material_name)
 
                 matching_material = Material.list_stocked_material_by_material(material_name)
-                matching_material_on_floor = Enum.reject(matching_material, fn mat -> mat.in_house == false end)
+                matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
                 matching_material_to_order = Enum.reject(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered == true end)
 
                 matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
 
-                updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor, matching_material_to_order, matching_jobboss_material_info)
+                updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
               _ ->
                 s
             end

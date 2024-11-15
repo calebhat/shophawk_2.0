@@ -26,7 +26,8 @@ defmodule Shophawk.Material.StockedMaterial do
   def changeset(stocked_material, attrs) do
     stocked_material
     |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned])
-    |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used])
+    |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :vendor, :purchase_price])
+    |> validate_number(:purchase_price, greater_than_or_equal_to: 0, message: "Must be positive")
     |> round_floats()
   end
 
