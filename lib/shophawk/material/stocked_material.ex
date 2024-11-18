@@ -24,6 +24,8 @@ defmodule Shophawk.Material.StockedMaterial do
 
   @doc false
   def changeset(stocked_material, attrs) do
+    #attrs = normalize_empty_strings(attrs)
+
     stocked_material
     |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned])
     |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :vendor, :purchase_price])

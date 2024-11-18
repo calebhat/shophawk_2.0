@@ -73,7 +73,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               for={bar}
               id={"bar-#{bar.id}"}
               phx-change="validate_bars_waiting_on_quote"
-              phx-submit="save_material"
+              phx-submit="save_to_recieve"
             >
               <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
                 <div class="dark-tooltip-container">
@@ -100,17 +100,15 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                 </div>
 
                 <div>
-                  <div class="w-30 pb-2 pl-2"><.input field={bar[:vendor]} type="text" placeholder="Vendor" /></div>
-
+                  <.input field={bar[:vendor]} type="text" />
+                  <.input field={bar[:id]} type="hidden" />
                 </div>
 
                 <div>
-                  <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                  <div class="w-30 pb-2 pl-2"><.input field={bar[:purchase_price]} type="number" placeholder="Price/Lb" step=".01" /></div>
-
+                  <.input field={bar[:purchase_price]} type="number" step=".01" />
                 </div>
                 <div class="px-2 text-center">
-                  <.button type="button" phx-click="on_order" phx-value-id={bar.data.id}>
+                  <.button type="submit">
                     ->
                   </.button>
                 </div>
@@ -333,31 +331,57 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     {:noreply, update_material_forms(socket)}
   end
 
-  def handle_event("on_order", %{"id" => id}, socket) do
-    bar = Material.get_stocked_material!(id)
-    Material.update_stocked_material(bar, %{being_quoted: false, ordered: true})
+  def handle_event("save_to_recieve", params, socket) do
+    params = params["stocked_material"]
+    found_bar = Material.get_stocked_material!(params["id"])
+    updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
 
-    MaterialCache.update_single_material_size_in_cache(bar.material)
+    case Material.update_stocked_material(found_bar, updated_params) do
+      {:ok, stocked_material} ->
+        {:noreply, update_material_forms(socket)}
 
-    {:noreply, update_material_forms(socket)}
+      {:error, changeset} ->
+        bars = socket.assigns.bars_being_quoted_form
+        updated_bars =
+          Enum.map(bars, fn bar ->
+            if bar.data.id == found_bar.id do
+              #Map.put(bar, :errors, changeset.errors)
+              #|> Map.put(:action, :validate)
+              changeset =
+                Material.change_stocked_material(found_bar, params)
+                |> Map.put(:action, :validate)
+
+              to_form(changeset)
+            else
+              bar
+            end
+          end)
+
+        {:noreply, assign(socket, bars_being_quoted_form: updated_bars)}
+    end
+
   end
 
-  def handle_event("validate_bars_waiting_on_quote", %{"stocked_material" => stocked_material_params}, socket) do
-    found_bar = Material.get_stocked_material!(stocked_material_params["id"])
-    updated_bar = Material.change_stocked_material(found_bar, stocked_material_params)
-    |> Map.put(:action, :validate) #makes errors show up
-    |> to_form()
+  def handle_event("validate_bars_waiting_on_quote", %{"stocked_material" => params}, socket) do
+    bars = socket.assigns.bars_being_quoted_form
 
+    # Determine the form being updated by matching the `id` hidden field
+    form_id = Map.get(params, "id")
 
-    updated_changeset =
-      Enum.map(socket.assigns.bars_being_quoted_form, fn bar ->
-        if bar.data.id == updated_bar.data.id, do: updated_bar, else: bar
+    updated_bars =
+      Enum.map(bars, fn bar ->
+        if Integer.to_string(bar.data.id) == form_id do
+          changeset =
+            Material.change_stocked_material(bar.data, params)
+            |> Map.put(:action, :validate)
+
+          to_form(changeset)
+        else
+          bar
+        end
       end)
 
-    {:noreply,
-    socket
-    |> assign(bars_being_quoted_form: updated_changeset)
-  }
+    {:noreply, assign(socket, :bars_being_quoted_form, updated_bars)}
   end
 
 end
