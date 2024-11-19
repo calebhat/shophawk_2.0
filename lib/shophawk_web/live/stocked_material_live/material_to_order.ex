@@ -8,11 +8,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="bg-cyan-900 rounded-lg justify-center text-center text-white p-4">
+    <div class="bg-cyan-950 rounded-lg justify-center text-center text-white p-6">
 
-      <div class="grid grid-cols-3">
+      <div class="grid grid-cols-2">
 
-        <div class="bg-cyan-800 rounded-lg m-2">
+        <div class="bg-cyan-800 rounded-lg mr-4 p-4">
           <div class="grid grid-cols-3 mt-2">
             <div></div>
             <div class="mb-4 text-2xl underline">Material To Order</div>
@@ -20,7 +20,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           </div>
           <div class="grid grid-cols-4 text-lg underline">
             <div>Material</div>
-            <div>Amount Needed</div>
+            <div>Length Needed</div>
             <div>12 Month Usage</div>
             <div>Request sent</div>
           </div>
@@ -63,15 +63,15 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           </div>
         </div>
 
-        <div class="bg-cyan-800 rounded-lg m-2">
+        <div class="bg-cyan-800 rounded-lg ml-4 p-4">
           <div class="grid grid-cols-3 mt-2">
             <div></div>
-            <div class="mb-4 text-2xl underline">Material Wating on a Quote</div>
-            <div><.button type="button" phx-click="set_all_to_material_to_recieve">All -></.button></div>
+            <div class="mb-4 text-2xl underline w-max">Material Wating on a Quote</div>
+            <div><.button type="button" phx-click="set_all_to_material_to_recieve">Save All</.button></div>
           </div>
           <div class="grid grid-cols-5 text-lg underline">
             <div>Material</div>
-            <div>Length</div>
+            <div>Length Needed</div>
             <div>Vendor</div>
             <div>Price</div>
             <div>On Order</div>
@@ -80,8 +80,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
             <.form
               for={bar}
               id={"bar-#{bar.id}"}
-              phx-change="validate_bars_waiting_on_quote"
-              phx-submit="save_bars_waiting_on_quote"
+              phx-change="validate_bar_waiting_on_quote"
+              phx-submit="save_bar_waiting_on_quote"
             >
               <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
                 <div class="dark-tooltip-container">
@@ -107,80 +107,18 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                   <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                 </div>
 
-                <div class="mr-1">
+                <div class="mx-2">
                   <.input field={bar[:vendor]} type="text" phx-blur="autofill_vendor" phx-value-id={bar.data.id} />
                   <.input field={bar[:id]} type="hidden" />
                 </div>
 
-                <div>
+                <div class="mx-2">
                   <.input field={bar[:purchase_price]} type="number" step=".01" />
                 </div>
                 <div class="px-2 text-center">
                   <.button type="submit">
-                    ->
+                      Save
                   </.button>
-                </div>
-              </div>
-            </.form>
-          </div>
-        </div>
-
-        <div class="bg-cyan-800 rounded-lg m-2">
-          <div class="mb-4 text-2xl underline">Material To Receive</div>
-          <div class="grid grid-cols-4 text-lg underline">
-            <div>Material</div>
-            <div>Length Needed</div>
-            <div>Measured Length (Inches)</div>
-            <div></div>
-          </div>
-          <div :for={bar <- @bars_on_order_form}}>
-            <.form
-              for={bar}
-              id={"bar-#{bar.id}"}
-              phx-change="validate_bars"
-              phx-submit="save_material"
-            >
-              <div class="grid grid-cols-4 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
-                <div class="dark-tooltip-container">
-                    <%= "#{bar.data.material}" %>
-                    <!-- Loop through job assignments and display colored sections -->
-                    <div class="relative h-full w-full">
-
-                      <div class="tooltip ml-12 w-60" style="z-index: 12;">
-                        <.fixed_widths_table_with_show_job
-                        id="bar_assignments"
-                        rows={Enum.reverse(bar.data.job_assignments)}
-                        row_click={fn row_data -> "show_job" end}
-                        >
-                          <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                          <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
-                          <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
-                        </.fixed_widths_table_with_show_job>
-                      </div>
-                    </div>
-
-                </div>
-
-                <div>
-                  <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
-                </div>
-
-                <div class="px-2 text-center">
-                  <div>
-                    <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                    <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>
-                  </div>
-                </div>
-
-                <div>
-
-                    <div class=""><.button phx-disable-with="Saving...">Receive</.button></div>
-                    <div class="">
-                      <.button type="button" phx-click="add_bar" phx-value-id={bar.data.id}>
-                        Add Bar
-                      </.button>
-                    </div>
-
                 </div>
               </div>
             </.form>
@@ -194,8 +132,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   @impl true
-  def mount(_params, _session, socket) do
-
+  def mount(params, _session, socket) do
+    #IO.inspect(params)
     {:ok, update_material_forms(socket)}
   end
 
@@ -361,7 +299,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     {:noreply, update_material_forms(socket)}
   end
 
-  def handle_event("save_bars_waiting_on_quote", params, socket) do
+  def handle_event("save_bar_waiting_on_quote", params, socket) do
     params = params["stocked_material"]
     found_bar = Material.get_stocked_material!(params["id"])
     updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
@@ -392,8 +330,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
   end
 
-  def handle_event("validate_bars_waiting_on_quote", %{"stocked_material" => params}, socket) do
-    {:noreply, validate_bars_waiting_on_quote(params, socket)}
+  def handle_event("validate_bar_waiting_on_quote", %{"stocked_material" => params}, socket) do
+    {:noreply, validate_bar_waiting_on_quote(params, socket)}
   end
 
   def handle_event("autofill_vendor", params, socket) do
@@ -413,10 +351,10 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
       params = Map.put(params, "vendor", updated_value)
 
-    {:noreply, validate_bars_waiting_on_quote(params, socket)}
+    {:noreply, validate_bar_waiting_on_quote(params, socket)}
   end
 
-  def validate_bars_waiting_on_quote(params, socket) do
+  def validate_bar_waiting_on_quote(params, socket) do
     bars = socket.assigns.bars_being_quoted_form
     # Determine the form being updated by matching the `id` hidden field
     form_id = Map.get(params, "id")
