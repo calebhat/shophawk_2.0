@@ -94,6 +94,12 @@ defmodule Shophawk.Material do
     |> Repo.update()
   end
 
+  def update_stocked_material(%StockedMaterial{} = stocked_material, attrs, :waiting_on_quote) do
+    stocked_material
+    |> StockedMaterial.material_waiting_on_quote_changeset(attrs)
+    |> Repo.update()
+  end
+
   @doc """
   Deletes a stocked_material.
 
@@ -122,4 +128,10 @@ defmodule Shophawk.Material do
   def change_stocked_material(%StockedMaterial{} = stocked_material, attrs \\ %{}) do
     StockedMaterial.changeset(stocked_material, attrs)
   end
+
+  def change_stocked_material(%StockedMaterial{} = stocked_material, attrs, :waiting_on_quote) do
+    StockedMaterial.material_waiting_on_quote_changeset(stocked_material, attrs)
+  end
+
+
 end

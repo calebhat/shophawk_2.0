@@ -25,6 +25,7 @@ import "../vendor/download_from_server"; //handles file downloads from push_redi
 
 // Import the chart hooks from charts.js
 import ChartHooks from "./charts";
+
 // Register hooks with LiveSocket
 let Hooks = {...ChartHooks}; // Merge ChartHooks with other hooks if you have more
 

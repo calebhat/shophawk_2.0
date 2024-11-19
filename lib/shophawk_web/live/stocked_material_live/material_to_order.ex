@@ -13,7 +13,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       <div class="grid grid-cols-3">
 
         <div class="bg-cyan-800 rounded-lg m-2">
-          <div class="mb-4 text-2xl underline">Material To Order</div>
+          <div class="grid grid-cols-3 mt-2">
+            <div></div>
+            <div class="mb-4 text-2xl underline">Material To Order</div>
+            <div><.button type="button" phx-click="set_all_to_waiting_on_quote">All -></.button></div>
+          </div>
           <div class="grid grid-cols-4 text-lg underline">
             <div>Material</div>
             <div>Amount Needed</div>
@@ -50,7 +54,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
                 </div>
                 <div class="px-2 text-center">
-                  <.button type="button" phx-click="being_quoted" phx-value-id={bar.data.id}>
+                  <.button type="button" phx-click="set_to_waiting_on_quote" phx-value-id={bar.data.id}>
                     ->
                   </.button>
                 </div>
@@ -60,10 +64,14 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         </div>
 
         <div class="bg-cyan-800 rounded-lg m-2">
-          <div class="mb-4 text-2xl underline">Material Wating on a Quote</div>
+          <div class="grid grid-cols-3 mt-2">
+            <div></div>
+            <div class="mb-4 text-2xl underline">Material Wating on a Quote</div>
+            <div><.button type="button" phx-click="set_all_to_material_to_recieve">All -></.button></div>
+          </div>
           <div class="grid grid-cols-5 text-lg underline">
             <div>Material</div>
-            <div>Amount Needed</div>
+            <div>Length</div>
             <div>Vendor</div>
             <div>Price</div>
             <div>On Order</div>
@@ -73,7 +81,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               for={bar}
               id={"bar-#{bar.id}"}
               phx-change="validate_bars_waiting_on_quote"
-              phx-submit="save_to_recieve"
+              phx-submit="save_bars_waiting_on_quote"
             >
               <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
                 <div class="dark-tooltip-container">
@@ -99,8 +107,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                   <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                 </div>
 
-                <div>
-                  <.input field={bar[:vendor]} type="text" />
+                <div class="mr-1">
+                  <.input field={bar[:vendor]} type="text" phx-blur="autofill_vendor" phx-value-id={bar.data.id} />
                   <.input field={bar[:id]} type="hidden" />
                 </div>
 
@@ -322,21 +330,43 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     bars_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
   end
 
-  def handle_event("being_quoted", %{"id" => id}, socket) do
-    bar = Material.get_stocked_material!(id)
-    Material.update_stocked_material(bar, %{being_quoted: true})
+  def handle_event("set_to_waiting_on_quote", %{"id" => id}, socket) do
+    bar_struct = Material.get_stocked_material!(id)
+    Material.update_stocked_material(bar_struct, %{being_quoted: true})
 
-    MaterialCache.update_single_material_size_in_cache(bar.material)
-
+    MaterialCache.update_single_material_size_in_cache(bar_struct.material)
     {:noreply, update_material_forms(socket)}
   end
 
-  def handle_event("save_to_recieve", params, socket) do
+  def handle_event("set_all_to_waiting_on_quote", _params, socket) do
+    bars = socket.assigns.bars_to_order_form
+    Enum.each(bars, fn bar ->
+      bar_struct = Material.get_stocked_material!(bar.data.id)
+      Material.update_stocked_material(bar_struct, %{being_quoted: true})
+    end)
+
+    MaterialCache.update_single_material_size_in_cache(List.first(bars).data.material)
+    {:noreply, update_material_forms(socket)}
+  end
+
+  def handle_event("set_all_to_material_to_recieve", params, socket) do
+    Enum.each(socket.assigns.bars_being_quoted_form, fn bar ->
+      case bar.source.valid? do
+        true ->
+          updated_params = Map.put(bar.params, "being_quoted", false) |> Map.put("ordered", true)
+          Material.update_stocked_material(bar.data, updated_params, :waiting_on_quote)
+        _ -> nil
+      end
+    end)
+    {:noreply, update_material_forms(socket)}
+  end
+
+  def handle_event("save_bars_waiting_on_quote", params, socket) do
     params = params["stocked_material"]
     found_bar = Material.get_stocked_material!(params["id"])
     updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
 
-    case Material.update_stocked_material(found_bar, updated_params) do
+    case Material.update_stocked_material(found_bar, updated_params, :waiting_on_quote) do
       {:ok, stocked_material} ->
         {:noreply, update_material_forms(socket)}
 
@@ -348,7 +378,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               #Map.put(bar, :errors, changeset.errors)
               #|> Map.put(:action, :validate)
               changeset =
-                Material.change_stocked_material(found_bar, params)
+                Material.change_stocked_material(found_bar, params, :waiting_on_quote)
                 |> Map.put(:action, :validate)
 
               to_form(changeset)
@@ -363,8 +393,31 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def handle_event("validate_bars_waiting_on_quote", %{"stocked_material" => params}, socket) do
-    bars = socket.assigns.bars_being_quoted_form
+    {:noreply, validate_bars_waiting_on_quote(params, socket)}
+  end
 
+  def handle_event("autofill_vendor", params, socket) do
+    vendor_list =
+      %{
+        "as" => "Alro Steel",
+        "ap" => "Alro Plastics",
+        "c" => "Castle",
+        "d" => "Durabar"
+      }
+
+    updated_value =
+      case Enum.find(vendor_list, fn {key, value} -> key == params["value"] end) do
+        {_key, value} -> value
+        nil -> params["value"]
+      end
+
+      params = Map.put(params, "vendor", updated_value)
+
+    {:noreply, validate_bars_waiting_on_quote(params, socket)}
+  end
+
+  def validate_bars_waiting_on_quote(params, socket) do
+    bars = socket.assigns.bars_being_quoted_form
     # Determine the form being updated by matching the `id` hidden field
     form_id = Map.get(params, "id")
 
@@ -372,7 +425,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       Enum.map(bars, fn bar ->
         if Integer.to_string(bar.data.id) == form_id do
           changeset =
-            Material.change_stocked_material(bar.data, params)
+            Material.change_stocked_material(bar.data, params, :waiting_on_quote)
             |> Map.put(:action, :validate)
 
           to_form(changeset)
@@ -380,8 +433,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           bar
         end
       end)
-
-    {:noreply, assign(socket, :bars_being_quoted_form, updated_bars)}
+      assign(socket, :bars_being_quoted_form, updated_bars)
   end
 
 end
