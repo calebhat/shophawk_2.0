@@ -142,7 +142,6 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     socket
     |> assign(bars_to_order_form: load_material_to_order(material_list))
     |> assign(bars_being_quoted_form: load_material_being_quoted(material_list))
-    |> assign(bars_on_order_form: load_material_on_order(material_list))
   end
 
   def load_material_to_order(material_list) do
@@ -188,47 +187,6 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
   def load_material_being_quoted(material_list) do
     material_to_order = Material.list_material_being_quoted
-    list_of_sizes =
-      Enum.reduce(material_list, [], fn mat, acc ->
-        [mat.sizes | acc]
-      end)
-      |> List.flatten
-
-    material_with_assignments =
-      Enum.map(material_to_order, fn mat ->
-        found_assignments =
-          Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
-        Map.put(mat, :job_assignments, found_assignments)
-      end)
-
-    sorted_material_to_order =
-      material_with_assignments
-      |> Enum.map(fn material ->
-      [size_str, material_name] =
-        material.material
-        |> String.split("X")
-        |> Enum.map(&String.trim/1)
-
-      size =
-        case Float.parse(size_str) do
-          {size, ""} -> size
-          _ ->
-            case Integer.parse(size_str) do
-              {int_size, ""} -> int_size / 1
-              _ -> 0.0
-            end
-        end
-
-      {size, material_name, material}
-      end)
-      |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
-      |> Enum.map(fn {_, _, material} -> material end)
-
-    bars_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
-  end
-
-  def load_material_on_order(material_list) do
-    material_to_order = Material.list_material_on_order
     list_of_sizes =
       Enum.reduce(material_list, [], fn mat, acc ->
         [mat.sizes | acc]

@@ -67,8 +67,8 @@ defmodule ShophawkWeb.Router do
 
     live "/stockedmaterials", StockedMaterialLive.Index, :index
     live "/stockedmaterials/new", StockedMaterialLive.Index, :new
-    live "/stockedmaterials/material_to_order", StockedMaterialLive.MaterialToOrder, :material_to_order
-    live "/stockedmaterials/receive_material", StockedMaterialLive.ReceiveMaterial, :receive_material
+    live "/stockedmaterials/material_to_order", StockedMaterialLive.MaterialToOrder
+    live "/stockedmaterials/receive_material", StockedMaterialLive.ReceiveMaterial
     live "/stockedmaterials/:id/edit", StockedMaterialLive.Index, :edit
     live "/stockedmaterials/:id", StockedMaterialLive.Show, :show
     live "/stockedmaterials/:id/show/edit", StockedMaterialLive.Show, :edit

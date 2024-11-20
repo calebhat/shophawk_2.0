@@ -171,7 +171,13 @@ defmodule Shophawk.MaterialCache do
 
                 matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
 
-                updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
+                updated_matching_jobboss_material_info =
+                  case matching_jobboss_material_info do
+                    nil -> %{material_name: material_name, location_id: "", on_hand_qty: 0.0}
+                    found_info -> %{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty}
+                  end
+
+                updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, updated_matching_jobboss_material_info)
               _ ->
                 s
             end
