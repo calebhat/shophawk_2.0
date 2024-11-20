@@ -10,12 +10,13 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   @impl true
   @impl true
   def mount(_params, _session, socket) do
+    #reload material into cache with assignments
+    #Shophawk.MaterialCache.create_material_cache
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
 
-    material_needed_to_order_count =
-      Enum.reduce(material_list, 0, fn mat, acc ->
-        acc + mat.mat_reqs_count
-      end)
+    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+    material_on_order_count = Enum.count(Material.list_material_on_order())
+
 
       #IO.inspect(material_needed_to_order_count)
 
@@ -31,6 +32,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       |> assign(:show_related_jobs, false)
       |> assign(:material_name, "")
       |> assign(:material_to_order_count, material_needed_to_order_count)
+      |> assign(:material_on_order_count, material_on_order_count)
 
     {:ok, socket}
   end

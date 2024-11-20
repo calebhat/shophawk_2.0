@@ -1,6 +1,12 @@
 <div>
 
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">
+    
+    <div class="flex items-center">
+      <.link patch={~p"/stockedmaterials/material_to_order"}>
+        <div><.button>To Order: <%= @material_to_order_count %></.button></div>
+      </.link>        
+    </div>
     <div><.button class="" phx-click="test">Reload material</.button></div>
     <div 
       :for={material <- @material_list}
@@ -18,6 +24,11 @@
     </div>
   </div>
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+    <div>
+      <.link patch={~p"/stockedmaterials/receive_material"}>
+        <div class=""><.button class="">Receive</.button></div>
+      </.link>
+    </div>
     <div 
     :for={size <- @selected_sizes}
     class={["flex justify-between items-center w-[6.5rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
@@ -36,32 +47,33 @@
 
   <div class="absolute bg-cyan-900 rounded ml-[17rem] top-[5.71rem] right-[1vw] left-[2vw] bottom-[1rem]">
     <div>
-    <%= if @material_to_order_count > 0 and @size_info == nil do %>
-    <.link patch={~p"/stockedmaterials/material_to_order"}>
-      <div class="pl-8 pt-4 m-4"><.button>Material to Order: <%= @material_to_order_count %></.button></div>
-    </.link>
-    <.link patch={~p"/stockedmaterials/receive_material"}>
-      <div class="m-4"><.button class="">Receive Bars</.button></div>
-    </.link>
-    <% end %>
+      <div class="flex pl-2 pt-2">
+        <%= if @size_info == nil do %>
+          <.link patch={~p"/stockedmaterials/material_to_order"}>
+            <div class=""><.button>To Order: <%= @material_to_order_count %></.button></div>
+          </.link>
+          <.link patch={~p"/stockedmaterials/receive_material"}>
+            <div class="pl-2"><.button class="">To Receive: <%= @material_on_order_count %></.button></div>
+          </.link>        
+        <% end %>
+      </div>
+    
 
       <%= if @size_info != nil do %>
       <div id="main-content" style={if @loading, do: "display: none;"} class="">
-        <div class="pt-4 grid grid-cols-3 text-center content-center">
+        <div class=" grid grid-cols-3 text-center content-center">
           <div class="relative inline-block">
           <div class="grid grid-cols-2">
-            <%= if @material_to_order_count > 0 do %>
+            <div class="flex pl-2">
               <.link patch={~p"/stockedmaterials/material_to_order"}>
-                <div class="m-4"><.button class="" phx-click="test">Material to Order: <%= @material_to_order_count %></.button></div>
+                <div class=""><.button>To Order: <%= @material_to_order_count %></.button></div>
               </.link>
               <.link patch={~p"/stockedmaterials/receive_material"}>
-                <div class="m-4"><.button class="" phx-click="receive_bars">Receive Bars</.button></div>
+                <div class="pl-2"><.button class="">To Receive: <%= @material_on_order_count %></.button></div>
               </.link>
-            <% else %>
-              <div></div>
-            <% end %>
-            <div class="m-4"><.button phx-click="show_related_jobs">Jobs to Saw</.button></div>
             </div>
+            <div class=""><.button phx-click="show_related_jobs">Jobs to Saw</.button></div>
+          </div>
             <%= if @show_related_jobs do %>
              <div class="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-cyan-700 text-stone-200 border border-gray-300 shadow-lg rounded p-4">
               <div :for={job <- @related_jobs} 
@@ -343,8 +355,6 @@
       <% end %>
       <div id="loading-content" class="loader" style={if !@loading, do: "display: none;"}>Loading...</div>
     </div>
-
-
     
   </div>
 </div>

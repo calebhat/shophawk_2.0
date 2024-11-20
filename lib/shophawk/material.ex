@@ -33,6 +33,13 @@ defmodule Shophawk.Material do
     Repo.all(from r in StockedMaterial, where: r.bar_used == false and r.in_house == false and r.ordered == false and r.being_quoted == true)
   end
 
+  def list_material_needed_to_order_and_material_being_quoted do
+    Repo.all(from r in StockedMaterial,
+    where: r.bar_used == false and r.in_house == false,
+    where: r.ordered == true or r.being_quoted == true
+    )
+  end
+
   def list_material_on_order do
     Repo.all(from r in StockedMaterial, where: r.bar_used == false and r.in_house == false and r.ordered == true and r.being_quoted == false)
   end
