@@ -134,11 +134,12 @@ defmodule Shophawk.MaterialCache do
 
     {assigned_material_info, need_to_order_amt} = assign_jobs_to_material(jobs_to_assign, material_on_floor, material)
 
+    #IO.inspect(mat_reqs)
     #remove any empty job_assignments
     assigned_material_info =
       Enum.reduce(assigned_material_info, [], fn bar, acc -> if bar.job_assignments != [], do: [bar.job_assignments | acc], else: acc end)
       |> List.flatten
-    matching_jobs = Enum.map(mat_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty} end) |> Enum.sort_by(&(&1.qty), :asc)
+    matching_jobs = Enum.map(mat_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty, part_length: mat.part_length, make_qty: mat.make_quantity, due_date: mat.due_date, uofm: mat.uofm} end) |> Enum.sort_by(&(&1.qty), :asc)
 
 
       %{

@@ -5,7 +5,7 @@
     <div><.button class="" phx-click="test">Reload material</.button></div>
     <div 
       :for={material <- @material_list}
-      class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
+      class={["flex justify-between items-center ro unded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
       phx-click="load_material"
       phx-value-selected-material={material.material}
       phx-value-selected-size={@selected_size}
@@ -35,71 +35,90 @@
     </div>
   </div>
 
-
-
-
+  <!-- Primary Center block -->
   <div class="absolute bg-cyan-900 rounded ml-[17rem] top-[5.71rem] right-[1vw] left-[2vw] bottom-[1rem]">
     <div>
-      <div class="flex pl-2 pt-2">
+      <!-- to order and receive buttons -->
+      <div class="flex pl-4 pt-2">
         <%= if @size_info == nil do %>
           <.link patch={~p"/stockedmaterials/material_to_order"}>
             <div class=""><.button>To Order: <%= @material_to_order_count %></.button></div>
           </.link>
           <.link patch={~p"/stockedmaterials/receive_material"}>
-            <div class="pl-2"><.button class="">To Receive: <%= @material_on_order_count %></.button></div>
+            <div class="pl-2"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
           </.link>        
         <% end %>
       </div>
     
-
+      <!-- if a size is loaded -->
       <%= if @size_info != nil do %>
       <div id="main-content" style={if @loading, do: "display: none;"} class="">
-        <div class=" grid grid-cols-3 text-center content-center">
+        <div class=" grid grid-cols-3 text-center content-center">          
           
-          
-          
+          <!-- to order and receive buttons -->
           <div class="relative inline-block">
-            <div class="grid grid-cols-2">
-              <div class="flex pl-2">
+            <div class="">
+              
+              <div class="flex pl-4">
                 <.link patch={~p"/stockedmaterials/material_to_order"}>
-                  <div class=""><.button>To Order: <%= @material_to_order_count %></.button></div>
+                  <div class="flex-1"><.button>To Order: <%= @material_to_order_count %></.button></div>
                 </.link>
                 <.link patch={~p"/stockedmaterials/receive_material"}>
-                  <div class="pl-2"><.button class="">To Receive: <%= @material_on_order_count %></.button></div>
+                  <div class="pl-2 flex-1"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
                 </.link>
               </div>
-              <div class=""><.button phx-click="show_related_jobs">Jobs to Saw</.button></div>
             </div>
-            <%= if @show_related_jobs do %>
-             <div class="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-cyan-700 text-stone-200 border border-gray-300 shadow-lg rounded p-4">
-              <div :for={job <- @related_jobs} 
-              class="py-0.5 font-semibold rounded hover:bg-cyan-500 hover:cursor-pointer hover:text-black" 
-              phx-click="show_job" 
-              phx-value-job={job.job}>
-                <div class="m-1">
-                <%= "#{job.job} - #{job.qty} ft" %>
-                </div>
-              </div>
-            </div>
-            <% end %>
+           
           </div>
 
-
-          <div class="text-stone-200 text-4xl underline"><%= @size_info.material_name %> - On Hand: <%= @size_info.on_hand_qty %> - need to order: <%= @size_info.need_to_order_amt %></div>
+          <div class="text-stone-200 text-4xl underline">
+            <%= @size_info.material_name %>
+          </div>
+            
           <div><.button class="w-20" phx-click="test">hi</.button>
             <.link patch={~p"/stockedmaterials/new"}>
               <.button>New Stocked material</.button>
             </.link>
           </div>
-        </div>
-        <div class="grid grid-cols-3 m-2">
-          <div>
-            
-          </div>
 
+          </div>
+        <!-- main grid -->
+        <div class="grid grid-cols-10 m-2 text-stone-200">
+          <!-- Info -->
+          <div class="col-span-2">
+            <div class="bg-cyan-800 rounded-lg p-2 mx-2 mb-2">
+              <ul>
+                <li>On Hand: <%= @size_info.on_hand_qty %></li>
+                <li>need to order: <%= @size_info.need_to_order_amt %></li>
+              </ul>
+            </div>
+            <div class="bg-cyan-800 rounded-lg p-2 mx-2">
+              <div class="text-xl text-center mb-2">Jobs to Saw</div>
+              <table class="table-auto w-full mb-2">
+                <thead>
+                  <tr class="border-b text-center">
+                    <td >Job</td>
+                    <td>Length</td>
+                    <td>Qty</td>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for job <- @related_jobs do %>  
+                  <tr phx-click="show_job" phx-value-job={job.job} class="py-0.5 font-semibold rounded hover:bg-cyan-500 hover:cursor-pointer hover:text-black text-center">                   
+                    <td><%= job.job %></td>
+                    <td><%= job.part_length %>"</td>
+                    <td><%= job.make_qty %></td>
+                  </tr>
+                <% end %>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
           
-          <div>
-            <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
+          <!-- Bars -->
+          <div class="col-span-5">
+            <div class="bg-cyan-800 rounded-lg p-4 mx-2">
               <div class="grid grid-cols-3 pb-2">
                 <div></div>
                 <div class="text-xl underline text-center">Bars</div>    
@@ -118,7 +137,8 @@
                 >
                   <div class="flex p-1">
                     <div class="grow relative dark-tooltip-container">
-                      <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
+                      <div class="bg-black rounded-md text-left h-full max-w-full"                       
+                      style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%;"}>
                         <span class="absolute inset-0 flex justify-center items-center">
                           <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                         </span>
@@ -127,17 +147,16 @@
                         <div class="relative h-full w-full">
                           <%= for assignment <- bar.data.job_assignments do %>
                             <div
-                              class="absolute h-full border border-dashed border-violet-500 "
+                              class="absolute rounded-md h-full border-2 border-stone-500"
                               style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
                             >
                             </div>
                           <% end %>
-                          <div class="tooltip mt-14 mr-10" style="z-index: 12;">
+                          <div class="tooltip mt-14 ml-8" style="z-index: 12;">
                             <.fixed_widths_table_with_show_job 
                             id="bar_assignments" 
                             rows={Enum.reverse(bar.data.job_assignments)} 
-                            row_click={fn row_data -> "show_job" end}
-                            
+                            row_click={fn _row_data -> "show_job" end}
                             >                            
                               <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
                               <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
@@ -194,6 +213,7 @@
 
             <br>
 
+            <!-- bars to order -->
             <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
               <div class="grid grid-cols-3 pb-2">
                 <div></div>
@@ -213,7 +233,7 @@
                 >
                   <div class="flex p-1">
                     <div class="grow relative dark-tooltip-container">
-                      <div class="bg-black rounded text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
+                      <div class="bg-black rounded-md text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
                         <span class="absolute inset-0 flex justify-center items-center">
                           <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                         </span>
@@ -222,7 +242,7 @@
                         <div class="relative h-full w-full">
                           <%= for assignment <- bar.data.job_assignments do %>
                             <div
-                              class="absolute h-full border border-dashed border-violet-500 "
+                              class="absolute rounded-md h-full border-2 border-stone-500"
                               style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
                             >
                             </div>
@@ -231,7 +251,7 @@
                             <.fixed_widths_table_with_show_job 
                             id="bar_assignments" 
                             rows={Enum.reverse(bar.data.job_assignments)} 
-                            row_click={fn row_data -> "show_job" end}
+                            row_click={fn _row_data -> "show_job" end}
                             >                            
                               <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
                               <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
@@ -282,7 +302,9 @@
             </div>
 
           </div>
-          <div>
+
+          <!-- Slugs -->
+          <div class="col-span-3">
             <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
               <div class="grid grid-cols-3">
                 <div></div>
@@ -337,7 +359,7 @@
                             <.fixed_widths_table_with_show_job 
                             id="bar_assignments" 
                             rows={Enum.reverse(bar.data.job_assignments)} 
-                            row_click={fn row_data -> "show_job" end}
+                            row_click={fn _row_data -> "show_job" end}
                             >             
                               <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
                               <:col :let={bar} label="Slugs to use" width="w-16"><%= bar.slug_qty %></:col>
@@ -349,6 +371,7 @@
               </div>
             </div>
           </div>
+
         </div>
 
       </div>

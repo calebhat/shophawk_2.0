@@ -284,6 +284,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def showjob(socket, job) do
     {job_ops, job_info} = Shop.list_job(job)
+    IO.inspect(job_info)
     socket
     |> assign(id: job)
     |> assign(page_title: "Job #{job}")

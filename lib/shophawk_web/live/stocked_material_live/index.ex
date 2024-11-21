@@ -27,7 +27,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       |> assign(:selected_size, "0.0")
       |> assign(:loading, false)
       |> assign(:size_info, nil)
-      |> assign(:show_related_jobs, false)
       |> assign(:material_name, "")
       |> assign(:material_to_order_count, material_needed_to_order_count)
       |> assign(:material_on_order_count, material_on_order_count)
@@ -183,9 +182,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     else
       {:noreply, socket}
     end
-  end
-
-  def handle_event("show_related_jobs", _params, socket), do: {:noreply, assign(socket, :show_related_jobs, !socket.assigns.show_related_jobs)}
+end
 
   ###### Showjob and attachments downloads ########
   def handle_event("show_job", %{"job" => job}, socket), do: {:noreply, ShophawkWeb.RunlistLive.Index.showjob(socket, job)}
@@ -249,19 +246,21 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
         %{bar | job_assignments: assigned_jobs}
       end)
     bar_in_stock_list = Enum.filter(single_material_and_size, fn bar -> bar.bar_length != nil && bar.in_house == true end) |> Enum.sort_by(&(&1.bar_length))
+
     bars_in_stock_changeset = Enum.map(bar_in_stock_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
     bar_to_order_list = Enum.filter(single_material_and_size, fn bar -> bar.bar_length != nil && bar.in_house == false end) |> Enum.sort_by(&(&1.bar_length))
     bars_to_order_changeset = Enum.map(bar_to_order_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
     slugs_list = Enum.filter(single_material_and_size, fn slug -> slug.slug_length != nil end) |> Enum.sort_by(&(&1.slug_length))
     slugs_changeset = Enum.map(slugs_list, fn slug -> Material.change_stocked_material(slug, %{}) |> to_form() end)
-    related_jobs = Enum.find(socket.assigns.selected_sizes, fn size -> size.size == String.to_float(socket.assigns.selected_size) end).matching_jobs
+    related_jobs =
+      Enum.find(socket.assigns.selected_sizes, fn size -> size.size == String.to_float(socket.assigns.selected_size) end).matching_jobs
+      |> Enum.sort_by(&(&1.due_date), Date)
 
     socket
     |> assign(bars_in_stock_form: bars_in_stock_changeset)
     |> assign(bars_to_order_form: bars_to_order_changeset)
     |> assign(slugs_form: slugs_changeset)
     |> assign(related_jobs: related_jobs) #list of job numbers to saw for material
-    |> assign(show_related_jobs: false) #toggles div from "jobs to saw" button
   end
 
   def calc_left_offset(assignments, current_assignment) do
@@ -300,7 +299,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   ##### Functions ran during HTML generation from heex template #####
   defp set_bg_color(entity, selected_entity) do
-    selected_entity = if is_float(selected_entity) == true, do: String.to_float(selected_entity), else: selected_entity
+    selected_entity = if is_float(selected_entity) == true, do: Float.to_string(selected_entity), else: selected_entity
     if selected_entity == entity, do: "bg-cyan-500 ml-2", else: "bg-stone-200"
   end
 
