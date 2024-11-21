@@ -47,7 +47,6 @@ defmodule Shophawk.RunlistFixtures do
         vendor: "some vendor",
         wc_vendor: "some wc_vendor"
       })
-      |> Shophawk.Runlist.create_operation()
 
     operation
   end

@@ -5,6 +5,7 @@ defmodule Shophawk.Material.StockedMaterial do
   schema "stockedmaterials" do
     field :material, :string
     field :bar_length, :float
+    field :original_bar_length, :float
     field :slug_length, :float
     field :number_of_slugs, :integer
     field :purchase_date, :date
@@ -27,7 +28,7 @@ defmodule Shophawk.Material.StockedMaterial do
   @doc false
   def changeset(stocked_material, attrs) do
     stocked_material
-    |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
+    |> cast(attrs, [:material, :bar_length, :original_bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
     |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used])
     |> round_floats()
   end
@@ -43,8 +44,8 @@ defmodule Shophawk.Material.StockedMaterial do
 
   def changeset_material_receiving(stocked_material, attrs) do
     stocked_material
-    |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
-    |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :bar_length])
+    |> cast(attrs, [:material, :bar_length, :original_bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
+    |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :bar_length, :original_bar_length])
     |> validate_number(:bar_length, greater_than_or_equal_to: 0, message: "Must be positive")
     |> round_floats()
   end

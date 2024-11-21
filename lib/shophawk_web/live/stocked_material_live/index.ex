@@ -1,13 +1,11 @@
 defmodule ShophawkWeb.StockedMaterialLive.Index do
   use ShophawkWeb, :live_view
 
-  alias Shophawk.StockedmaterialLive.SelectedMaterial
   alias Shophawk.Material
   alias Shophawk.Material.StockedMaterial
   alias Shophawk.Jobboss_db
-  alias Shopahawk.MaterialCache
+  alias Shophawk.MaterialCache
 
-  @impl true
   @impl true
   def mount(_params, _session, socket) do
     #reload material into cache with assignments
@@ -111,14 +109,14 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       nil -> Material.delete_stocked_material(found_bar)
       _ -> Material.update_stocked_material(found_bar , %{slug_length: nil, bar_length: nil, bar_used: true})
     end
-    Shophawk.MaterialCache.update_single_material_size_in_cache(found_bar.material)
+    MaterialCache.update_single_material_size_in_cache(found_bar.material)
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
   def handle_event("make_slug", %{"selected-size" => selected_size, "selected-material" => selected_material, "id" => id}, socket) do
     found_bar = Material.get_stocked_material!(id)
     Material.update_stocked_material(found_bar , %{slug_length: found_bar.bar_length, number_of_slugs: 1, bar_length: nil})
-    Shophawk.MaterialCache.update_single_material_size_in_cache(found_bar.material)
+    MaterialCache.update_single_material_size_in_cache(found_bar.material)
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
@@ -151,11 +149,11 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       |> Map.put(:bar_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
       |> Map.put(:slug_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
       |> Map.put(:saved, true)
-    {:ok, saved_material} = Material.update_stocked_material(found_bar, stocked_material_params |> Map.delete("id"))
+    {:ok, saved_material} = Material.update_stocked_material(found_bar, stocked_material_params)
 
     #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
     #Currently this function re-checks for new mat_reqs in JB, change to only update current reqs?
-    Shophawk.MaterialCache.update_single_material_size_in_cache(saved_material.material)
+    MaterialCache.update_single_material_size_in_cache(saved_material.material)
 
     {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
   end
@@ -195,7 +193,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   def handle_event("attachments", _, socket) do
     job = socket.assigns.id
     #[{:data, attachments}] = :ets.lookup(:job_attachments, :data)
-    attachments = Shophawk.Jobboss_db.export_attachments(job)
+    attachments = Jobboss_db.export_attachments(job)
     socket =
       socket
       |> assign(id: job)
@@ -216,7 +214,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   def handle_event("test", _params, socket) do
 
-    Shophawk.MaterialCache.create_material_cache
+    MaterialCache.create_material_cache
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     {:noreply, socket |> assign(:material_list, material_list)}
   end
@@ -246,7 +244,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       |> Enum.map(fn bar ->
         assigned_jobs =
           Enum.reduce(material_info.assigned_material_info, [], fn job, acc ->
-            acc = if job.material_id == bar.id, do: [job | acc], else: acc
+            if job.material_id == bar.id, do: [job | acc], else: acc
           end)
         %{bar | job_assignments: assigned_jobs}
       end)
@@ -286,7 +284,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
           Enum.find(material_that_needs_cutting, fn map ->
             case String.split(map.material_info.material_name, "X", parts: 2) do
               [_] -> nil
-              [size, material_name] -> material_name == material.material
+              [_size, material_name] -> material_name == material.material
             end
           end)
 
@@ -302,7 +300,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   ##### Functions ran during HTML generation from heex template #####
   defp set_bg_color(entity, selected_entity) do
-    selected_entity = if is_float(selected_entity) == true, do: Float.to_string(selected_entity), else: selected_entity
+    selected_entity = if is_float(selected_entity) == true, do: String.to_float(selected_entity), else: selected_entity
     if selected_entity == entity, do: "bg-cyan-500 ml-2", else: "bg-stone-200"
   end
 

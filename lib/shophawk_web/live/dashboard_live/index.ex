@@ -135,7 +135,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
     checkbook_entries_as_strings = #journal entries from 30 days before last bank statement
       Enum.map(checkbook_entries, fn entry ->
-      entry = Map.put(entry, :amount, Float.to_string(entry.amount, decimals: 2)) end)
+        Map.put(entry, :amount, :erlang.float_to_binary(entry.amount, [{:decimals, 2}]))
+      end)
 
     current_balance =
       Enum.filter(checkbook_entries, fn entry -> Date.after?(entry.transaction_date, last_statement.statement_date) end)
@@ -440,11 +441,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
         series: Enum.map(top_ten_customers, &(&1.sales)) ++ [rest_of_customers_sales],
         labels: Enum.map(top_ten_customers, &(&1.customer)) ++ ["All Customers Minus the Top 10"]
       }
-    socket =
-      socket
-      |> assign(:yearly_sales_data, Jason.encode!(yearly_sales_data))
-      |> assign(:total_sales, total_sales)
-      |> assign(:complete_yearly_sales_data, yearly_sales_data)
+
+    socket
+    |> assign(:yearly_sales_data, Jason.encode!(yearly_sales_data))
+    |> assign(:total_sales, total_sales)
+    |> assign(:complete_yearly_sales_data, yearly_sales_data)
   end
 
   def load_late_shipments(socket) do

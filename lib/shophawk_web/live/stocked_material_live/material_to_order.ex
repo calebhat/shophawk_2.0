@@ -39,7 +39,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                         <.fixed_widths_table_with_show_job
                         id="bar_assignments"
                         rows={Enum.reverse(bar.data.job_assignments)}
-                        row_click={fn row_data -> "show_job" end}
+                        row_click={fn _row_data -> "show_job" end}
                         >
                           <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
                           <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
@@ -93,7 +93,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                         <.fixed_widths_table_with_show_job
                         id="bar_assignments"
                         rows={Enum.reverse(bar.data.job_assignments)}
-                        row_click={fn row_data -> "show_job" end}
+                        row_click={fn _row_data -> "show_job" end}
                         >
                           <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
                           <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
@@ -132,7 +132,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   @impl true
-  def mount(params, _session, socket) do
+  def mount(_params, _session, socket) do
     #IO.inspect(params)
     {:ok, update_material_forms(socket)}
   end
@@ -155,7 +155,10 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     material_with_assignments =
       Enum.map(material_to_order, fn mat ->
         found_assignments =
-          Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
+          case Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end) do
+            nil -> []
+            found_size -> found_size.assigned_material_info
+          end
         Map.put(mat, :job_assignments, found_assignments)
       end)
 
@@ -182,7 +185,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
       |> Enum.map(fn {_, _, material} -> material end)
 
-    bars_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+    Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
   end
 
   def load_material_being_quoted(material_list) do
@@ -223,9 +226,10 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
       |> Enum.map(fn {_, _, material} -> material end)
 
-    bars_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+    Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
   end
 
+  @impl true
   def handle_event("set_to_waiting_on_quote", %{"id" => id}, socket) do
     bar_struct = Material.get_stocked_material!(id)
     Material.update_stocked_material(bar_struct, %{being_quoted: true})
@@ -245,7 +249,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     {:noreply, update_material_forms(socket)}
   end
 
-  def handle_event("set_all_to_material_to_recieve", params, socket) do
+  def handle_event("set_all_to_material_to_recieve", _params, socket) do
     Enum.each(socket.assigns.bars_being_quoted_form, fn bar ->
       case bar.source.valid? do
         true ->
@@ -263,10 +267,10 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
 
     case Material.update_stocked_material(found_bar, updated_params, :waiting_on_quote) do
-      {:ok, stocked_material} ->
+      {:ok, _stocked_material} ->
         {:noreply, update_material_forms(socket)}
 
-      {:error, changeset} ->
+      {:error, _changeset} ->
         bars = socket.assigns.bars_being_quoted_form
         updated_bars =
           Enum.map(bars, fn bar ->
@@ -302,7 +306,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       }
 
     updated_value =
-      case Enum.find(vendor_list, fn {key, value} -> key == params["value"] end) do
+      case Enum.find(vendor_list, fn {key, _value} -> key == params["value"] end) do
         {_key, value} -> value
         nil -> params["value"]
       end

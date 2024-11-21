@@ -48,7 +48,7 @@ defmodule Shophawk.MaterialCache do
               end
 
               #variables going into the function are correct. Something is wrong with how the list of being saved I think.
-              updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
+              populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
 
           end)
         Map.put(mat, :sizes, sizes)
@@ -124,7 +124,7 @@ defmodule Shophawk.MaterialCache do
     #mat_reqs = list of job requirements for said material
     #material_on_floor = bars/slugs in house
     #material_info = info from jobboss including jobboss stock amount
-    [size, material_name] = String.split(s.material_name, "X", parts: 2)
+    [size, _material_name] = String.split(s.material_name, "X", parts: 2)
 
     jobs_to_assign =
       Enum.map(mat_reqs, fn job ->
@@ -141,7 +141,6 @@ defmodule Shophawk.MaterialCache do
     matching_jobs = Enum.map(mat_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty} end) |> Enum.sort_by(&(&1.qty), :asc)
 
 
-    updated_size =
       %{
       size: convert_string_to_float(size),
       jobs_using_size: Enum.count(mat_reqs),
@@ -177,7 +176,7 @@ defmodule Shophawk.MaterialCache do
                     found_info -> %{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty}
                   end
 
-                updated_size = populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, updated_matching_jobboss_material_info)
+                populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, updated_matching_jobboss_material_info)
               _ ->
                 s
             end
@@ -300,7 +299,6 @@ defmodule Shophawk.MaterialCache do
           {updated_map, _cumulative_percentage} =
             Enum.reduce(bar.job_assignments, {[], 0.0}, fn map, {acc, cumulative_percentage} ->
               percentage_of_bar = map.length_to_use / bar.bar_length * 100.0
-              left_offset =
               updated_assignments =
                 Map.put(map, :percentage_of_bar, percentage_of_bar)
                 |> Map.put(:left_offset, cumulative_percentage)

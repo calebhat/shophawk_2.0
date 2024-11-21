@@ -79,7 +79,12 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
   end
 
   defp save_stocked_material(socket, :new, stocked_material_params) do
-    case Material.create_stocked_material(stocked_material_params) do
+    updated_stocked_material_params =
+      case stocked_material_params["bar_length"] do
+        nil -> stocked_material_params
+        length -> Map.put(stocked_material_params, "original_bar_length", length)
+      end
+    case Material.create_stocked_material(updated_stocked_material_params) do
       {:ok, stocked_material} ->
         notify_parent({:saved, stocked_material})
 

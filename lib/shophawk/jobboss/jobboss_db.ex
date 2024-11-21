@@ -19,7 +19,6 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_address
     alias Shophawk.Jb_material
     alias Shophawk.Jb_material_location
-    alias Shophawk.Material
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
 

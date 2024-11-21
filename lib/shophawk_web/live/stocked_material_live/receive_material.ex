@@ -2,7 +2,6 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
   use ShophawkWeb, :live_view
 
   alias Shophawk.Material
-  alias Shophawk.MaterialCache
   #import ShophawkWeb.StockedMaterialLive.Index
 
   @impl true
@@ -38,7 +37,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                                 <.fixed_widths_table_with_show_job
                                 id="bar_assignments"
                                 rows={Enum.reverse(bar.data.job_assignments)}
-                                row_click={fn row_data -> "show_job" end}
+                                row_click={fn _row_data -> "show_job" end}
                                 >
                                   <:col :let={bar} label="Job" width=""><%= bar.job %></:col>
                                   <:col :let={bar} label="Length" width=""><%= bar.length_to_use %>"</:col>
@@ -91,13 +90,13 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
   end
 
   @impl true
-  def mount(params, _session, socket) do
-    IO.inspect("here first")
+  def mount(_params, _session, socket) do
     {:ok, socket}
   end
 
-  def handle_params(params, _uri, socket) do
-    IO.inspect("here")
+  @impl true
+  def handle_params(_params, _uri, socket) do
+
     {:noreply, update_material_forms(socket)}
   end
 
@@ -144,7 +143,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
       |> Enum.map(fn {_, _, material} -> material end)
 
-    bars_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+    Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
   end
 
   def sort_by_vendor(bars_to_order_changeset) do
@@ -156,14 +155,15 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
     end)
     |> Enum.sort()
 
-    sorted_changeset =
-      Enum.map(list_of_vendors, fn vendor ->
-        Enum.reduce(bars_to_order_changeset, [], fn bar, acc ->
-          if bar.data.vendor == vendor, do: acc ++ [bar], else: acc
-        end)
+
+    Enum.map(list_of_vendors, fn vendor ->
+      Enum.reduce(bars_to_order_changeset, [], fn bar, acc ->
+        if bar.data.vendor == vendor, do: acc ++ [bar], else: acc
       end)
+    end)
   end
 
+  @impl true
   def handle_event("validate_bar_to_receive", %{"stocked_material" => params}, socket) do
     {:noreply, validate_bar_to_receive(params, socket)}
   end
@@ -172,12 +172,17 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
     params = params["stocked_material"]
     found_bar = Material.get_stocked_material!(params["id"])
     updated_params = Map.put(params, "ordered", false) |> Map.put("in_house", true)
+    updated_params =
+      case updated_params["bar_length"] do
+        nil -> updated_params
+        length -> Map.put(updated_params, "original_bar_length", length)
+      end
 
     case Material.update_stocked_material(found_bar, updated_params, :receive) do
-      {:ok, stocked_material} ->
+      {:ok, _stocked_material} ->
         {:noreply, update_material_forms(socket)}
 
-      {:error, changeset} ->
+      {:error, _changeset} ->
         bars = socket.assigns.bars_on_order_form
         updated_bars =
           Enum.map(bars, fn bar ->

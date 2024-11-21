@@ -680,7 +680,7 @@ defmodule ShophawkWeb.CoreComponents do
       <table class="w-[40rem] mt-4 sm:w-full">
         <thead class="text-lgleading-6 text-white text-center">
           <tr>
-            <th :for={col <- @col} class="p-0 pr-6 pb-4 font-normal"></th>
+            <th :for={col <- @col} class="p-0 pr-6 pb-4 font-normal"><%= col[:label] %></th>
 
           </tr>
         </thead>

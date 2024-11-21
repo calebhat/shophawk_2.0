@@ -156,6 +156,10 @@ end
     {:noreply, assign_form(socket, changeset)}
   end
 
+  def handle_event("save", %{"slideshow" => slideshow_params}, socket) do
+    save_slideshow(socket, socket.assigns.action, slideshow_params)
+  end
+
   def toggle_closed_hours(day, params) do
 
     case Map.get(params, day) do
@@ -202,16 +206,12 @@ end
   def set_closed_hours(day, week, params) do
     open = "#{day}o#{week}"
     close = "#{day}c#{week}"
-    params = Map.put(params, open, "") |> Map.put(close, "")
+    Map.put(params, open, "") |> Map.put(close, "")
   end
   def set_open_hours(day, week, params) do
     open = "#{day}o#{week}"
     close = "#{day}c#{week}"
-    params = Map.put(params, open, "07:00") |> Map.put(close, "16:00")
-  end
-
-  def handle_event("save", %{"slideshow" => slideshow_params}, socket) do
-    save_slideshow(socket, socket.assigns.action, slideshow_params)
+    Map.put(params, open, "07:00") |> Map.put(close, "16:00")
   end
 
   defp save_slideshow(socket, :edit, slideshow_params) do
