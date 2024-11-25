@@ -95,6 +95,7 @@
                 <li>need to order: <%= @size_info.need_to_order_amt %></li>
               </ul>
             </div>
+            <%= if @related_jobs != [] do %>
             <div class="bg-cyan-800 rounded-lg p-2 mx-2">
               <div class="text-xl text-center mb-2">Jobs to Saw</div>
               <table class="table-auto w-full mb-2">
@@ -116,11 +117,13 @@
                 </tbody>
               </table>
             </div>
+            <% end %>
 
           </div>
           
           <!-- Bars -->
           <div class="col-span-5">
+          <!-- bars in stock -->
             <div class="bg-cyan-800 rounded-lg p-4 mx-2">
               <div class="grid grid-cols-3 pb-2">
                 <div></div>
@@ -221,17 +224,13 @@
               <div class="grid grid-cols-3 pb-2">
                 <div></div>
                 <div class="text-xl underline text-center">Bars To Order</div>    
-                <div class="text-center">
-                  <.button type="button" phx-click="new_bar" phx-value-selected-material={@selected_material} phx-value-selected-size={@selected_size}>
-                    New Bar
-                  </.button>
-                </div>    
+                <div class="text-center"></div>    
               </div>      
               <div :for={bar <- @bars_to_order_form}>
                 <.form
                   for={bar}
                   id={"bar-#{bar.id}"}
-                  phx-change="validate_bars"
+                  phx-change="validate_bars_to_order"
                   phx-submit="save_material"
                 >
                   <div class="flex p-1">

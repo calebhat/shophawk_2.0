@@ -47,8 +47,7 @@ defmodule Shophawk.MaterialCache do
                 found_info -> %{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty}
               end
 
-              #variables going into the function are correct. Something is wrong with how the list of being saved I think.
-              populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
+            populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
 
           end)
         Map.put(mat, :sizes, sizes)
@@ -142,6 +141,7 @@ defmodule Shophawk.MaterialCache do
     matching_jobs = Enum.map(mat_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty, part_length: mat.part_length, make_qty: mat.make_quantity, due_date: mat.due_date, uofm: mat.uofm} end) |> Enum.sort_by(&(&1.qty), :asc)
 
 
+    _bar_with_assignments =
       %{
       size: convert_string_to_float(size),
       jobs_using_size: Enum.count(mat_reqs),

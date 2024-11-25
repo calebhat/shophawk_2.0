@@ -16,7 +16,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     material_on_order_count = Enum.count(Material.list_material_on_order())
 
 
-      #IO.inspect(material_needed_to_order_count)
+
 
     #material_list = if connected?(socket), do: Jobboss_db.load_materials_and_sizes_into_cache(), else: []
     socket =
@@ -33,7 +33,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
     {:ok, socket}
   end
-
 
   @impl true
   def handle_params(params, _url, socket) do
@@ -84,6 +83,24 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
           bars_to_order_changeset  = Enum.map(bar_to_order_list , fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
 
         assign(socket, bars_to_order_form: bars_to_order_changeset)
+      end
+    {:noreply, socket}
+  end
+
+  def handle_event("validate_bars_to_order", %{"stocked_material" => stocked_material_params}, socket) do
+    found_bar = Material.get_stocked_material!(stocked_material_params["id"]) |> Map.put(:saved, false)
+    socket =
+      if found_bar.in_house == false do
+        bar_to_order_list =
+          Material.list_stocked_material_by_material(found_bar.material) |> Enum.sort_by(&(&1.bar_length))
+          |> Enum.reject(fn mat -> mat.in_house == true end) #reject bars in stock
+          |> Enum.reject(fn mat -> mat.bar_length == nil end) #reject slugs
+          |> Enum.map(fn bar -> if bar.id == found_bar.id, do: found_bar, else: bar end)
+
+        bars_to_order_changeset = Enum.map(bar_to_order_list, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+
+        assign(socket, bars_to_order_form: bars_to_order_changeset)
+
       end
     {:noreply, socket}
   end

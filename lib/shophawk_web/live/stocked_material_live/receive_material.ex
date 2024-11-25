@@ -180,6 +180,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
 
     case Material.update_stocked_material(found_bar, updated_params, :receive) do
       {:ok, _stocked_material} ->
+        Shophawk.MaterialCache.update_single_material_size_in_cache(found_bar.material)
         {:noreply, update_material_forms(socket)}
 
       {:error, _changeset} ->

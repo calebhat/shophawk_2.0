@@ -13,14 +13,15 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       <div class="grid grid-cols-2">
 
         <div class="bg-cyan-800 rounded-lg mr-4 p-4">
-          <div class="grid grid-cols-3 mt-2">
+          <div class="grid grid-cols-5 mt-2">
             <div></div>
-            <div class="mb-4 text-2xl underline">Material To Order</div>
+            <div class="mb-4 text-2xl underline col-span-3">Material To Order</div>
             <div><.button type="button" phx-click="set_all_to_waiting_on_quote">All -></.button></div>
           </div>
-          <div class="grid grid-cols-4 text-lg underline">
+          <div class="grid grid-cols-5 text-lg underline">
             <div>Material</div>
             <div>Length Needed</div>
+            <div>On Hand</div>
             <div>12 Month Usage</div>
             <div>Request sent</div>
           </div>
@@ -29,35 +30,42 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               for={bar}
               id={"bar-#{bar.id}"}
             >
-              <div class="grid grid-cols-4 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
+              <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
                 <div class="dark-tooltip-container">
-                    <%= "#{bar.data.material}" %>
-                    <!-- Loop through job assignments and display colored sections -->
-                    <div class="relative h-full w-full">
+                  <%= "#{bar.data.material}" %>
+                  <!-- Loop through job assignments and display colored sections -->
+                  <div class="relative h-full w-full">
 
-                      <div class="tooltip ml-12 w-60" style="z-index: 12;">
-                        <.fixed_widths_table_with_show_job
-                        id="bar_assignments"
-                        rows={Enum.reverse(bar.data.job_assignments)}
-                        row_click={fn _row_data -> "show_job" end}
-                        >
-                          <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                          <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
-                          <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
-                        </.fixed_widths_table_with_show_job>
-                      </div>
+                    <div class="tooltip ml-12 w-60" style="z-index: 12;">
+                      <.fixed_widths_table_with_show_job
+                      id="bar_assignments"
+                      rows={Enum.reverse(bar.data.job_assignments)}
+                      row_click={fn _row_data -> "show_job" end}
+                      >
+                        <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                        <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
+                        <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
+                      </.fixed_widths_table_with_show_job>
                     </div>
-
+                  </div>
                 </div>
-                  <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
+
+                <div><%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %></div>
+
+                <div>
+                <%= bar.data.on_hand_qty %> ft
+                </div>
+
                 <div>
 
                 </div>
+
                 <div class="px-2 text-center">
                   <.button type="button" phx-click="set_to_waiting_on_quote" phx-value-id={bar.data.id}>
                     ->
                   </.button>
                 </div>
+
               </div>
             </.form>
           </div>
@@ -133,7 +141,6 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
   @impl true
   def mount(_params, _session, socket) do
-    #IO.inspect(params)
     {:ok, update_material_forms(socket)}
   end
 
@@ -162,8 +169,21 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         Map.put(mat, :job_assignments, found_assignments)
       end)
 
+    material_with_info =
+      Enum.map(material_with_assignments, fn mat ->
+        [size_string, name] = String.split(mat.material, "X", parts: 2)
+        found_material = Enum.find(material_list, fn m -> name == m.material end).sizes
+        if found_material == nil, do: IO.inspect(found_material)
+
+        size_info = Enum.find(found_material, fn size -> size.size == convert_string_to_float(size_string) end)
+
+        Map.put(mat, :on_hand_qty, size_info.on_hand_qty)
+        |> IO.inspect
+      end)
+
+
     sorted_material_to_order =
-      material_with_assignments
+      material_with_info
       |> Enum.map(fn material ->
       [size_str, material_name] =
         material.material
@@ -334,6 +354,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         end
       end)
       assign(socket, :bars_being_quoted_form, updated_bars)
+  end
+
+  def convert_string_to_float(string) do
+    string = if String.at(string, 0) == ".", do: "0" <> string, else: string
+    elem(Float.parse(string), 0)
   end
 
 end

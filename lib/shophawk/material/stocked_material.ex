@@ -16,6 +16,7 @@ defmodule Shophawk.Material.StockedMaterial do
     field :in_house, :boolean, default: false
     field :bar_used, :boolean, default: false
     field :extra_bar_for_receiving, :boolean, default: false
+
     field :saved, :boolean, default: true, virtual: true
     #field :enough_bar_for_job, :boolean, default: true, virtual: true
     field :job_assignments, {:array, :map}, default: [], virtual: true
@@ -34,6 +35,14 @@ defmodule Shophawk.Material.StockedMaterial do
   end
 
   #includes extra validations
+  @spec material_waiting_on_quote_changeset(
+          {map(), map()}
+          | %{
+              :__struct__ => atom() | %{:__changeset__ => any(), optional(any()) => any()},
+              optional(atom()) => any()
+            },
+          :invalid | %{optional(:__struct__) => none(), optional(atom() | binary()) => any()}
+        ) :: Ecto.Changeset.t()
   def material_waiting_on_quote_changeset(stocked_material, attrs) do
     stocked_material
     |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
