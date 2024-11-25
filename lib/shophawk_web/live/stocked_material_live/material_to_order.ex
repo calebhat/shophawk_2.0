@@ -36,7 +36,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                   <!-- Loop through job assignments and display colored sections -->
                   <div class="relative h-full w-full">
 
-                    <div class="tooltip ml-12 w-60" style="z-index: 12;">
+                    <div class="tooltip ml-8 w-60" style="z-index: 12;">
                       <.fixed_widths_table_with_show_job
                       id="bar_assignments"
                       rows={Enum.reverse(bar.data.job_assignments)}
@@ -97,7 +97,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                     <!-- Loop through job assignments and display colored sections -->
                     <div class="relative h-full w-full">
 
-                      <div class="tooltip ml-12 w-60" style="z-index: 12;">
+                      <div class="tooltip ml-8 w-60" style="z-index: 12;">
                         <.fixed_widths_table_with_show_job
                         id="bar_assignments"
                         rows={Enum.reverse(bar.data.job_assignments)}
@@ -133,6 +133,29 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           </div>
         </div>
 
+      </div>
+
+      <div class="text-black">
+        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials/material_to_order")}>
+        <.live_component
+            module={ShophawkWeb.RunlistLive.ShowJob}
+            id={@id || :show_job}
+            job_ops={@job_ops}
+            job_info={@job_info}
+            title={@page_title}
+            action={@live_action}
+        />
+        </.modal>
+
+        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
+        <.live_component
+            module={ShophawkWeb.RunlistLive.JobAttachments}
+            id={@id || :job_attachments}
+            attachments={@attachments}
+            title={@page_title}
+            action={@live_action}
+        />
+        </.modal>
       </div>
 
     </div>
@@ -173,12 +196,10 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       Enum.map(material_with_assignments, fn mat ->
         [size_string, name] = String.split(mat.material, "X", parts: 2)
         found_material = Enum.find(material_list, fn m -> name == m.material end).sizes
-        if found_material == nil, do: IO.inspect(found_material)
 
         size_info = Enum.find(found_material, fn size -> size.size == convert_string_to_float(size_string) end)
 
         Map.put(mat, :on_hand_qty, size_info.on_hand_qty)
-        |> IO.inspect
       end)
 
 
@@ -334,6 +355,36 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       params = Map.put(params, "vendor", updated_value)
 
     {:noreply, validate_bar_waiting_on_quote(params, socket)}
+  end
+
+  ###### Showjob and attachments downloads ########
+  def handle_event("show_job", %{"job" => job}, socket), do: {:noreply, ShophawkWeb.RunlistLive.Index.showjob(socket, job)}
+
+  def handle_event("attachments", _, socket) do
+    job = socket.assigns.id
+    #[{:data, attachments}] = :ets.lookup(:job_attachments, :data)
+    attachments = Shophawk.Jobboss_db.export_attachments(job)
+    socket =
+      socket
+      |> assign(id: job)
+      |> assign(attachments: attachments)
+      |> assign(page_title: "Job #{job} attachments")
+      |> assign(:live_action, :job_attachments)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("download", %{"file-path" => file_path}, socket) do
+    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
+  end
+
+  def handle_event("download", _params, socket), do: {:noreply, socket |> assign(:not_found, "File not found")}
+
+  def handle_event("close_job_attachments", _params, socket), do: {:noreply, assign(socket, live_action: :show_job)}
+
+  @impl true
+  def handle_params(_params, _url, socket) do
+    {:noreply, socket}
   end
 
   def validate_bar_waiting_on_quote(params, socket) do

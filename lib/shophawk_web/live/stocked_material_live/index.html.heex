@@ -253,40 +253,27 @@
                         
                       </div>
                     </div>
+
                     <div>
-                      <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                      <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>            
+                               
                     </div>
+                    
                     <div class="w-48">
-                      <%= if bar.data.saved == false do %> 
-                        <img class="pl-2 py-3" src={~p"/images/red_x.svg"} />
-                        <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
-                      <% else %>
-                      <div class="flex">
-                        <img class="pl-2 py-3" src={~p"/images/black_checkmark.svg"} />
-                        <div class="pl-2 py-3">
-                          <.button 
-                          type="button"
-                          phx-click="make_slug"
-                          phx-value-selected-material={@selected_material} 
-                          phx-value-selected-size={@selected_size}
-                          phx-value-id={bar.data.id}>
-                            slug
-                          </.button>
+                      
+                      <div class="flex justify-end items-center">
+                        <div class="ml-4 p-2 rounded-md">
+                          <%= cond do %>
+                          <% bar.data.being_quoted == true ->  %>
+                            Waiting on Quote
+                          <% bar.data.ordered == true -> %>
+                            Ordered
+                          <% true -> %>
+                            Need to Order
+                          <% end %>
                         </div>
-                        <div class="pl-2 py-3">
-                          <.delete_button 
-                          type="button"
-                          phx-click="bar_used" 
-                          phx-value-selected-material={@selected_material} 
-                          phx-value-selected-size={@selected_size}
-                          phx-value-id={bar.data.id}>
-                            Used
-                          </.delete_button>
-                        </div>    
                         <%= if Enum.count(bar.data.job_assignments) > 0 do %>
                         <div class=" dark-tooltip-container">
-                          <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2">
+                          <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2 w-6">
                             <%= Enum.count(bar.data.job_assignments) %>
                           </div>
                           <div class="tooltip flex w-56" style="z-index: 12;">
@@ -303,7 +290,6 @@
                         </div>
                         <% end %>                       
                         </div>
-                      <% end %>
                     </div>
                   </div>
                 </.form>
