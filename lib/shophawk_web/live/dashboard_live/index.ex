@@ -295,13 +295,18 @@ defmodule ShophawkWeb.DashboardLive.Index do
           amount -> amount + acc
         end
       end)
+    days_in_this_month = Date.days_in_month(Date.utc_today())
+    progress_into_current_month = Date.utc_today().day / days_in_this_month
+    total_months_past = Date.utc_today().month + progress_into_current_month
+    years_monthly_average = this_years_sales / total_months_past
+    project_sales = years_monthly_average * 13
 
     socket
     |> assign(:sales_chart_data, Jason.encode!(%{series: sales_chart_data}))
     |> assign(:sales_table_data, final_sales_table_data)
     |> assign(:this_months_sales, current_months_sales.amount)
     |> assign(:this_years_sales, this_years_sales)
-    |> assign(:projected_yearly_sales, (this_years_sales / (Date.utc_today().month + (Date.utc_today().day / Date.days_in_month(Date.utc_today()))) * 12))
+    |> assign(:projected_yearly_sales, project_sales)
     |> assign(:monthly_average, monthly_average)
   end
   def generate_monthly_sales(start_date, end_date, list \\ []) do

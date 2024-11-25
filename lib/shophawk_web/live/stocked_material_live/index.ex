@@ -15,9 +15,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
     material_on_order_count = Enum.count(Material.list_material_on_order())
 
-
-
-
     #material_list = if connected?(socket), do: Jobboss_db.load_materials_and_sizes_into_cache(), else: []
     socket =
       socket

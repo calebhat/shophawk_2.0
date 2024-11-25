@@ -21,6 +21,13 @@ defmodule Shophawk.Material do
     Repo.all(StockedMaterial)
   end
 
+  def list_stockedmaterials_history do
+    StockedMaterial
+    |> order_by(desc: :updated_at)
+    |> limit(25)
+    |> Repo.all()
+  end
+
   def list_stocked_materials_on_floor_and_to_order do
     Repo.all(from r in StockedMaterial, where: r.bar_used == false)
   end
