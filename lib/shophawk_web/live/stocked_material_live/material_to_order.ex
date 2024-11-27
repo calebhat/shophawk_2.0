@@ -194,12 +194,28 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
     material_with_info =
       Enum.map(material_with_assignments, fn mat ->
-        [size_string, name] = String.split(mat.material, "X", parts: 2)
-        found_material = Enum.find(material_list, fn m -> name == m.material end).sizes
+        #map through material_list then sizes to find by material_name
 
-        size_info = Enum.find(found_material, fn size -> size.size == convert_string_to_float(size_string) end)
+        found_size =
+          Enum.reduce_while(material_list, nil, fn m, acc ->
+            size =
+              Enum.reduce_while(m.sizes, nil, fn size, acc ->
+                if size.material_name == mat.material, do: {:halt, size}, else: {:cont, acc}
+              end)
 
-        Map.put(mat, :on_hand_qty, size_info.on_hand_qty)
+            case size do
+              nil -> {:cont, acc}
+              _ -> {:halt, size}
+            end
+          end)
+
+        found_size =
+          case found_size do
+            nil -> %{on_hand_qty: 0.0}
+            _ -> found_size
+          end
+
+        Map.put(mat, :on_hand_qty, found_size.on_hand_qty)
       end)
 
 

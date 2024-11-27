@@ -52,8 +52,137 @@ defmodule Shophawk.MaterialCache do
           end)
         Map.put(mat, :sizes, sizes)
       end)
-    :ets.insert(:material_list, {:data, updated_material_list})
+
+    merged_material_list = merge_materials(updated_material_list)
+    sorted_merged_material_list = sort_material_list(merged_material_list)
+
+
+    :ets.insert(:material_list, {:data, sorted_merged_material_list})
     updated_material_list
+  end
+
+  def sort_material_list(material_list) do
+    most_used = ["1144", "1545", "4140", "4140HT", "303", "304", "316", "6061"]
+    priority_order =
+      most_used
+      |> Enum.with_index()
+      |> Enum.into(%{})
+
+    Enum.sort_by(material_list, fn mat ->
+      # Materials in priority list get a low index, others get a high index
+      Map.get(priority_order, mat.material, 999)
+    end)
+
+    #{priority, rest} = Enum.split_with(material_list, fn mat -> mat.material in most_used end)
+    #sorted_priority = Enum.sort(priority, &(&1 <= &2))
+    #sorted_rest = Enum.sort(rest, &(&1 <= &2))
+
+    #sorted_priority ++ sorted_rest
+    #material_list
+  end
+
+  def merge_materials(material_list) do
+    merge_material(material_list, "4150HT")
+    |> merge_material("100-70-03 DI", "DI 100-70-03", ["100-70-03 DI"])
+    |> merge_material("1045", "1045", ["1045", "1045 HR", "1045HR", "1045."])
+    |> merge_material("1045 G&P", "1045 G&P", ["1045 TG&P", "1045 TP&G", "1045 G&P"])
+    |> merge_material("12FT. 1117 CR KNURLED BAR", "Knurled 1117", ["12FT. 1117 CR KNURLED BAR", "12FT 1117CF KNURLED BAR", "12FT.1117 CR KNURLED BAR"])
+    |> merge_material("12FT. 1144 CR KNURLED BAR", "Knurled 1144", ["12FT. 1144 CR KNURLED BAR", "12FT. 1545 CR KNURLED BAR", "12FT 1144 CF KNURLED BAR "])
+    |> merge_material("17-4PH", "17-4PH", ["17-4", "17-4PH", "17-4PH ", "17-4SS"])
+    |> merge_material("304")
+    |> merge_material("4140", "4140", ["4140", "4140."])
+    |> merge_material("4140CR", "4140CR", ["4140CF", "4140CR"])
+    |> merge_material("4140HT C.F.", "4140HT CF", ["4140HT C.F.", "4140HT CR", "4140HTCR"])
+    |> merge_material("4140HT G&P", "4140HT G&P", ["4140HT G&P", "4140HT G AND P", "4140HT G & P"])
+    |> merge_material("4150HT", "4150HT", ["4150HT", "4150 HT"])
+    |> merge_material("416", "416", ["416", "416SS"])
+    |> merge_material("416HT", "416HT", ["416HT", "416SSHT", " 416 HT", "416SSHT (C.F.)"])
+    |> merge_material("4340", "4340", ["4340", "4340."])
+    |> merge_material("440SS", "440SS", ["440SS", "440C", "440"])
+    |> merge_material("630BRNZ", "630BRNZ", ["630BRNZ", "6300BRNZ", "630 NI/AL BRNZ"])
+    |> merge_material("660BRNZ", "660BRNZ", ["660BRNZ", "660 BRZ", "660BRZ"])
+    |> merge_material("6061")
+    |> merge_material("7075")
+    |> merge_material("8620", "8620", ["8620", "8620 CR", "8620 CF", "8620CR", "8620CD"])
+    |> merge_material("903 TIN BRONZE", "903 TIN BRNZ", ["903 TIN BRONZE", "903"])
+    |> merge_material("932BRNZ", "932BRNZ", ["932BRNZ", "932"])
+    |> merge_material("954 BRNZ", "954 BRNZ", ["954 BRNZ", "954", "954BRNZ", "954BRZ"])
+
+    #Plastics
+    |> merge_material("ACETRON GP (NATURAL)", "ACETRON GP (NATURAL)", ["ACETRON GP (NATURAL)", "ACETRON GP"])
+    |> merge_material("ACETAL (BLACK)", "ACETAL (BLACK)", ["ACETAL (BLACK)", "ACETAL BLK"])
+    |> merge_material("ACETRON GP (BLACK)", "ACETRON GP (BLACK)", ["ACETRON GP (BLACK)", "ACETRON GP BLACK"])
+    |> merge_material("DELRIN 150 (BLACK)", "DELRIN 150 (BLACK)", ["DELRIN 150 (BLACK)", "DELRIN (BLACK)"])
+    |> merge_material("DELRIN 150 (NATURAL)", "DELRIN 150 (NATURAL)", ["DELRIN 150 (NATURAL)", "DELRIN 150"])
+    |> merge_material("GSM", "GSM", ["GSM", "GSM "])
+    |> merge_material("GSM (BLUE)", "GSM (BLUE)", ["GSM (BLUE)", "GSM BLUE"])
+    |> merge_material("NYOIL", "NYOIL", ["NYOIL", "NYLOIL"])
+    |> merge_material("MC901", "MC901 (BLUE)", ["MC901", "MC901 (BLUE)"])
+    |> merge_material("TEFLON-15% G.F., 5% M.D.", "TEFLON-15% G.F., 5% M.D.", ["TEFLON-15% G.F., 5% M.D.", "TEFLON - 15% G.F., 5% M.D."])
+    |> merge_material("SP", "SP", ["SP", "SP (1144 COLD DRAWN)", "SP (1144)"])
+  end
+
+  def merge_material(updated_material_list, mat_to_keep) do
+    good_material = Enum.find(updated_material_list, fn mat -> mat.material == mat_to_keep end)
+    case good_material do
+      nil -> updated_material_list
+      _ ->
+        grouped_material_list =
+          Enum.reduce(updated_material_list, [], fn mat, acc ->
+            if String.contains?(mat.material, mat_to_keep) do
+              acc ++ [mat.material]
+            else
+              acc
+            end
+          end)
+
+        sizes_to_merge =
+          Enum.reduce(updated_material_list, [], fn mat, acc ->
+            if Enum.member?(grouped_material_list, mat.material) do
+              acc ++ mat.sizes
+            else
+              acc
+            end
+          end)
+          |> Enum.sort_by(fn mat -> mat.size end)
+
+        updated_material =
+          Map.put(good_material, :sizes, sizes_to_merge)
+          |> Map.put(:mat_reqs_count, Enum.reduce(sizes_to_merge, 0, fn size, acc -> size.jobs_using_size + acc end))
+
+        #remove all occurences of material
+        filtered_material_list = Enum.reject(updated_material_list, fn mat -> Enum.member?(grouped_material_list, mat.material) end)
+        filtered_material_list ++ [updated_material]
+      end
+  end
+
+  def merge_material(updated_material_list, mat_to_keep, name_to_use, list_of_materials) do
+    good_material = Enum.find(updated_material_list, fn mat -> mat.material == mat_to_keep end)
+
+    case good_material do
+      nil -> updated_material_list
+      _ ->
+        sizes_to_merge =
+          Enum.reduce(updated_material_list, [], fn mat, acc ->
+            if Enum.member?(list_of_materials, mat.material) do
+              acc ++ mat.sizes
+            else
+              acc
+            end
+          end)
+          |> Enum.sort_by(fn mat -> mat.size end)
+
+        updated_material =
+          Map.put(good_material, :material, name_to_use)
+          |> Map.put(:sizes, sizes_to_merge)
+          |> Map.put(:mat_reqs_count, Enum.reduce(sizes_to_merge, 0, fn size, acc -> size.jobs_using_size + acc end))
+
+        #remove all occurences of material
+        filtered_material_list = Enum.reject(updated_material_list, fn mat -> Enum.member?(list_of_materials, mat.material) end)
+
+        filtered_material_list ++ [updated_material]
+    end
+
   end
 
   def create_barebones_material_list() do
@@ -119,10 +248,6 @@ defmodule Shophawk.MaterialCache do
       Material.delete_stocked_material(mat)
     end)
 
-    #material = full material name: "2x1545"
-    #mat_reqs = list of job requirements for said material
-    #material_on_floor = bars/slugs in house
-    #material_info = info from jobboss including jobboss stock amount
     [size, _material_name] = String.split(s.material_name, "X", parts: 2)
 
     jobs_to_assign =
