@@ -62,9 +62,8 @@ defmodule Shophawk.MaterialCache do
   end
 
   def sort_material_list(material_list) do
-    most_used = ["1144", "1545", "4140", "4140HT", "303", "304", "316", "6061"]
     priority_order =
-      most_used
+      ["1144", "1545", "4140", "4140HT", "303", "304", "316", "6061"]
       |> Enum.with_index()
       |> Enum.into(%{})
 
@@ -72,13 +71,6 @@ defmodule Shophawk.MaterialCache do
       # Materials in priority list get a low index, others get a high index
       Map.get(priority_order, mat.material, 999)
     end)
-
-    #{priority, rest} = Enum.split_with(material_list, fn mat -> mat.material in most_used end)
-    #sorted_priority = Enum.sort(priority, &(&1 <= &2))
-    #sorted_rest = Enum.sort(rest, &(&1 <= &2))
-
-    #sorted_priority ++ sorted_rest
-    #material_list
   end
 
   def merge_materials(material_list) do
