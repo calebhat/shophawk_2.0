@@ -54,23 +54,10 @@ defmodule Shophawk.MaterialCache do
       end)
 
     merged_material_list = merge_materials(updated_material_list)
-    sorted_merged_material_list = sort_material_list(merged_material_list)
 
 
-    :ets.insert(:material_list, {:data, sorted_merged_material_list})
+    :ets.insert(:material_list, {:data, merged_material_list})
     updated_material_list
-  end
-
-  def sort_material_list(material_list) do
-    priority_order =
-      ["1144", "1545", "4140", "4140HT", "303", "304", "316", "6061"]
-      |> Enum.with_index()
-      |> Enum.into(%{})
-
-    Enum.sort_by(material_list, fn mat ->
-      # Materials in priority list get a low index, others get a high index
-      Map.get(priority_order, mat.material, 999)
-    end)
   end
 
   def merge_materials(material_list) do

@@ -21,10 +21,14 @@ defmodule Shophawk.Material do
     Repo.all(StockedMaterial)
   end
 
-  def list_stockedmaterials_history do
+  def list_stockedmaterials_last_12_month_entries(material) do
+    from_date = NaiveDateTime.add(NaiveDateTime.utc_now(), -365, :day)
+
     StockedMaterial
-    |> order_by(desc: :updated_at)
-    |> limit(25)
+    |> where([m], m.material == ^material)
+    |> where([m], is_nil(m.purchase_price) != true)
+    |> where([m], m.inserted_at >= ^from_date)
+    |> order_by(desc: :inserted_at)
     |> Repo.all()
   end
 
@@ -47,7 +51,6 @@ defmodule Shophawk.Material do
       or_where: r.being_quoted == true and r.bar_used == false and r.in_house == false and r.ordered == false
     )
   end
-
 
   def list_material_on_order do
     Repo.all(from r in StockedMaterial, where: r.bar_used == false and r.in_house == false and r.ordered == true and r.being_quoted == false)

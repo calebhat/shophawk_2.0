@@ -5,6 +5,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   alias Shophawk.Material.StockedMaterial
   alias Shophawk.Jobboss_db
   alias Shophawk.MaterialCache
+  import Number.Currency
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,6 +20,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     socket =
       socket
       |> assign(:material_list, material_list)
+      |> assign(:grouped_materials, prepare_grouped_materials(material_list))
+      |> assign(:collapsed_groups, [1, 2])
       |> assign(:selected_material, "")
       |> assign(:selected_sizes, [])
       |> assign(:selected_size, "0.0")
@@ -187,11 +190,28 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     socket =
       socket
       |> assign(:selected_size, selected_size)
-      |> assign(:size_info, size_info)
+      #|> assign(:size_info, size_info)
       |> assign(:selected_sizes, sizes)
       |> assign(:selected_material, selected_material)
 
     if size_info do
+      year_history = Material.list_stockedmaterials_last_12_month_entries(size_info.material_name)
+
+      mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
+
+      total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
+
+      total_feet_used = if total_inches_used > 0.0, do: total_inches_used / 12, else: 0.0
+
+      total_weighted_price = Enum.reduce(mat_tuple_list, 0, fn {feet_used, price}, acc -> acc + (feet_used * price) end)
+
+      average_price = if total_inches_used > 0.0, do: total_weighted_price / total_inches_used, else: 0.0
+
+      sell_price = if average_price > 0.0, do: Float.ceil(average_price * 1.2 * 4) / 4, else: 0.0
+
+
+      size_info = Map.put(size_info, :feet_used, Float.round(total_feet_used, 2)) |> Map.put(:purchase_price, number_to_currency(average_price)) |> Map.put(:sell_price, number_to_currency(sell_price))
+      socket = assign(socket, :size_info, size_info)
       {:noreply, load_material_forms(socket, %{material_name: size_info.material_name, location_id: size_info.location_id, on_hand_qty: size_info.on_hand_qty, assigned_material_info: size_info.assigned_material_info})}
     else
       {:noreply, socket}
@@ -222,6 +242,18 @@ end
   def handle_event("download", _params, socket), do: {:noreply, socket |> assign(:not_found, "File not found")}
 
   def handle_event("close_job_attachments", _params, socket), do: {:noreply, assign(socket, live_action: :show_job)}
+
+  def handle_event("toggle_group", %{"group-index" => index}, socket) do
+    index = String.to_integer(index)
+
+    updated_collapsed = if index in (socket.assigns.collapsed_groups || []) do
+      List.delete(socket.assigns.collapsed_groups || [], index)
+    else
+      [index | (socket.assigns.collapsed_groups || [])]
+    end
+
+    {:noreply, assign(socket, :collapsed_groups, updated_collapsed)}
+  end
 
   def handle_event("test", _params, socket) do
 
@@ -314,7 +346,51 @@ end
   ##### Functions ran during HTML generation from heex template #####
   defp set_bg_color(entity, selected_entity) do
     selected_entity = if is_float(selected_entity) == true, do: Float.to_string(selected_entity), else: selected_entity
-    if selected_entity == entity, do: "bg-cyan-500 ml-2", else: "bg-stone-200"
+    if selected_entity == entity, do: "bg-cyan-500 ml-2 w-[7.42rem]", else: " ml-1 bg-stone-200 w-[7.7rem]"
+  end
+
+  defp prepare_grouped_materials(materials) do
+    most_used = ["1144", "1545", "4140", "4140HT", "303", "304", "316", "6061"]
+    kzoo =
+      ["6/6 NATURAL",
+      "ACETAL",
+      "DELRIN 500 AF (DARK BROWN)",
+      "DELRIN 550",
+      "DELRIN AF",
+      "KEVLAR (LIGHT TAN)",
+      "2.5XMC901 (BLACK)",
+      "NSM", "NYLON 101",
+      "NYOIL FG",
+      "ACETRON GP (NATURAL)",
+      "ACETAL (BLACK)",
+      "ACETRON GP (BLACK)",
+      "DELRIN 150 (BLACK)",
+      "DELRIN 150 (NATURAL)",
+      "GSM",
+      "GSM (BLUE)",
+      "NYOIL",
+      "MC901 (BLUE)",
+      "TEFLON-15% G.F., 5% M.D."]
+    groups = [
+      %{
+        name: "Most Used",
+        materials: Enum.filter(materials, &(&1.material in most_used))
+      },
+      %{
+        name: "Main Saws",
+        materials: Enum.filter(materials, fn material ->
+          not (material.material in (most_used ++ kzoo))
+        end)
+        |> Enum.sort_by(&(&1.material), :asc)
+      },
+      %{
+        name: "Kzoo",
+        materials: Enum.filter(materials, &(&1.material in kzoo))
+      }
+    ]
+
+    # Add an index to each group for tracking collapse state
+    Enum.with_index(groups)
   end
 
 end
