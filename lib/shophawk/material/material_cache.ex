@@ -24,6 +24,7 @@ defmodule Shophawk.MaterialCache do
       end)
 
     all_material_not_used = Material.list_material_not_used
+    all_material_from_past_12_months = Material.list_stockedmaterials_last_12_month_entries()
 
     #Reduce through material, save info, and assign jobs
     updated_material_list =
@@ -68,7 +69,7 @@ defmodule Shophawk.MaterialCache do
                 found_info ->
                   matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
                   total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc -> m.bar_length + acc end) / 12
-                  year_history = Material.list_stockedmaterials_last_12_month_entries(found_info.material_name)
+                  year_history = Enum.filter(all_material_from_past_12_months, fn mat -> mat.material == found_info.material_name end)
                   mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
                   total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
                   total_feet_used = if total_inches_used > 0.0, do: total_inches_used / 12, else: 0.0
