@@ -1,6 +1,7 @@
 defmodule Shophawk.MaterialCache do
   alias Shophawk.Jobboss_db
   alias Shophawk.Material
+  import Number.Currency
   #Used for all loading of ETS Caches related to the Material
 
   def create_material_cache() do
@@ -10,8 +11,19 @@ defmodule Shophawk.MaterialCache do
 
     #load all data needed
     mat_reqs = Jobboss_db.load_material_requirements()
-    all_jb_material_info = Enum.map(jobboss_material_info, fn mat -> mat.material end) |> Jobboss_db.load_all_jb_material_on_hand()
-    all_material_on_floor = Material.list_stocked_materials_on_floor_and_to_order
+    jb_material_on_hand_qty =
+      Enum.map(jobboss_material_info, fn mat -> mat.material end)
+      |> Jobboss_db.load_all_jb_material_on_hand()
+    all_jb_material_info =
+      Enum.map(jb_material_on_hand_qty, fn mat ->
+        jb_info = Enum.find(jobboss_material_info, fn mat_info -> mat_info.material == mat.material_name end)
+        case jb_info do
+          nil -> Map.put(mat, :lbs_per_inch, 0.0)
+          found_info -> Map.put(mat, :lbs_per_inch, Float.round(found_info.is_weight_factor, 2))
+        end
+      end)
+
+    all_material_not_used = Material.list_material_not_used
 
     #Reduce through material, save info, and assign jobs
     updated_material_list =
@@ -35,7 +47,7 @@ defmodule Shophawk.MaterialCache do
                 end
               end)
 
-            matching_material = Enum.filter(all_material_on_floor, fn floor_mat -> floor_mat.material == material_name end)
+            matching_material = Enum.filter(all_material_not_used, fn floor_mat -> floor_mat.material == material_name end)
 
             matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
             matching_material_to_order = Enum.reject(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered == true end)
@@ -43,9 +55,40 @@ defmodule Shophawk.MaterialCache do
 
             matching_jobboss_material_info =
               case Enum.find(all_jb_material_info, fn info -> info.material_name == material_name end) do
-                nil -> %{material_name: material_name, location_id: "", on_hand_qty: 0.0}
-                found_info -> %{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty}
+                nil ->
+                  %{material_name: material_name,
+                  location_id: "",
+                  on_hand_qty: 0.0,
+                  lbs_per_inch: 0.0,
+                  feet_used: 0.0,
+                  purchase_price: number_to_currency(0.0),
+                  sell_price: number_to_currency(0.0),
+                  cost_per_inch: number_to_currency(0.0)
+                  }
+                found_info ->
+                  matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
+                  total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc -> m.bar_length + acc end) / 12
+                  year_history = Material.list_stockedmaterials_last_12_month_entries(found_info.material_name)
+                  mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
+                  total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
+                  total_feet_used = if total_inches_used > 0.0, do: total_inches_used / 12, else: 0.0
+                  total_weighted_price = Enum.reduce(mat_tuple_list, 0, fn {feet_used, price}, acc -> acc + (feet_used * price) end)
+                  average_price = if total_inches_used > 0.0, do: total_weighted_price / total_inches_used, else: 0.0
+                  sell_price = if average_price > 0.0, do: Float.ceil(average_price * 1.2 * 4) / 4, else: 0.0
+
+                  %{material_name: found_info.material_name,
+                  location_id: found_info.location_id,
+                  on_hand_qty: Float.round(total_material_on_hand, 2),
+                  lbs_per_inch: found_info.lbs_per_inch,
+                  feet_used: Float.round(total_feet_used, 2),
+                  purchase_price: number_to_currency(average_price),
+                  sell_price: number_to_currency(sell_price),
+                  cost_per_inch: number_to_currency(sell_price * found_info.lbs_per_inch)
+                  }
+                  #IO.inspect(found_info)
+                  #%{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty, lbs_per_inch: found_info.lbs_per_inch}
               end
+
 
             populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
 
@@ -185,6 +228,7 @@ defmodule Shophawk.MaterialCache do
                       material_name: mat.material,
                       location_id: nil,
                       on_hand_qty: nil,
+                      lbs_per_inch: nil,
                       need_to_order_amt: nil,
                       assigned_material_info: nil
                     }
@@ -201,6 +245,7 @@ defmodule Shophawk.MaterialCache do
                       material_name: mat.material,
                       location_id: nil,
                       on_hand_qty: nil,
+                      lbs_per_inch: nil,
                       need_to_order_amt: nil,
                       assigned_material_info: nil
                     } | existing_sizes
@@ -253,6 +298,11 @@ defmodule Shophawk.MaterialCache do
       material_name: material_info.material_name,
       location_id: material_info.location_id,
       on_hand_qty: material_info.on_hand_qty,
+      lbs_per_inch: material_info.lbs_per_inch,
+      feet_used: material_info.feet_used,
+      purchase_price: material_info.purchase_price,
+      sell_price: material_info.sell_price,
+      cost_per_inch: material_info.cost_per_inch,
       need_to_order_amt: need_to_order_amt,
       assigned_material_info: assigned_material_info
       }
@@ -261,6 +311,7 @@ defmodule Shophawk.MaterialCache do
   #Updates one size and saves updated material_list in cache
   def update_single_material_size_in_cache(material_name) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    #material_not_used = Material.list_material_not_used
     updated_material_list =
       Enum.map(material_list, fn mat ->
         sizes =
@@ -273,15 +324,35 @@ defmodule Shophawk.MaterialCache do
                 matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
                 matching_material_to_order = Enum.reject(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered == true end)
 
-                matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
+                #CAN SKIP THIS IF WRITING ON HAND AMOUNT TO JB
+                #matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
+                matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
+                total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc -> m.bar_length + acc end) / 12
+                year_history = Material.list_stockedmaterials_last_12_month_entries(s.material_name)
+                mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
+                total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
+                total_feet_used = if total_inches_used > 0.0, do: total_inches_used / 12, else: 0.0
+                total_weighted_price = Enum.reduce(mat_tuple_list, 0, fn {feet_used, price}, acc -> acc + (feet_used * price) end)
+                average_price = if total_inches_used > 0.0, do: total_weighted_price / total_inches_used, else: 0.0
+                sell_price = if average_price > 0.0, do: Float.ceil(average_price * 1.2 * 4) / 4, else: 0.0
 
-                updated_matching_jobboss_material_info =
-                  case matching_jobboss_material_info do
-                    nil -> %{material_name: material_name, location_id: "", on_hand_qty: 0.0}
-                    found_info -> %{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty}
-                  end
+                material_info =
+                  %{material_name: s.material_name,
+                  location_id: s.location_id,
+                  on_hand_qty: Float.round(total_material_on_hand, 2),
+                  lbs_per_inch: s.lbs_per_inch,
+                  feet_used: Float.round(total_feet_used, 2),
+                  purchase_price: number_to_currency(average_price),
+                  sell_price: number_to_currency(sell_price),
+                  cost_per_inch: number_to_currency(sell_price * s.lbs_per_inch)
+                }
+                #updated_matching_jobboss_material_info =
+                #  case matching_jobboss_material_info do
+                #    nil -> %{material_name: material_name, location_id: ""}
+                #    found_info -> %{material_name: found_info.material_name, location_id: found_info.location_id}
+                #  end
 
-                populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, updated_matching_jobboss_material_info)
+                populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, material_info)
               _ ->
                 s
             end
@@ -405,8 +476,8 @@ defmodule Shophawk.MaterialCache do
             Enum.reduce(bar.job_assignments, {[], 0.0}, fn map, {acc, cumulative_percentage} ->
               percentage_of_bar = map.length_to_use / bar.bar_length * 100.0
               updated_assignments =
-                Map.put(map, :percentage_of_bar, percentage_of_bar)
-                |> Map.put(:left_offset, cumulative_percentage)
+                Map.put(map, :percentage_of_bar, Float.round(percentage_of_bar, 2))
+                |> Map.put(:left_offset, Float.round(cumulative_percentage, 2))
               {acc ++ [updated_assignments], cumulative_percentage + percentage_of_bar}
             end)
           Map.put(bar, :job_assignments, updated_map)

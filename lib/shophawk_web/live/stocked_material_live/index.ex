@@ -5,7 +5,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   alias Shophawk.Material.StockedMaterial
   alias Shophawk.Jobboss_db
   alias Shophawk.MaterialCache
-  import Number.Currency
+  #import Number.Currency
 
   @impl true
   def mount(_params, _session, socket) do
@@ -186,31 +186,18 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
     size_info = Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end)
+    #|> IO.inspect
 
     socket =
       socket
       |> assign(:selected_size, selected_size)
-      #|> assign(:size_info, size_info)
       |> assign(:selected_sizes, sizes)
       |> assign(:selected_material, selected_material)
 
     if size_info do
-      year_history = Material.list_stockedmaterials_last_12_month_entries(size_info.material_name)
-
-      mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
-
-      total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
-
-      total_feet_used = if total_inches_used > 0.0, do: total_inches_used / 12, else: 0.0
-
-      total_weighted_price = Enum.reduce(mat_tuple_list, 0, fn {feet_used, price}, acc -> acc + (feet_used * price) end)
-
-      average_price = if total_inches_used > 0.0, do: total_weighted_price / total_inches_used, else: 0.0
-
-      sell_price = if average_price > 0.0, do: Float.ceil(average_price * 1.2 * 4) / 4, else: 0.0
 
 
-      size_info = Map.put(size_info, :feet_used, Float.round(total_feet_used, 2)) |> Map.put(:purchase_price, number_to_currency(average_price)) |> Map.put(:sell_price, number_to_currency(sell_price))
+
       socket = assign(socket, :size_info, size_info)
       {:noreply, load_material_forms(socket, %{material_name: size_info.material_name, location_id: size_info.location_id, on_hand_qty: size_info.on_hand_qty, assigned_material_info: size_info.assigned_material_info})}
     else

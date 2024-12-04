@@ -15,13 +15,14 @@ defmodule Shophawk.Jb_material do
     field :selling_price, :float
     field :pick_buy_indicator, :string
     field :status, :string
+    field :is_weight_factor, :float
     #timestamps()
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status])
-    |> validate_required([:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status])
+    |> cast(attrs, [:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status, :is_weight_factor])
+    |> validate_required([:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status, :is_weight_factor])
   end
 end

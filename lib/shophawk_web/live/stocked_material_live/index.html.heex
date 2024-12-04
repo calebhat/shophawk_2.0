@@ -18,7 +18,7 @@
         <%= if !((@collapsed_groups || []) |> Enum.member?(index)) do %>
           <%= for material <- group.materials do %>
             <div class="flex">
-              <div class="bg-stone-200 border-l border-stone-200 ml-1"></div>
+              <div class="border-l border-stone-400 ml-1"></div>
               <div 
                 class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
                 phx-click="load_material"
@@ -44,7 +44,7 @@
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
     <div 
     :for={size <- @selected_sizes}
-    class={["flex justify-between items-center w-[6.25rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
+    class={["flex justify-between items-center w-[6.15rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
     phx-click="load_material"
     phx-value-selected-size={size.size}
     phx-value-selected-material={@selected_material}
@@ -100,7 +100,7 @@
             
           <div>
             <.link patch={~p"/stockedmaterials/new"}>
-              <.button>New Stocked material</.button>
+              <.button>Manually Receive Bar</.button>
             </.link>
           </div>
 
@@ -111,11 +111,12 @@
           <div class="col-span-2">
             <div class="bg-cyan-800 rounded-lg p-2 mx-2 mb-2 text-lg">
               <ul>
-                <li>On Hand: <%= @size_info.on_hand_qty %></li>
+                <li>On Hand: <%= @size_info.on_hand_qty %>'</li>
+                <li>Sell $/Inch: <%= @size_info.cost_per_inch %></li>
                 <li>Sell $/lb: <%= @size_info.sell_price %></li>
-                <li>Sell $/Inch: </li>
                 <li>12 Month Usage: <%= @size_info.feet_used %>'</li>
-                <li>need to order: <%= @size_info.need_to_order_amt %></li>
+                <li>lbs/inch: <%= @size_info.lbs_per_inch %></li>
+                <li>need to order: <%= @size_info.need_to_order_amt %>"</li>
               </ul>
             </div>
             <%= if @related_jobs != [] do %>

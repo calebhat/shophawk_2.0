@@ -21,6 +21,10 @@ defmodule Shophawk.Material do
     Repo.all(StockedMaterial)
   end
 
+  def list_material_not_used do
+    Repo.all(from r in StockedMaterial, where: r.bar_used == false)
+  end
+
   def list_stockedmaterials_last_12_month_entries(material) do
     from_date = NaiveDateTime.add(NaiveDateTime.utc_now(), -365, :day)
 
@@ -32,9 +36,6 @@ defmodule Shophawk.Material do
     |> Repo.all()
   end
 
-  def list_stocked_materials_on_floor_and_to_order do
-    Repo.all(from r in StockedMaterial, where: r.bar_used == false)
-  end
 
   def list_material_needed_to_order do
     Repo.all(from r in StockedMaterial, where: r.bar_used == false and r.in_house == false and r.ordered == false and r.being_quoted == false)
