@@ -12,6 +12,8 @@ defmodule Shophawk.Jb_material do
     field :location_id, :string
     field :description, :string
     field :stocked_uofm, :string
+    field :cost_uofm, :string
+    field :standard_cost, :float
     field :selling_price, :float
     field :pick_buy_indicator, :string
     field :status, :string
@@ -22,7 +24,7 @@ defmodule Shophawk.Jb_material do
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status, :is_weight_factor])
-    |> validate_required([:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :selling_price, :pick_buy_indicator, :status, :is_weight_factor])
+    |> cast(attrs, [:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :standard_cost, :cost_uofm, :selling_price, :pick_buy_indicator, :status, :is_weight_factor])
+    |> validate_required([:material, :primary_vendor, :shape, :location_id, :description, :stocked_uofm, :cost_uofm, :standard_cost, :selling_price, :pick_buy_indicator, :status, :is_weight_factor])
   end
 end

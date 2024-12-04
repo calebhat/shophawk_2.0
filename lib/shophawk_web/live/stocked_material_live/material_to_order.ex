@@ -81,7 +81,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
             <div>Material</div>
             <div>Length Needed</div>
             <div>Vendor</div>
-            <div>Price</div>
+            <div>Price (lb or ft)</div>
             <div>On Order</div>
           </div>
           <div :for={bar <- @bars_being_quoted_form}>

@@ -18,8 +18,8 @@ defmodule Shophawk.MaterialCache do
       Enum.map(jb_material_on_hand_qty, fn mat ->
         jb_info = Enum.find(jobboss_material_info, fn mat_info -> mat_info.material == mat.material_name end)
         case jb_info do
-          nil -> Map.put(mat, :lbs_per_inch, 0.0)
-          found_info -> Map.put(mat, :lbs_per_inch, Float.round(found_info.is_weight_factor, 2))
+          nil -> Map.put(mat, :lbs_per_inch, 0.0) |> Map.put(:cost_uofm, 0.0) |> Map.put(:standard_cost, 0.0)
+          found_info -> Map.put(mat, :lbs_per_inch, Float.round(found_info.is_weight_factor, 2)) |> Map.put(:cost_uofm, found_info.cost_uofm) |> Map.put(:standard_cost, found_info.standard_cost)
         end
       end)
 
@@ -64,7 +64,9 @@ defmodule Shophawk.MaterialCache do
                   feet_used: 0.0,
                   purchase_price: number_to_currency(0.0),
                   sell_price: number_to_currency(0.0),
-                  cost_per_inch: number_to_currency(0.0)
+                  cost_per_inch: number_to_currency(0.0),
+                  cost_uofm: 0.0,
+                  standard_cost: 0.0
                   }
                 found_info ->
                   matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
@@ -84,7 +86,9 @@ defmodule Shophawk.MaterialCache do
                   feet_used: Float.round(total_feet_used, 2),
                   purchase_price: number_to_currency(average_price),
                   sell_price: number_to_currency(sell_price),
-                  cost_per_inch: number_to_currency(sell_price * found_info.lbs_per_inch)
+                  cost_per_inch: number_to_currency(sell_price * found_info.lbs_per_inch),
+                  cost_uofm: found_info.cost_uofm,
+                  standard_cost: number_to_currency(found_info.standard_cost)
                   }
                   #IO.inspect(found_info)
                   #%{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty, lbs_per_inch: found_info.lbs_per_inch}
@@ -231,7 +235,8 @@ defmodule Shophawk.MaterialCache do
                       on_hand_qty: nil,
                       lbs_per_inch: nil,
                       need_to_order_amt: nil,
-                      assigned_material_info: nil
+                      assigned_material_info: nil,
+                      cost_uofm: nil
                     }
                   ]
                 } | acc]
@@ -248,7 +253,8 @@ defmodule Shophawk.MaterialCache do
                       on_hand_qty: nil,
                       lbs_per_inch: nil,
                       need_to_order_amt: nil,
-                      assigned_material_info: nil
+                      assigned_material_info: nil,
+                      cost_uofm: nil
                     } | existing_sizes
                   ]
                 end)
@@ -304,6 +310,7 @@ defmodule Shophawk.MaterialCache do
       purchase_price: material_info.purchase_price,
       sell_price: material_info.sell_price,
       cost_per_inch: material_info.cost_per_inch,
+      cost_uofm: material_info.cost_uofm,
       need_to_order_amt: need_to_order_amt,
       assigned_material_info: assigned_material_info
       }
@@ -321,7 +328,7 @@ defmodule Shophawk.MaterialCache do
               true ->
                 matching_size_reqs = Jobboss_db.load_single_material_requirements(material_name)
 
-                matching_material = Material.list_stocked_material_by_material(material_name)
+                matching_material = Material.list_material_not_used_by_material(material_name)
                 matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
                 matching_material_to_order = Enum.reject(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered == true end)
 
@@ -345,7 +352,8 @@ defmodule Shophawk.MaterialCache do
                   feet_used: Float.round(total_feet_used, 2),
                   purchase_price: number_to_currency(average_price),
                   sell_price: number_to_currency(sell_price),
-                  cost_per_inch: number_to_currency(sell_price * s.lbs_per_inch)
+                  cost_per_inch: number_to_currency(sell_price * s.lbs_per_inch),
+                  cost_uofm: s.cost_uofm
                 }
                 #updated_matching_jobboss_material_info =
                 #  case matching_jobboss_material_info do

@@ -68,8 +68,9 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     socket =
       if found_bar.in_house == true do
         bar_in_stock_list =
-          Material.list_stocked_material_by_material(found_bar.material) |> Enum.sort_by(&(&1.bar_length))
-          |> Enum.reject(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
+          Material.list_material_not_used_by_material(found_bar.material) |> Enum.sort_by(&(&1.bar_length))
+          |> Enum.filter(fn mat -> mat.in_house == true end)
+          #|> Enum.reject(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
           |> Enum.reject(fn mat -> mat.bar_length == nil end)
           |> Enum.map(fn bar -> if bar.id == found_bar.id, do: found_bar, else: bar end)
 
@@ -78,7 +79,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
         assign(socket, bars_in_stock_form: bars_in_stock_changeset)
       else
         bar_to_order_list  =
-          Material.list_stocked_material_by_material(found_bar.material) |> Enum.sort_by(&(&1.bar_length))
+          Material.list_material_not_used_by_material(found_bar.material) |> Enum.sort_by(&(&1.bar_length))
           |> Enum.map(fn bar -> if bar.id == found_bar.id, do: found_bar, else: bar end)
           bars_to_order_changeset  = Enum.map(bar_to_order_list , fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
 
@@ -92,7 +93,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     socket =
       if found_bar.in_house == false do
         bar_to_order_list =
-          Material.list_stocked_material_by_material(found_bar.material) |> Enum.sort_by(&(&1.bar_length))
+          Material.list_material_not_used_by_material(found_bar.material) |> Enum.sort_by(&(&1.bar_length))
           |> Enum.reject(fn mat -> mat.in_house == true end) #reject bars in stock
           |> Enum.reject(fn mat -> mat.bar_length == nil end) #reject slugs
           |> Enum.map(fn bar -> if bar.id == found_bar.id, do: found_bar, else: bar end)
@@ -110,7 +111,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     #updated_changeset = Material.change_stocked_material(found_bar, stocked_material_params)
     #updated_slug = Map.merge(found_bar, updated_changeset.changes)
     slugs_list =
-      Material.list_stocked_material_by_material(found_bar.material) |> Enum.sort_by(&(&1.slug_length))
+      Material.list_material_not_used_by_material(found_bar.material) |> Enum.sort_by(&(&1.slug_length))
       |> Enum.reject(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
       |> Enum.reject(fn mat -> mat.bar_length != nil end)
       |> Enum.map(fn bar -> if bar.id == found_bar.id, do: found_bar, else: bar end)
@@ -186,7 +187,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
     size_info = Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end)
-    #|> IO.inspect
 
     socket =
       socket
@@ -195,9 +195,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       |> assign(:selected_material, selected_material)
 
     if size_info do
-
-
-
       socket = assign(socket, :size_info, size_info)
       {:noreply, load_material_forms(socket, %{material_name: size_info.material_name, location_id: size_info.location_id, on_hand_qty: size_info.on_hand_qty, assigned_material_info: size_info.assigned_material_info})}
     else
@@ -239,6 +236,26 @@ end
       [index | (socket.assigns.collapsed_groups || [])]
     end
 
+    groups =
+      Enum.map(socket.assigns.grouped_materials, fn {group, index} ->
+        materials = Enum.reduce(group.materials, [], fn g, acc -> [g.material | acc] end)
+        %{index => materials}
+      end)
+
+    group_being_collapsed =
+      Enum.find(groups, fn g -> Map.has_key?(g, index) end)
+      |> Map.get(index)
+
+    socket =
+      if socket.assigns.selected_material in group_being_collapsed do
+      socket
+        |> assign(:selected_size, 0.0)
+        |> assign(:selected_sizes, [])
+        |> assign(:selected_material, "")
+      else
+        socket
+      end
+
     {:noreply, assign(socket, :collapsed_groups, updated_collapsed)}
   end
 
@@ -270,7 +287,7 @@ end
 
   def load_material_forms(socket, material_info) do
     single_material_and_size =
-      Material.list_stocked_material_by_material(material_info.material_name)
+      Material.list_material_not_used_by_material(material_info.material_name)
       |> Enum.map(fn bar ->
         assigned_jobs =
           Enum.reduce(material_info.assigned_material_info, [], fn job, acc ->
@@ -333,7 +350,7 @@ end
   ##### Functions ran during HTML generation from heex template #####
   defp set_bg_color(entity, selected_entity) do
     selected_entity = if is_float(selected_entity) == true, do: Float.to_string(selected_entity), else: selected_entity
-    if selected_entity == entity, do: "bg-cyan-500 ml-2 w-[7.42rem]", else: " ml-1 bg-stone-200 w-[7.7rem]"
+    if selected_entity == entity, do: "bg-cyan-500 ml-4 w-[7rem]", else: " ml-3 bg-stone-200 w-[7.2rem]"
   end
 
   defp prepare_grouped_materials(materials) do

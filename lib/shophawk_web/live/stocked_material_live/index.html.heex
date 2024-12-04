@@ -1,5 +1,6 @@
 <div>
 
+  <!-- material column -->
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">    
     <div><.button class="" phx-click="test">Reload material</.button></div>
     <div>
@@ -41,10 +42,11 @@
     
   </div>
 
+  <!-- Size column -->
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
     <div 
     :for={size <- @selected_sizes}
-    class={["flex justify-between items-center w-[6.15rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
+    class={["flex justify-between items-center w-[5.8rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
     phx-click="load_material"
     phx-value-selected-size={size.size}
     phx-value-selected-material={@selected_material}
@@ -113,7 +115,11 @@
               <ul>
                 <li>On Hand: <%= @size_info.on_hand_qty %>'</li>
                 <li>Sell $/Inch: <%= @size_info.cost_per_inch %></li>
-                <li>Sell $/lb: <%= @size_info.sell_price %></li>
+                <%= case @size_info.cost_uofm do %>
+                <% "lb" -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>                
+                <% "ft" -> %><li>Sell $/ft: <%= @size_info.sell_price %></li>
+                <% _ -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>
+                <% end %>                
                 <li>12 Month Usage: <%= @size_info.feet_used %>'</li>
                 <li>lbs/inch: <%= @size_info.lbs_per_inch %></li>
                 <li>need to order: <%= @size_info.need_to_order_amt %>"</li>
