@@ -843,6 +843,22 @@ defmodule Shophawk.Jobboss_db do
       end)
   end
 
+  def load_year_history_of_material_requirements do
+    one_year_ago = NaiveDateTime.utc_now() |> NaiveDateTime.beginning_of_day() |> NaiveDateTime.shift(year: -1)
+    query =
+      from r in Jb_material_req,
+      where: r.pick_buy_indicator == "P",
+      where: r.uofm == "ft",
+      where: not is_nil(r.due_date),
+      where: r.due_date >= ^one_year_ago
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([[:__meta__, :cutoff, :part_length, :vendor, :description, :pick_buy_indicator, :status, :uofm, :last_updated, :due_date, :est_qty]])
+        |> Map.update!(:act_qty, &(Float.round(&1, 2)))
+      end)
+  end
+
   def load_single_material_requirements(material) do
     query =
       from r in Jb_material_req,

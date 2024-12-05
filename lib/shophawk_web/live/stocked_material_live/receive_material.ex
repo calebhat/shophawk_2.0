@@ -8,8 +8,8 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
   def render(assigns) do
     ~H"""
     <div class="rounded-lg text-center text-white p-4 flex justify-center">
-      <div class="bg-cyan-950 p-4 rounded-lg w-max">
-        <div class="bg-cyan-800 rounded-lg m-2 pb-2">
+      <div class="bg-cyan-900 p-4 rounded-lg w-max">
+        <div class="bg-cyan-900 rounded-lg m-2 pb-2">
           <div class="mb-4 text-2xl underline">Material To Receive</div>
             <table class="table-auto m-4">
               <thead class="text-lg underline">
@@ -27,7 +27,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
 
                   <%= for bar <- vendor do %>
 
-                      <tr class="place-items-center text-lg bg-cyan-900">
+                      <tr class="place-items-center text-lg bg-cyan-800">
 
                         <td class="dark-tooltip-container">
                             <%= "#{bar.data.material}" %>
@@ -85,6 +85,30 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
             </table>
         </div>
       </div>
+
+      <div class="text-black">
+        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials/receive_material")}>
+        <.live_component
+            module={ShophawkWeb.RunlistLive.ShowJob}
+            id={@id || :show_job}
+            job_ops={@job_ops}
+            job_info={@job_info}
+            title={@page_title}
+            action={@live_action}
+        />
+        </.modal>
+
+        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
+        <.live_component
+            module={ShophawkWeb.RunlistLive.JobAttachments}
+            id={@id || :job_attachments}
+            attachments={@attachments}
+            title={@page_title}
+            action={@live_action}
+        />
+        </.modal>
+      </div>
+
     </div>
     """
   end
@@ -223,6 +247,31 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
     {:noreply, update_material_forms(socket)}
   end
 
+  ###### Showjob and attachments downloads ########
+  def handle_event("show_job", %{"job" => job}, socket), do: {:noreply, ShophawkWeb.RunlistLive.Index.showjob(socket, job)}
+
+  def handle_event("attachments", _, socket) do
+    job = socket.assigns.id
+    #[{:data, attachments}] = :ets.lookup(:job_attachments, :data)
+    attachments = Shophawk.Jobboss_db.export_attachments(job)
+    socket =
+      socket
+      |> assign(id: job)
+      |> assign(attachments: attachments)
+      |> assign(page_title: "Job #{job} attachments")
+      |> assign(:live_action, :job_attachments)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("download", %{"file-path" => file_path}, socket) do
+    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
+  end
+
+  def handle_event("download", _params, socket), do: {:noreply, socket |> assign(:not_found, "File not found")}
+
+  def handle_event("close_job_attachments", _params, socket), do: {:noreply, assign(socket, live_action: :show_job)}
+
   def validate_bar_to_receive(params, socket) do
     vendors = socket.assigns.bars_on_order_form
     # Determine the form being updated by matching the `id` hidden field
@@ -244,7 +293,5 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       end)
       assign(socket, :bars_on_order_form, updated_bars)
   end
-
-  #validate_bar_to_receive
 
 end

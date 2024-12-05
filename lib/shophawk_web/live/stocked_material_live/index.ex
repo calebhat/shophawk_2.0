@@ -184,9 +184,11 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def handle_event("load_material", %{"selected-material" => selected_material, "selected-size" => selected_size}, socket) do
+    IO.inspect(selected_size)
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
-    size_info = Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end)
+    size_info =  Enum.find(sizes, fn size -> size.size >= String.to_float(selected_size) end) || List.first(sizes)
+    selected_size = Float.to_string(size_info.size)
 
     socket =
       socket
@@ -200,7 +202,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     else
       {:noreply, socket}
     end
-end
+  end
 
   ###### Showjob and attachments downloads ########
   def handle_event("show_job", %{"job" => job}, socket), do: {:noreply, ShophawkWeb.RunlistLive.Index.showjob(socket, job)}
@@ -246,12 +248,14 @@ end
       Enum.find(groups, fn g -> Map.has_key?(g, index) end)
       |> Map.get(index)
 
+    #Hide sizes if open group is collapsed
     socket =
       if socket.assigns.selected_material in group_being_collapsed do
       socket
         |> assign(:selected_size, 0.0)
         |> assign(:selected_sizes, [])
         |> assign(:selected_material, "")
+        |> assign(:size_info, nil)
       else
         socket
       end
@@ -377,19 +381,19 @@ end
       "TEFLON-15% G.F., 5% M.D."]
     groups = [
       %{
-        name: "Most Used",
-        materials: Enum.filter(materials, &(&1.material in most_used))
+        name: "Primary",
+        materials: Enum.filter(materials, &(&1.material in most_used)) |> Enum.sort_by(& &1.material, :asc)
       },
       %{
         name: "Main Saws",
         materials: Enum.filter(materials, fn material ->
           not (material.material in (most_used ++ kzoo))
         end)
-        |> Enum.sort_by(&(&1.material), :asc)
+        |> Enum.sort_by(&(&1.material), :asc) |> Enum.sort_by(& &1.mat_reqs_count, :desc)
       },
       %{
         name: "Kzoo",
-        materials: Enum.filter(materials, &(&1.material in kzoo))
+        materials: Enum.filter(materials, &(&1.material in kzoo)) |> Enum.sort_by(& &1.mat_reqs_count, :desc)
       }
     ]
 

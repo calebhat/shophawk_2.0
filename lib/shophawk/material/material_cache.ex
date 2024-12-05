@@ -11,6 +11,9 @@ defmodule Shophawk.MaterialCache do
 
     #load all data needed
     mat_reqs = Jobboss_db.load_material_requirements()
+    year_history = Jobboss_db.load_year_history_of_material_requirements()
+    all_material_not_used = Material.list_material_not_used
+    all_material_purchased_in_past_12_months = Material.list_stockedmaterials_last_12_month_entries()
     jb_material_on_hand_qty =
       Enum.map(jobboss_material_info, fn mat -> mat.material end)
       |> Jobboss_db.load_all_jb_material_on_hand()
@@ -23,8 +26,7 @@ defmodule Shophawk.MaterialCache do
         end
       end)
 
-    all_material_not_used = Material.list_material_not_used
-    all_material_from_past_12_months = Material.list_stockedmaterials_last_12_month_entries()
+
 
     #Reduce through material, save info, and assign jobs
     updated_material_list =
@@ -61,7 +63,7 @@ defmodule Shophawk.MaterialCache do
                   location_id: "",
                   on_hand_qty: 0.0,
                   lbs_per_inch: 0.0,
-                  feet_used: 0.0,
+                  past_years_usage: 0.0,
                   purchase_price: number_to_currency(0.0),
                   sell_price: number_to_currency(0.0),
                   cost_per_inch: number_to_currency(0.0),
@@ -71,10 +73,13 @@ defmodule Shophawk.MaterialCache do
                 found_info ->
                   matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
                   total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc -> m.bar_length + acc end) / 12
-                  year_history = Enum.filter(all_material_from_past_12_months, fn mat -> mat.material == found_info.material_name end)
-                  mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
+
+                  material_year_history = Enum.filter(year_history, fn m -> m.material == found_info.material_name end) |> Enum.reduce(0.0, fn m, acc -> m.act_qty + acc end)
+
+
+                  year_Purchases_history = Enum.filter(all_material_purchased_in_past_12_months, fn mat -> mat.material == found_info.material_name end)
+                  mat_tuple_list = Enum.map(year_Purchases_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
                   total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
-                  total_feet_used = if total_inches_used > 0.0, do: total_inches_used / 12, else: 0.0
                   total_weighted_price = Enum.reduce(mat_tuple_list, 0, fn {feet_used, price}, acc -> acc + (feet_used * price) end)
                   average_price = if total_inches_used > 0.0, do: total_weighted_price / total_inches_used, else: 0.0
                   sell_price = if average_price > 0.0, do: Float.ceil(average_price * 1.2 * 4) / 4, else: 0.0
@@ -83,7 +88,7 @@ defmodule Shophawk.MaterialCache do
                   location_id: found_info.location_id,
                   on_hand_qty: Float.round(total_material_on_hand, 2),
                   lbs_per_inch: found_info.lbs_per_inch,
-                  feet_used: Float.round(total_feet_used, 2),
+                  past_years_usage: Float.round(material_year_history, 2),
                   purchase_price: number_to_currency(average_price),
                   sell_price: number_to_currency(sell_price),
                   cost_per_inch: number_to_currency(sell_price * found_info.lbs_per_inch),
@@ -306,7 +311,7 @@ defmodule Shophawk.MaterialCache do
       location_id: material_info.location_id,
       on_hand_qty: material_info.on_hand_qty,
       lbs_per_inch: material_info.lbs_per_inch,
-      feet_used: material_info.feet_used,
+      past_years_usage: material_info.past_years_usage,
       purchase_price: material_info.purchase_price,
       sell_price: material_info.sell_price,
       cost_per_inch: material_info.cost_per_inch,
@@ -332,6 +337,9 @@ defmodule Shophawk.MaterialCache do
                 matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
                 matching_material_to_order = Enum.reject(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered == true end)
 
+                #material_year_history = Enum.filter(year_history, fn m -> m.material == found_info.material_name end) |> Enum.reduce(0.0, fn m, acc -> m.act_qty + acc end)
+
+
                 #CAN SKIP THIS IF WRITING ON HAND AMOUNT TO JB
                 #matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
                 matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
@@ -339,7 +347,6 @@ defmodule Shophawk.MaterialCache do
                 year_history = Material.list_stockedmaterials_last_12_month_entries(s.material_name)
                 mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
                 total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
-                total_feet_used = if total_inches_used > 0.0, do: total_inches_used / 12, else: 0.0
                 total_weighted_price = Enum.reduce(mat_tuple_list, 0, fn {feet_used, price}, acc -> acc + (feet_used * price) end)
                 average_price = if total_inches_used > 0.0, do: total_weighted_price / total_inches_used, else: 0.0
                 sell_price = if average_price > 0.0, do: Float.ceil(average_price * 1.2 * 4) / 4, else: 0.0
@@ -349,7 +356,7 @@ defmodule Shophawk.MaterialCache do
                   location_id: s.location_id,
                   on_hand_qty: Float.round(total_material_on_hand, 2),
                   lbs_per_inch: s.lbs_per_inch,
-                  feet_used: Float.round(total_feet_used, 2),
+                  past_years_usage: s.past_years_usage,
                   purchase_price: number_to_currency(average_price),
                   sell_price: number_to_currency(sell_price),
                   cost_per_inch: number_to_currency(sell_price * s.lbs_per_inch),

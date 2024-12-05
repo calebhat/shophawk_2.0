@@ -120,7 +120,7 @@
                 <% "ft" -> %><li>Sell $/ft: <%= @size_info.sell_price %></li>
                 <% _ -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>
                 <% end %>                
-                <li>12 Month Usage: <%= @size_info.feet_used %>'</li>
+                <li>12 Month Usage: <%= @size_info.past_years_usage %>'</li>
                 <li>lbs/inch: <%= @size_info.lbs_per_inch %></li>
                 <li>need to order: <%= @size_info.need_to_order_amt %>"</li>
               </ul>

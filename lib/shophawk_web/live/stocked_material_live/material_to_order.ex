@@ -8,11 +8,12 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="bg-cyan-950 rounded-lg justify-center text-center text-white p-6">
+    <div class="rounded-lg justify-center text-center text-white p-6">
 
       <div class="grid grid-cols-2">
 
-        <div class="bg-cyan-800 rounded-lg mr-4 p-4">
+        <!-- material to order -->
+        <div class="bg-cyan-900 rounded-lg mr-4 p-4">
           <div class="grid grid-cols-5 mt-2">
             <div></div>
             <div class="mb-4 text-2xl underline col-span-3">Material To Order</div>
@@ -30,13 +31,13 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               for={bar}
               id={"bar-#{bar.id}"}
             >
-              <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
-                <div class="dark-tooltip-container">
+              <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-800 rounded-lg m-2">
+                <div class="dark-tooltip-container font-bold">
                   <%= "#{bar.data.material}" %>
                   <!-- Loop through job assignments and display colored sections -->
                   <div class="relative h-full w-full">
 
-                    <div class="tooltip ml-8 w-60" style="z-index: 12;">
+                    <div class="tooltip ml-8 w-60 font-normal" style="z-index: 12;">
                       <.fixed_widths_table_with_show_job
                       id="bar_assignments"
                       rows={Enum.reverse(bar.data.job_assignments)}
@@ -50,14 +51,14 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                   </div>
                 </div>
 
-                <div><%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %></div>
+                <div class="font-bold"><%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %></div>
 
                 <div>
                 <%= bar.data.on_hand_qty %> ft
                 </div>
 
                 <div>
-
+                <%= get_past_years_usage(@past_years_usage_list, bar.data.material) %> ft
                 </div>
 
                 <div class="px-2 text-center">
@@ -71,7 +72,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           </div>
         </div>
 
-        <div class="bg-cyan-800 rounded-lg ml-4 p-4">
+        <!-- Material Waiting on a quote -->
+        <div class="bg-cyan-900 rounded-lg ml-4 p-4">
           <div class="grid grid-cols-3 mt-2">
             <div></div>
             <div class="mb-4 text-2xl underline w-max">Material Wating on a Quote</div>
@@ -91,7 +93,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               phx-change="validate_bar_waiting_on_quote"
               phx-submit="save_bar_waiting_on_quote"
             >
-              <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-900 rounded-lg m-2">
+              <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-800 rounded-lg m-2">
                 <div class="dark-tooltip-container">
                     <%= "#{bar.data.material}" %>
                     <!-- Loop through job assignments and display colored sections -->
@@ -169,8 +171,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
   def update_material_forms(socket) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
+
+    {material_to_order_changeset, past_years_usage_list} = load_material_to_order(material_list)
     socket
-    |> assign(bars_to_order_form: load_material_to_order(material_list))
+    |> assign(past_years_usage_list: past_years_usage_list)
+    |> assign(bars_to_order_form: material_to_order_changeset)
     |> assign(bars_being_quoted_form: load_material_being_quoted(material_list))
   end
 
@@ -227,22 +232,36 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         |> String.split("X")
         |> Enum.map(&String.trim/1)
 
-      size =
-        case Float.parse(size_str) do
-          {size, ""} -> size
-          _ ->
-            case Integer.parse(size_str) do
-              {int_size, ""} -> int_size / 1
-              _ -> 0.0
+    size =
+      case Float.parse(size_str) do
+        {size, ""} -> size
+        _ ->
+          case Integer.parse(size_str) do
+            {int_size, ""} -> int_size / 1
+            _ -> 0.0
+          end
+      end
+
+    {size, material_name, material}
+    end)
+    |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
+    |> Enum.map(fn {_, _, material} -> material end)
+
+    material_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+
+
+    past_years_usage_list =
+      Enum.reduce(sorted_material_to_order, [], fn mat, acc ->
+        [_size, material] = String.split(mat.material, "X", parts: 2)
+          past_years_usage =
+            case Enum.find(material_list, fn m -> m.material == material end) do
+              nil -> 0.0
+              found -> Enum.find(found.sizes, 0.0, fn m -> m.material_name == mat.material end).past_years_usage
             end
-        end
-
-      {size, material_name, material}
+          map = %{mat.material => past_years_usage}
+          [map] ++ acc
       end)
-      |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
-      |> Enum.map(fn {_, _, material} -> material end)
-
-    Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+    {material_to_order_changeset, past_years_usage_list}
   end
 
   def load_material_being_quoted(material_list) do
@@ -421,6 +440,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         end
       end)
       assign(socket, :bars_being_quoted_form, updated_bars)
+  end
+
+  def get_past_years_usage(list, material) do
+    Enum.find(list, fn l -> Map.has_key?(l, material) end)
+    |> Map.get(material)
   end
 
   def convert_string_to_float(string) do

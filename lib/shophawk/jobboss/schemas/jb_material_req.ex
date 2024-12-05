@@ -9,6 +9,7 @@ defmodule Shophawk.Jb_material_req do
     field :job, :string
     field :material, :string
     field :est_qty, :float
+    field :act_qty, :float
     field :vendor, :string
     field :description, :string
     field :pick_buy_indicator, :string
@@ -24,7 +25,7 @@ defmodule Shophawk.Jb_material_req do
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :material, :est_qty, :vendor, :description, :pick_buy_indicator, :status, :last_updated])
+    |> cast(attrs, [:job, :material, :est_qty, :vendor, :description, :pick_buy_indicator, :status, :last_updated, :act_qty])
     |> validate_required([:job, :material, :est_qty])
   end
 end
