@@ -32,6 +32,7 @@ defmodule Shophawk.Material do
 
     StockedMaterial
     |> where([m], is_nil(m.purchase_price) != true)
+    |> where([m], is_nil(m.original_bar_length) != true)
     |> where([m], m.inserted_at >= ^from_date)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
@@ -117,9 +118,22 @@ defmodule Shophawk.Material do
 
   """
   def update_stocked_material(%StockedMaterial{} = stocked_material, attrs) do
-    stocked_material
-    |> StockedMaterial.changeset(attrs)
-    |> Repo.update()
+    updated_material =
+      stocked_material
+      |> StockedMaterial.changeset(attrs)
+      |> Repo.update()
+
+    case updated_material do
+      {:ok, struct} ->
+        [size, material_name] = String.split(struct.material, "X", parts: 2)
+        [{:data, material_list}] = :ets.lookup(:material_list, :data)
+        sizes = Enum.find(material_list, fn mat -> mat.material == material_name end).sizes
+        size_info = Enum.find(sizes, fn s -> s.size == String.to_float(size) end)
+        update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
+        updated_material
+      _ ->
+        updated_material
+    end
   end
 
   def update_stocked_material(%StockedMaterial{} = stocked_material, attrs, :waiting_on_quote) do
@@ -129,9 +143,30 @@ defmodule Shophawk.Material do
   end
 
   def update_stocked_material(%StockedMaterial{} = stocked_material, attrs, :receive) do
-    stocked_material
-    |> StockedMaterial.changeset_material_receiving(attrs)
-    |> Repo.update()
+    updated_material =
+      stocked_material
+      |> StockedMaterial.changeset_material_receiving(attrs)
+      |> Repo.update()
+
+      case updated_material do
+        {:ok, struct} ->
+          [size, material_name] = String.split(struct.material, "X", parts: 2)
+          [{:data, material_list}] = :ets.lookup(:material_list, :data)
+          sizes = Enum.find(material_list, fn mat -> mat.material == material_name end).sizes
+          size_info = Enum.find(sizes, fn s -> s.size == String.to_float(size) end)
+          update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
+          updated_material
+        _ ->
+          updated_material
+      end
+  end
+
+  def update_on_hand_qty_in_Jobboss(material, location_id) do
+    bars =
+      Shophawk.Material.list_material_not_used_by_material(material)
+      |> Enum.filter(fn bar -> bar.in_house == true end)
+    on_hand_qty = Enum.reduce(bars, 0.0, fn bar, acc -> bar.bar_length + acc end)
+    Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
   end
 
   @doc """

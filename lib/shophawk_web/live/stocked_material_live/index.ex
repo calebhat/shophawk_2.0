@@ -20,7 +20,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     socket =
       socket
       |> assign(:material_list, material_list)
-      |> assign(:grouped_materials, prepare_grouped_materials(material_list))
+      |> assign(:grouped_materials, group_materials(material_list))
       |> assign(:collapsed_groups, [1, 2])
       |> assign(:selected_material, "")
       |> assign(:selected_sizes, [])
@@ -159,7 +159,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
-  #Replace above two functions with this.
   def handle_event("save_material", %{"stocked_material" => stocked_material_params}, socket) do
     found_bar =
       Material.get_stocked_material!(stocked_material_params["id"])
@@ -169,7 +168,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     {:ok, saved_material} = Material.update_stocked_material(found_bar, stocked_material_params)
 
     #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
-    #Currently this function re-checks for new mat_reqs in JB, change to only update current reqs?
     MaterialCache.update_single_material_size_in_cache(saved_material.material)
 
     {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
@@ -184,7 +182,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def handle_event("load_material", %{"selected-material" => selected_material, "selected-size" => selected_size}, socket) do
-    IO.inspect(selected_size)
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
     size_info =  Enum.find(sizes, fn size -> size.size >= String.to_float(selected_size) end) || List.first(sizes)
@@ -281,6 +278,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
         nil -> nil
         material -> material
       end
+
     socket =
       socket
       |> assign(:selected_size, selected_size)
@@ -357,7 +355,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     if selected_entity == entity, do: "bg-cyan-500 ml-4 w-[7rem]", else: " ml-3 bg-stone-200 w-[7.2rem]"
   end
 
-  defp prepare_grouped_materials(materials) do
+  defp group_materials(materials) do
     most_used = ["1144", "1545", "4140", "4140HT", "303", "304", "316", "6061"]
     kzoo =
       ["6/6 NATURAL",

@@ -46,7 +46,7 @@
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
     <div 
     :for={size <- @selected_sizes}
-    class={["flex justify-between items-center w-[5.8rem] rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
+    class={["flex justify-between items-center w-3/4 rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
     phx-click="load_material"
     phx-value-selected-size={size.size}
     phx-value-selected-material={@selected_material}

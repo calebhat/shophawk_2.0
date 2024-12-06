@@ -34,7 +34,6 @@ defmodule Shophawk.MaterialCache do
         material_name = List.first(mat.sizes).material_name
         matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material_name), do: [req | acc], else: acc end)
         mat = Map.put(mat, :mat_reqs_count, Enum.count(matching_mat_reqs))
-        #matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material_name), do: [req | acc], else: acc end)
 
         sizes =
           Enum.map(mat.sizes, fn s ->
@@ -79,7 +78,12 @@ defmodule Shophawk.MaterialCache do
 
                   year_Purchases_history = Enum.filter(all_material_purchased_in_past_12_months, fn mat -> mat.material == found_info.material_name end)
                   mat_tuple_list = Enum.map(year_Purchases_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
-                  total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)
+                  total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc ->
+                    case feet_used do
+                      nil -> acc
+                      value -> acc + value
+                    end
+                  end)
                   total_weighted_price = Enum.reduce(mat_tuple_list, 0, fn {feet_used, price}, acc -> acc + (feet_used * price) end)
                   average_price = if total_inches_used > 0.0, do: total_weighted_price / total_inches_used, else: 0.0
                   sell_price = if average_price > 0.0, do: Float.ceil(average_price * 1.2 * 4) / 4, else: 0.0

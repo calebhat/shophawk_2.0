@@ -525,34 +525,6 @@ defmodule Shophawk.Jobboss_db do
     :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
   end
 
-  def failsafed_query(query, retries \\ 3, delay \\ 100) do #For jobboss db queries
-    Process.sleep(delay)
-    try do
-      {:ok, result} = {:ok, Shophawk.Repo_jb.all(query)}
-      result
-    rescue
-      _e in DBConnection.ConnectionError ->
-        IO.puts("Database connection error. Retries left: #{retries}")
-        handle_retry(query, retries, delay, :connection_error)
-      e in Ecto.QueryError ->
-        IO.puts("Query error: #{inspect(e)}. Retries left: #{retries}")
-        handle_retry(query, retries, delay, :query_error)
-      e ->
-        IO.puts("Unexpected error: #{inspect(e)}. Retries left: #{retries}")
-        handle_retry(query, retries, delay, :unexpected_error)
-    end
-  end
-
-  defp handle_retry(_query, 0, delay, reason) do #For jobboss db queries
-    Process.sleep(delay)
-    {:error, reason}
-  end
-
-  defp handle_retry(query, retries, delay, _reason) do #For jobboss db queries
-    :timer.sleep(delay)
-    failsafed_query(query, retries - 1, delay)
-  end
-
   ######
   #DASHBOARD PAGE FUNCTIONS
   ######
@@ -796,6 +768,16 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
+  def update_material(material, location_id, on_hand_qty) do
+    query =
+      Shophawk.Jb_material_location
+      |> where([r], r.location_id == ^location_id)
+      |> where([r], r.material == ^material)
+      |> update([r], set: [on_hand_qty: ^on_hand_qty])
+
+      Shophawk.Repo_jb.update_all(query, [])
+  end
+
   def load_materials_and_sizes() do #doesn't load into cache right now
     query =
       from r in Jb_material,
@@ -896,6 +878,35 @@ defmodule Shophawk.Jobboss_db do
     string = if String.at(string, 0) == ".", do: "0" <> string, else: string
     elem(Float.parse(string), 0)
   end
+
+  #### Query Failsafes ####
+  def failsafed_query(query, retries \\ 3, delay \\ 100) do #For jobboss db queries
+    Process.sleep(delay)
+    try do
+      {:ok, result} = {:ok, Shophawk.Repo_jb.all(query)}
+      result
+    rescue
+      _e in DBConnection.ConnectionError ->
+        IO.puts("Database connection error. Retries left: #{retries}")
+        handle_retry(query, retries, delay, :connection_error)
+      e in Ecto.QueryError ->
+        IO.puts("Query error: #{inspect(e)}. Retries left: #{retries}")
+        handle_retry(query, retries, delay, :query_error)
+      e ->
+        IO.puts("Unexpected error: #{inspect(e)}. Retries left: #{retries}")
+        handle_retry(query, retries, delay, :unexpected_error)
+    end
+  end
+
+defp handle_retry(_query, 0, delay, reason) do #For jobboss db queries
+  Process.sleep(delay)
+  {:error, reason}
+end
+
+defp handle_retry(query, retries, delay, _reason) do #For jobboss db queries
+  :timer.sleep(delay)
+  failsafed_query(query, retries - 1, delay)
+end
 
 
 end
