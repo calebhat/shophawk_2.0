@@ -71,10 +71,14 @@ defmodule Shophawk.MaterialCache do
                   }
                 found_info ->
                   matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
-                  total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc -> m.bar_length + acc end) / 12
+                  total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc ->
+                    case m.bar_length do
+                      nil -> acc
+                      length -> length + acc
+                    end
+                  end) / 12
 
                   material_year_history = Enum.filter(year_history, fn m -> m.material == found_info.material_name end) |> Enum.reduce(0.0, fn m, acc -> m.act_qty + acc end)
-
 
                   year_Purchases_history = Enum.filter(all_material_purchased_in_past_12_months, fn mat -> mat.material == found_info.material_name end)
                   mat_tuple_list = Enum.map(year_Purchases_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
@@ -347,7 +351,12 @@ defmodule Shophawk.MaterialCache do
                 #CAN SKIP THIS IF WRITING ON HAND AMOUNT TO JB
                 #matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
                 matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
-                total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc -> m.bar_length + acc end) / 12
+                total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc ->
+                  case m.bar_length do
+                    nil -> acc
+                    length -> length + acc
+                  end
+                end) / 12
                 year_history = Material.list_stockedmaterials_last_12_month_entries(s.material_name)
                 mat_tuple_list = Enum.map(year_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)
                 total_inches_used = Enum.reduce(mat_tuple_list, 0.0, fn {feet_used, _price}, acc -> acc + feet_used end)

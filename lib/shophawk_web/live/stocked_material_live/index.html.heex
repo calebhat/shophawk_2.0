@@ -11,9 +11,12 @@
           phx-value-group-index={index}
         >
           <span class="font-semibold"><%= group.name %></span>
+          <% jobs_to_saw = Enum.sum(Enum.map(group.materials, & &1.mat_reqs_count)) %>
+          <%= if jobs_to_saw > 0 do %>
           <span class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1">
-            <%= Enum.sum(Enum.map(group.materials, & &1.mat_reqs_count)) %>
+            <%= jobs_to_saw %>
           </span>
+          <% end %>
         </div>
 
         <%= if !((@collapsed_groups || []) |> Enum.member?(index)) do %>
@@ -306,7 +309,7 @@
                           <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2 w-6">
                             <%= Enum.count(bar.data.job_assignments) %>
                           </div>
-                          <div class="tooltip flex w-56" style="z-index: 12;">
+                          <div class="tooltip flex w-56 shadow-2xl" style="z-index: 12;">
                               <.fixed_widths_table_with_show_job 
                               id="bar_assignments" 
                               rows={Enum.reverse(bar.data.job_assignments)} 
@@ -385,7 +388,10 @@
                           <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 ml-2 h-6">
                             <%= Enum.count(bar.data.job_assignments) %>
                           </div>                        
-                          <div class="tooltip" style="z-index: 12;">
+                          <div 
+                            class="tooltip absolute transform -translate-x-3/4 shadow-2xl min-w-min z-12"
+                            style="z-index: 12; white-space: nowrap;"
+                          >
                               <.fixed_widths_table_with_show_job 
                               id="bar_assignments" 
                               rows={Enum.reverse(bar.data.job_assignments)} 
@@ -423,7 +429,8 @@
     id={@stocked_material.id || :new}
     title={@page_title}
     action={@live_action}
-    stocked_material={@stocked_material}
+    stocked_material={@stocked_material}    
+    material={if @size_info == nil, do: "", else: @size_info.material_name}
     patch={~p"/stockedmaterials"}
   />
 </.modal>

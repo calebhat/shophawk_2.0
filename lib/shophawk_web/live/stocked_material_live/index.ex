@@ -10,7 +10,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     #reload material into cache with assignments
-    #Shophawk.MaterialCache.create_material_cache
+    IO.inspect(socket)
+    #if connected?(socket), do: Shophawk.MaterialCache.create_material_cache
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
 
     material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
@@ -180,7 +181,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     {:noreply, stream_delete(socket, :stockedmaterials, stocked_material)}
   end
 
-  @impl true
   def handle_event("load_material", %{"selected-material" => selected_material, "selected-size" => selected_size}, socket) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes

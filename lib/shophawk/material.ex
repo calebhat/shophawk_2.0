@@ -44,6 +44,7 @@ defmodule Shophawk.Material do
     StockedMaterial
     |> where([m], m.material == ^material)
     |> where([m], is_nil(m.purchase_price) != true)
+    |> where([m], is_nil(m.original_bar_length) != true)
     |> where([m], m.inserted_at >= ^from_date)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
@@ -165,8 +166,14 @@ defmodule Shophawk.Material do
     bars =
       Shophawk.Material.list_material_not_used_by_material(material)
       |> Enum.filter(fn bar -> bar.in_house == true end)
-    on_hand_qty = Enum.reduce(bars, 0.0, fn bar, acc -> bar.bar_length + acc end)
-    Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
+    on_hand_qty =
+      Enum.reduce(bars, 0.0, fn bar, acc ->
+        case bar.bar_length do
+          nil -> acc
+          length -> length + acc
+        end
+      end)
+    #Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
   end
 
   @doc """

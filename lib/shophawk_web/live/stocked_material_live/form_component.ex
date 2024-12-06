@@ -9,7 +9,7 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
     <div>
       <.header>
         <%= @title %>
-        <:subtitle>Use this form to manage stocked_material records in your database.</:subtitle>
+        <:subtitle>Only use this form for past bars not received properly, ask Caleb if unsure</:subtitle>
       </.header>
 
       <.simple_form
@@ -19,17 +19,12 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:material]} type="text" label="Material" />
-        <.input field={@form[:bar_length]} type="number" label="Bar Length" />
-        <.input field={@form[:slug_length]} type="number" label="Slug Length" />
-        <.input field={@form[:number_of_slugs]} type="number" label="Number of Slugs" />
-        <.input field={@form[:purchase_date]} type="date" label="Purchase Date" />
+        <.input field={@form[:material]} type="text" label="Material" value={@material} disabled="true" />
+        <.input field={@form[:original_bar_length]} type="number" label="Bar Length" />
+        <.input field={@form[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()} />
         <.input field={@form[:purchase_price]} type="number" label="Purchase Price" />
-        <.input field={@form[:vendor]} type="text" label="Vendor" />
-        <.input field={@form[:being_quoted]} type="checkbox" label="Being quoted?" />
-        <.input field={@form[:ordered]} type="checkbox" label="Ordered?" />
-        <.input field={@form[:in_house]} type="checkbox" label="In House?" />
-        <.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" />
+        <.input field={@form[:vendor]} type="text" label="Vendor" phx-blur="autofill_vendor" phx-target={@myself}/>
+        <.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" value="true" disabled="true" />
 
         <:actions>
           <.button phx-disable-with="Saving...">Save Stocked material</.button>
@@ -42,7 +37,7 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
   @impl true
   def update(%{stocked_material: stocked_material} = assigns, socket) do
     changeset = Material.change_stocked_material(stocked_material)
-
+    #IO.inspect(changeset)
     {:ok,
      socket
      |> assign(assigns)
@@ -61,6 +56,17 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
 
   def handle_event("save", %{"stocked_material" => stocked_material_params}, socket) do
     save_stocked_material(socket, socket.assigns.action, stocked_material_params)
+  end
+
+  def handle_event("autofill_vendor", params, socket) do
+    updated_params = ShophawkWeb.StockedMaterialLive.MaterialToOrder.autofill_vendor(params)
+
+    changeset =
+      socket.assigns.stocked_material
+      |> Material.change_stocked_material(updated_params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign_form(socket, changeset)}
   end
 
   defp save_stocked_material(socket, :edit, stocked_material_params) do

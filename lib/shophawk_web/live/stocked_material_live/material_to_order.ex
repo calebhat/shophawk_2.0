@@ -373,22 +373,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def handle_event("autofill_vendor", params, socket) do
-    vendor_list =
-      %{
-        "as" => "Alro Steel",
-        "ap" => "Alro Plastics",
-        "c" => "Castle",
-        "d" => "Durabar"
-      }
-
-    updated_value =
-      case Enum.find(vendor_list, fn {key, _value} -> key == params["value"] end) do
-        {_key, value} -> value
-        nil -> params["value"]
-      end
-
-      params = Map.put(params, "vendor", updated_value)
-
+    params = autofill_vendor(params)
     {:noreply, validate_bar_waiting_on_quote(params, socket)}
   end
 
@@ -450,6 +435,24 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   def convert_string_to_float(string) do
     string = if String.at(string, 0) == ".", do: "0" <> string, else: string
     elem(Float.parse(string), 0)
+  end
+
+  def autofill_vendor(params) do
+    vendor_list =
+      %{
+        "as" => "Alro Steel",
+        "ap" => "Alro Plastics",
+        "c" => "Castle",
+        "d" => "Durabar"
+      }
+      value = params["value"]
+      updated_value =
+        case Enum.find(vendor_list, fn {key, _value} -> key == value end) do
+          {_key, typed_value} -> typed_value
+          nil -> value
+        end
+
+        Map.put(params, "vendor", updated_value)
   end
 
 end
