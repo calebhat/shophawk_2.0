@@ -173,7 +173,7 @@ defmodule Shophawk.Material do
           length -> length + acc
         end
       end)
-    #Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
+    Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
   end
 
   @doc """
@@ -190,6 +190,14 @@ defmodule Shophawk.Material do
   """
   def delete_stocked_material(%StockedMaterial{} = stocked_material) do
     Repo.delete(stocked_material)
+    #Update Jobboss on hand qty
+    [size, material_name] = String.split(stocked_material.material, "X", parts: 2)
+    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    sizes = Enum.find(material_list, fn mat -> mat.material == material_name end).sizes
+    size_info = Enum.find(sizes, fn s -> s.size == String.to_float(size) end)
+    update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
+
+
   end
 
   @doc """

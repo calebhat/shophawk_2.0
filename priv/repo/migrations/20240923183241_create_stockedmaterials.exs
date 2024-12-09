@@ -16,6 +16,7 @@ defmodule Shophawk.Repo.Migrations.CreateStockedmaterials do
       add :in_house, :boolean, default: false
       add :bar_used, :boolean, default: false
       add :extra_bar_for_receiving, :boolean, null: true
+      add :location, :string
 
       timestamps()
     end

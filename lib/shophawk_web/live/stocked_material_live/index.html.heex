@@ -1,12 +1,12 @@
-<div>
+<div class="relative"  style="z-index: 8">
 
   <!-- material column -->
   <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">    
-    <div><.button class="" phx-click="test">Reload material</.button></div>
+    <!-- <div><.button class="" phx-click="test">Reload material</.button></div> -->
     <div>
       <%= for {group, index} <- @grouped_materials do %>
         <div 
-          class="flex justify-between items-center rounded m-1 mr-6 p-1 mt-4 bg-stone-200 hover:cursor-pointer w-[8rem]"
+          class="flex justify-between items-center rounded m-1 mr-6 p-1 bg-stone-200 hover:cursor-pointer w-[8rem]"
           phx-click="toggle_group"
           phx-value-group-index={index}
         >
@@ -24,7 +24,7 @@
             <div class="flex">
               <div class="border-l border-stone-400 ml-1"></div>
               <div 
-                class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_material, material.material)]}
+                class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_material_bg_color(@selected_material, material.material)]}
                 phx-click="load_material"
                 phx-value-selected-material={material.material}
                 phx-value-selected-size={@selected_size}
@@ -46,10 +46,10 @@
   </div>
 
   <!-- Size column -->
-  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 right-auto w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
     <div 
     :for={size <- @selected_sizes}
-    class={["flex justify-between items-center w-3/4 rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_bg_color(@selected_size, size.size)]}
+    class={["flex items-center justify-between rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_size_bg_color(@selected_size, size.size)]}
     phx-click="load_material"
     phx-value-selected-size={size.size}
     phx-value-selected-material={@selected_material}
@@ -64,7 +64,7 @@
   </div>
 
   <!-- Primary Center block -->
-  <div class="absolute bg-cyan-900 rounded ml-[17rem] top-[5.71rem] right-[1vw] left-[2vw] bottom-[1rem]">
+  <div class="bg-cyan-900 fixed rounded ml-[17rem] top-[5.71rem] right-[2vw] left-[2vw] bottom-[1rem]">
     <div>
       <!-- to order and receive buttons -->
       <div class="flex pl-4 pt-2">
@@ -81,10 +81,10 @@
       <!-- if a size is loaded -->
       <%= if @size_info != nil do %>
       <div id="main-content" style={if @loading, do: "display: none;"} class="">
-        <div class=" grid grid-cols-3 text-center content-center">          
+        <div class=" grid grid-cols-10 text-center content-center">          
           
           <!-- to order and receive buttons -->
-          <div class="relative inline-block">
+          <div class="relative inline-block col-span-2">
             <div class="">
               
               <div class="flex pl-4">
@@ -99,11 +99,11 @@
            
           </div>
 
-          <div class="text-stone-200 text-4xl underline">
+          <div class="text-stone-200 text-4xl col-span-5">
             <%= @size_info.material_name %>
           </div>
             
-          <div>
+          <div class="col-span-3 flex justify-end mr-4">
             <.link patch={~p"/stockedmaterials/new"}>
               <.button>Manually Receive Bar</.button>
             </.link>
@@ -180,6 +180,7 @@
                       style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%;"}>
                         <span class="absolute inset-0 flex justify-center items-center">
                           <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
+                          <%= if bar.data.location != nil, do: " - #{bar.data.location}" %>
                         </span>
                         <!-- Loop through job assignments and display colored sections -->
                         <div class="relative h-full w-full">
@@ -197,13 +198,14 @@
                       <div class="hidden"><.input field={bar[:id]} type="text" /></div>
                       <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>            
                     </div>
-                    <div class="w-48">
+                    <div class="w-min-content">
                       <%= if bar.data.saved == false do %> 
-                        <img class="pl-2 py-3" src={~p"/images/red_x.svg"} />
-                        <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
+                        <div class="flex justify-items-start w-40">
+                          <div class="ml-2"><.input field={bar[:location]} type="text" placeholder="Location" value={bar.data.location} /></div>
+                          <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
+                        </div>
                       <% else %>
-                      <div class="flex">
-                        <img class="pl-2 py-3" src={~p"/images/black_checkmark.svg"} />
+                      <div class="flex justify-items-start w-40">
                         <div class="pl-2 py-3">
                           <.button 
                           type="button"
@@ -359,20 +361,26 @@
                   phx-change="validate_slugs"
                   phx-submit="save_material"
                 >
-                  <div class="flex p-1">                    
-                    <div class="w-24">
-                      <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                      <div class="pb-2 pl-2"><.input field={bar[:slug_length]} type="number" step=".01" /></div> 
-                    </div>                    
-                    <div class="w-20 pb-2 pl-2"><.input field={bar[:number_of_slugs]} type="number" step="1.0" />
-                    </div>                     
+                  <div class="flex p-1">  
+                    <div class="flex dark-tooltip-container">                  
+                      <div class="w-24">
+                        <div class="hidden"><.input field={bar[:id]} type="text" /></div>
+                        <div class="pb-2 pl-2"><.input field={bar[:slug_length]} type="number" step=".01" /></div> 
+                      </div>                    
+                      <div class="w-20 pb-2 pl-2"><.input field={bar[:number_of_slugs]} type="number" step="1.0" />
+                      </div>   
+                      <%= if bar.data.location != nil do %>
+                        <div class="tooltip absolute translate-y-14 translate-x-2">
+                        <%= bar.data.location %>
+                        </div> 
+                      <% end %>
+                    </div>                 
                     <div class="w-40">
                       <%= if bar.data.saved == false do %> 
-                        <img class="pl-2 py-3" src={~p"/images/red_x.svg"} />
+                        <div class="ml-2"><.input field={bar[:location]} type="text" placeholder="Location" /></div>
                         <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
                       <% else %>
                       <div class="flex items-center">
-                        <img class="pl-2 py-3" src={~p"/images/black_checkmark.svg"} />
                         <div class="pl-2 py-3">
                           <.delete_button 
                           type="button"
@@ -384,12 +392,12 @@
                           </.delete_button>                          
                         </div>
                         <%= if Enum.count(bar.data.job_assignments) > 0 do %>
-                        <div class="dark-tooltip-container">
+                        <div class="dark-tooltip-container h-full">
                           <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 ml-2 h-6">
                             <%= Enum.count(bar.data.job_assignments) %>
                           </div>                        
                           <div 
-                            class="tooltip absolute transform -translate-x-3/4 shadow-2xl min-w-min z-12"
+                            class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
                             style="z-index: 12; white-space: nowrap;"
                           >
                               <.fixed_widths_table_with_show_job 

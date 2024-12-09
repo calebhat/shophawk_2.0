@@ -20,11 +20,13 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
         phx-submit="save"
       >
         <.input field={@form[:material]} type="text" label="Material" value={@material} disabled="true" />
+        <div class="hidden"><.input field={@form[:material]} type="text" label="Material" value={@material} /></div>
         <.input field={@form[:original_bar_length]} type="number" label="Bar Length" />
         <.input field={@form[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()} />
         <.input field={@form[:purchase_price]} type="number" label="Purchase Price" />
-        <.input field={@form[:vendor]} type="text" label="Vendor" phx-blur="autofill_vendor" phx-target={@myself}/>
+        <.input field={@form[:vendor]} type="text" label="Vendor" phx-debounce="2000"/>
         <.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" value="true" disabled="true" />
+        <div class="hidden"><.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" value="true" /></div>
 
         <:actions>
           <.button phx-disable-with="Saving...">Save Stocked material</.button>
@@ -46,9 +48,10 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
 
   @impl true
   def handle_event("validate", %{"stocked_material" => stocked_material_params}, socket) do
+    updated_params = ShophawkWeb.StockedMaterialLive.MaterialToOrder.autofill_vendor(stocked_material_params)
     changeset =
       socket.assigns.stocked_material
-      |> Material.change_stocked_material(stocked_material_params)
+      |> Material.change_stocked_material(updated_params)
       |> Map.put(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
@@ -59,6 +62,8 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
   end
 
   def handle_event("autofill_vendor", params, socket) do
+    IO.inspect(params)
+    IO.inspect(socket.assigns.stocked_material)
     updated_params = ShophawkWeb.StockedMaterialLive.MaterialToOrder.autofill_vendor(params)
 
     changeset =

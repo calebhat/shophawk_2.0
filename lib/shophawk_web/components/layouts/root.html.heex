@@ -50,10 +50,12 @@
                     Dashboard
                   </a>
                 <!-- Dropdown Menu -->
-                <div class="absolute hidden group-hover:block bg-cyan-800 rounded-lg shadow-lg py-2">
-                  <a href={~p"/dashboard/accounting"} class="block px-4 py-2 text-white hover:bg-cyan-700">
-                    Accounting
-                  </a>
+                <div class="relative" style="z-index: 15">
+                  <div class="absolute hidden group-hover:block bg-cyan-800 rounded-lg shadow-lg py-2" style="left: 0;">
+                    <a href={~p"/dashboard/accounting"} class="block px-4 py-2 text-white hover:bg-cyan-700">
+                      Accounting
+                    </a>
+                  </div>
                 </div>
               <% end %>
               <%= if @current_user.email == "office" do %>

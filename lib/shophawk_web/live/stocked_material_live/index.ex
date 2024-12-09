@@ -10,8 +10,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     #reload material into cache with assignments
-    IO.inspect(socket)
-    #if connected?(socket), do: Shophawk.MaterialCache.create_material_cache
+    if connected?(socket), do: Shophawk.MaterialCache.create_material_cache
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
 
     material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
@@ -59,8 +58,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   @impl true
-  def handle_info({ShophawkWeb.StockedMaterialLive.FormComponent, {:saved, stocked_material}}, socket) do
-    {:noreply, stream_insert(socket, :stockedmaterials, stocked_material)}
+  def handle_info({ShophawkWeb.StockedMaterialLive.FormComponent, {:saved, _stocked_material}}, socket) do
+    {:noreply, socket}
   end
 
   @impl true
@@ -178,7 +177,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     stocked_material = Material.get_stocked_material!(id)
     {:ok, _} = Material.delete_stocked_material(stocked_material)
 
-    {:noreply, stream_delete(socket, :stockedmaterials, stocked_material)}
+    {:noreply, socket}
   end
 
   def handle_event("load_material", %{"selected-material" => selected_material, "selected-size" => selected_size}, socket) do
@@ -350,9 +349,14 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   ##### Functions ran during HTML generation from heex template #####
-  defp set_bg_color(entity, selected_entity) do
+  defp set_material_bg_color(entity, selected_entity) do
     selected_entity = if is_float(selected_entity) == true, do: Float.to_string(selected_entity), else: selected_entity
     if selected_entity == entity, do: "bg-cyan-500 ml-4 w-[7rem]", else: " ml-3 bg-stone-200 w-[7.2rem]"
+  end
+
+  defp set_size_bg_color(entity, selected_entity) do
+    selected_entity = if is_float(selected_entity) == true, do: Float.to_string(selected_entity), else: selected_entity
+    if selected_entity == entity, do: "bg-cyan-500 ml-4 w-[5.75rem]", else: " ml-3 bg-stone-200 w-[6rem]"
   end
 
   defp group_materials(materials) do

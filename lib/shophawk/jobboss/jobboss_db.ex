@@ -769,6 +769,7 @@ defmodule Shophawk.Jobboss_db do
   end
 
   def update_material(material, location_id, on_hand_qty) do
+    on_hand_qty = on_hand_qty / 12 #Convert to Feet for Jobboss
     query =
       Shophawk.Jb_material_location
       |> where([r], r.location_id == ^location_id)

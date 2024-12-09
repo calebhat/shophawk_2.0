@@ -15,8 +15,14 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
               <thead class="text-lg underline">
                 <tr>
                   <th class="px-2">Material</th>
-                  <th class="px-2">Length Needed</th>
-                  <th class="px-2">Measured Length (In.)</th>
+                  <th class="px-2">Needed</th>
+                  <th class="px-2">
+                    <div class="flex items-center justify-between ml-6">
+                      <div class="">length</div>
+                      <div class="">Location</div>
+                      <div class="">Receive</div>
+                    </div>
+                  </th>
                   <th class="px-2">Add Bar</th>
                   <th class="px-2">Remove Extra</th>
                 </tr>
@@ -58,9 +64,10 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                             phx-change="validate_bar_to_receive"
                             phx-submit="receive_bar"
                           >
-                            <div class="flex items-center">
+                            <div class="flex items-center justify-between">
                               <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                              <div class=" pb-2 px-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>
+                              <div class=" pb-2 px-2 w-28"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>
+                              <div class="mr-2 pb-2"><.input field={bar[:location]} type="text" placeholder="Location"/></div>
                               <div class=""><.button type="submit" phx-disable-with="Saving...">Receive</.button></div>
                             </div>
                           </.form>

@@ -16,6 +16,7 @@ defmodule Shophawk.Material.StockedMaterial do
     field :in_house, :boolean, default: false
     field :bar_used, :boolean, default: false
     field :extra_bar_for_receiving, :boolean, default: false
+    field :location, :string
 
     field :saved, :boolean, default: true, virtual: true
     #field :enough_bar_for_job, :boolean, default: true, virtual: true
@@ -29,7 +30,7 @@ defmodule Shophawk.Material.StockedMaterial do
   @doc false
   def changeset(stocked_material, attrs) do
     stocked_material
-    |> cast(attrs, [:material, :bar_length, :original_bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
+    |> cast(attrs, [:material, :bar_length, :original_bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving, :location])
     |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used])
     |> validate_number(:purchase_price, greater_than_or_equal_to: 0, message: "Must be positive")
     |> validate_number(:original_bar_length, greater_than_or_equal_to: 0, message: "Must be positive")
@@ -48,7 +49,7 @@ defmodule Shophawk.Material.StockedMaterial do
         ) :: Ecto.Changeset.t()
   def material_waiting_on_quote_changeset(stocked_material, attrs) do
     stocked_material
-    |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
+    |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving, :location])
     |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :vendor, :purchase_price])
     |> validate_number(:purchase_price, greater_than_or_equal_to: 0, message: "Must be positive")
     |> round_floats()
@@ -56,7 +57,7 @@ defmodule Shophawk.Material.StockedMaterial do
 
   def changeset_material_receiving(stocked_material, attrs) do
     stocked_material
-    |> cast(attrs, [:material, :bar_length, :original_bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving])
+    |> cast(attrs, [:material, :bar_length, :original_bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving, :location])
     |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :bar_length, :original_bar_length])
     |> validate_number(:bar_length, greater_than_or_equal_to: 0, message: "Must be positive")
     |> round_floats()

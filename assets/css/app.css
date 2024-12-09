@@ -26,12 +26,22 @@
     display: none;
   }
 
-  .dark-tooltip-container:hover .tooltip {
-    display: block;
+  .dark-tooltip-container .tooltip {
+    display: block; /* Tooltip exists but is hidden by default */
     position: absolute;
-    background-color: #373635  ;
-    @apply p-2 content-center rounded-lg
-    /* Add more styling as needed */
+    background-color: #373635;
+    color: white; /* Ensure tooltip text is visible */
+    padding: 8px; /* Adjust as needed */
+    border-radius: 8px; /* Rounded corners */
+    opacity: 0; /* Fully transparent initially */
+    visibility: hidden; /* Hidden by default */
+    transition: opacity 0.1s ease, visibility 0.1s ease; /* Smooth transitions */
+    z-index: 10; /* Ensure the tooltip appears above other content */
+  }
+  
+  .dark-tooltip-container:hover .tooltip {
+    opacity: 1; /* Fully visible on hover */
+    visibility: visible; /* Ensure it becomes visible */
   }
   
 
@@ -206,23 +216,14 @@ body {
     min-height: 100vh; /* Ensure body covers the full viewport height */
   }
   
-  .top-row { /* Styles for your top row of divs */
-    /* ... (your existing styles) */
-  }
-  
   .middle-row { /* Styles for your middle row of divs */
     flex: 1; /* This will make the middle row take up all the remaining space */
-    /* ... (your existing styles) */
-  }
-  
-  .bottom-row { /* Styles for your bottom row of divs */
     /* ... (your existing styles) */
   }
 
   .heartbeat {
     -webkit-animation: heartbeat 1.5s ease-in-out both;
             animation: heartbeat 1.5s ease-in-out both;
-            webkit-animation-delay: .75s;
             animation-delay: .75s;
   }
 

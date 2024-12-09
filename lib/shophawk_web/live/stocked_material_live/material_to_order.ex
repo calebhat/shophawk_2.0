@@ -74,9 +74,9 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
         <!-- Material Waiting on a quote -->
         <div class="bg-cyan-900 rounded-lg ml-4 p-4">
-          <div class="grid grid-cols-3 mt-2">
+          <div class="grid grid-cols-5 mt-2 place-items-center">
             <div></div>
-            <div class="mb-4 text-2xl underline w-max">Material Wating on a Quote</div>
+            <div class="mb-4 text-2xl underline w-max col-span-3">Material Wating on a Quote</div>
             <div><.button type="button" phx-click="set_all_to_material_to_recieve">Save All</.button></div>
           </div>
           <div class="grid grid-cols-5 text-lg underline">
@@ -445,7 +445,14 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         "c" => "Castle",
         "d" => "Durabar"
       }
-      value = params["value"]
+
+      value =
+        cond do
+          Map.has_key?(params, "value") -> params["value"]
+          Map.has_key?(params, "vendor") -> params["vendor"]
+          true -> ""
+        end
+
       updated_value =
         case Enum.find(vendor_list, fn {key, _value} -> key == value end) do
           {_key, typed_value} -> typed_value
