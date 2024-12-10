@@ -31,6 +31,8 @@ config :shophawk, Shophawk.Mailer, adapter: Swoosh.Adapters.Local
 
 jobs =
   [
+    #Runs every 5 minutes
+    {"*/5 * * * *", {ScheduledTasks, :update_all_runlist_loads, []}},
     # Run once a day
     {"@daily", {ScheduledTasks, :load_current_week_birthdays, []}},
 
@@ -44,8 +46,6 @@ jobs =
     {"@daily", {ShophawkWeb.DashboardLive.Index, :save_this_weeks_revenue, []}}
   ]
 
-  #Runs every 5 minutes
-jobs = if System.get_env("MIX_ENV") == "prod", do: jobs ++ [{"*/5 * * * *", {ScheduledTasks, :update_all_runlist_loads, []}}], else: jobs
 
 config :shophawk, Shophawk.Scheduler, jobs: jobs
 
