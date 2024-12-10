@@ -126,10 +126,13 @@ defmodule Shophawk.Material do
 
     case updated_material do
       {:ok, struct} ->
-        [size, material_name] = String.split(struct.material, "X", parts: 2)
+        [size, _material_name] = String.split(struct.material, "X", parts: 2)
         [{:data, material_list}] = :ets.lookup(:material_list, :data)
-        sizes = Enum.find(material_list, fn mat -> mat.material == material_name end).sizes
-        size_info = Enum.find(sizes, fn s -> s.size == String.to_float(size) end)
+        size_info = Enum.find_value(material_list, fn mat ->
+          Enum.find(mat.sizes, fn s ->
+            s.size == make_float(size)
+          end)
+        end)
         update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
         updated_material
       _ ->
@@ -151,10 +154,13 @@ defmodule Shophawk.Material do
 
       case updated_material do
         {:ok, struct} ->
-          [size, material_name] = String.split(struct.material, "X", parts: 2)
+          [size, _material_name] = String.split(struct.material, "X", parts: 2)
           [{:data, material_list}] = :ets.lookup(:material_list, :data)
-          sizes = Enum.find(material_list, fn mat -> mat.material == material_name end).sizes
-          size_info = Enum.find(sizes, fn s -> s.size == String.to_float(size) end)
+          size_info = Enum.find_value(material_list, fn mat ->
+            Enum.find(mat.sizes, fn s ->
+              s.size == make_float(size)
+            end)
+          end)
           update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
           updated_material
         _ ->
@@ -173,7 +179,8 @@ defmodule Shophawk.Material do
           length -> length + acc
         end
       end)
-    Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
+    if System.get_env("MIX_ENV") == "prod", do: Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
+
   end
 
   @doc """

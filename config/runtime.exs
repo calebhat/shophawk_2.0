@@ -35,7 +35,7 @@ import Config
     username: "postgres",
     password: "Gear1234",
     hostname: "localhost",
-    database: "shophawk_2.0",
+    database: "shophawk_dev",
     stacktrace: true,
     show_sensitive_data_on_connection_error: true,
     pool_size: 10

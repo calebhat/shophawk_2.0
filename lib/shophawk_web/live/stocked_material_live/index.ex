@@ -10,28 +10,43 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     #reload material into cache with assignments
-    if connected?(socket), do: Shophawk.MaterialCache.create_material_cache
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
-
-    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
-    material_on_order_count = Enum.count(Material.list_material_on_order())
-
-    #material_list = if connected?(socket), do: Jobboss_db.load_materials_and_sizes_into_cache(), else: []
     socket =
-      socket
-      |> assign(:material_list, material_list)
-      |> assign(:grouped_materials, group_materials(material_list))
-      |> assign(:collapsed_groups, [1, 2])
-      |> assign(:selected_material, "")
-      |> assign(:selected_sizes, [])
-      |> assign(:selected_size, "0.0")
-      |> assign(:loading, false)
-      |> assign(:size_info, nil)
-      |> assign(:material_name, "")
-      |> assign(:material_to_order_count, material_needed_to_order_count)
-      |> assign(:material_on_order_count, material_on_order_count)
+      if !connected?(socket) do
+        Shophawk.MaterialCache.create_material_cache
+        socket
+        |> assign(:material_list, [])
+        |> assign(:grouped_materials, [])
+        |> assign(:collapsed_groups, [])
+        |> assign(:selected_material, "")
+        |> assign(:selected_sizes, [])
+        |> assign(:selected_size, "0.0")
+        |> assign(:loading, false)
+        |> assign(:size_info, nil)
+        |> assign(:material_name, "")
+        |> assign(:material_to_order_count, 0)
+        |> assign(:material_on_order_count, 0)
+      else
+        [{:data, material_list}] = :ets.lookup(:material_list, :data)
 
-    {:ok, socket}
+        material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+        material_on_order_count = Enum.count(Material.list_material_on_order())
+
+        #material_list = if connected?(socket), do: Jobboss_db.load_materials_and_sizes_into_cache(), else: []
+
+          socket
+          |> assign(:material_list, material_list)
+          |> assign(:grouped_materials, group_materials(material_list))
+          |> assign(:collapsed_groups, [1, 2])
+          |> assign(:selected_material, "")
+          |> assign(:selected_sizes, [])
+          |> assign(:selected_size, "0.0")
+          |> assign(:loading, false)
+          |> assign(:size_info, nil)
+          |> assign(:material_name, "")
+          |> assign(:material_to_order_count, material_needed_to_order_count)
+          |> assign(:material_on_order_count, material_on_order_count)
+       end
+      {:ok, socket}
   end
 
   @impl true
