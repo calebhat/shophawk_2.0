@@ -360,7 +360,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   defp group_materials(materials) do
-    most_used = ["1144", "1545", "4140", "4140HT", "303", "304", "316", "6061"]
+    most_used = ["1144", "1545", "4140", "4140HT", "GI","DI", "303", "304", "316", "6061"]
     kzoo =
       ["6/6 NATURAL",
       "ACETAL",

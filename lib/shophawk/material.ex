@@ -194,10 +194,16 @@ defmodule Shophawk.Material do
     [size, material_name] = String.split(stocked_material.material, "X", parts: 2)
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == material_name end).sizes
-    size_info = Enum.find(sizes, fn s -> s.size == String.to_float(size) end)
+    size_info = Enum.find(sizes, fn s -> s.size == make_float(size) end)
+
     update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
+  end
 
-
+  def make_float(string) do
+    cond do
+      !String.contains?(string, ".") -> String.to_float(string <> ".0")
+      true -> String.to_float(string)
+    end
   end
 
   @doc """

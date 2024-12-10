@@ -31,23 +31,17 @@ defmodule Shophawk.MaterialCache do
     #Reduce through material, save info, and assign jobs
     updated_material_list =
       Enum.map(material_list, fn mat ->
-        material_name = List.first(mat.sizes).material_name
-        matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material_name), do: [req | acc], else: acc end)
-        mat = Map.put(mat, :mat_reqs_count, Enum.count(matching_mat_reqs))
+        #material_name = List.first(mat.sizes).material_name
+        #matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material_name), do: [req | acc], else: acc end)
+        #This is not correct here
+        #mat = Map.put(mat, :mat_reqs_count, Enum.count(matching_mat_reqs))
 
         sizes =
           Enum.map(mat.sizes, fn s ->
             material_name = s.material_name
-            [size, _material] = String.split(s.material_name, "X", parts: 2)
 
             #Load all matching data for material and size
-            matching_size_reqs =
-              Enum.reduce(matching_mat_reqs, [], fn req, acc ->
-                case String.split(req.material, "X", parts: 2) do
-                  [size_to_find, _material] -> if size_to_find == size, do: [req | acc], else: acc
-                  _ -> acc
-                end
-              end)
+            matching_size_reqs = Enum.filter(mat_reqs, fn req -> req.material == s.material_name end)
 
             matching_material = Enum.filter(all_material_not_used, fn floor_mat -> floor_mat.material == material_name end)
 
@@ -109,9 +103,16 @@ defmodule Shophawk.MaterialCache do
 
 
             populate_single_material_size(s, material_name, matching_size_reqs, matching_material_on_floor_or_being_quoted_or_on_order, matching_material_to_order, matching_jobboss_material_info)
-
           end)
+
+        #add together jobs_using_size for each material
+        mat_reqs_count =
+          Enum.reduce(sizes, 0, fn size, acc ->
+            size.jobs_using_size + acc
+          end)
+
         Map.put(mat, :sizes, sizes)
+        |> Map.put(:mat_reqs_count, mat_reqs_count)
       end)
 
     merged_material_list = merge_materials(updated_material_list)
@@ -302,12 +303,13 @@ defmodule Shophawk.MaterialCache do
 
     {assigned_material_info, need_to_order_amt} = assign_jobs_to_material(jobs_to_assign, material_on_floor, material)
 
-
     #remove any empty job_assignments
     assigned_material_info =
       Enum.reduce(assigned_material_info, [], fn bar, acc -> if bar.job_assignments != [], do: [bar.job_assignments | acc], else: acc end)
       |> List.flatten
-    matching_jobs = Enum.map(mat_reqs, fn mat -> %{job: mat.job, qty: mat.est_qty, part_length: mat.part_length, make_qty: mat.make_quantity, due_date: mat.due_date, uofm: mat.uofm} end) |> Enum.sort_by(&(&1.qty), :asc)
+    matching_jobs = Enum.map(mat_reqs, fn mat ->
+      %{job: mat.job, qty: mat.est_qty, part_length: mat.part_length, make_qty: mat.make_quantity, due_date: mat.due_date, uofm: mat.uofm}
+    end) |> Enum.sort_by(&(&1.qty), :asc)
 
 
     _bar_with_assignments =
@@ -340,6 +342,7 @@ defmodule Shophawk.MaterialCache do
             case s.material_name == material_name do
               true ->
                 matching_size_reqs = Jobboss_db.load_single_material_requirements(material_name)
+                IO.inspect(Enum.count(matching_size_reqs))
 
                 matching_material = Material.list_material_not_used_by_material(material_name)
                 matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
@@ -445,6 +448,7 @@ defmodule Shophawk.MaterialCache do
       length_needed_to_order = Enum.reduce(remaining_jobs, 0.0, fn job, acc ->
         ((job.length + job.cutoff + 0.1) * job.make_qty) + acc
       end)
+      |> Float.round(2)
       bar_to_order =
         if length_needed_to_order > 0.0 do
           [Material.create_stocked_material(%{material: material, bar_length: "#{length_needed_to_order}", in_house: false, remaining_length_not_assigned: "#{length_needed_to_order}"})
@@ -469,10 +473,7 @@ defmodule Shophawk.MaterialCache do
       {materials, Float.round(length_needed_to_order, 2)}
 
     else #if no stocked material assign_to_bars
-      length_needed_to_order =
-        Enum.reduce(jobs, 0.0, fn job, acc ->
-          ((job.length + job.cutoff + 0.1) * job.make_qty) + acc
-        end)
+      length_needed_to_order = Enum.reduce(jobs, 0.0, fn job, acc -> ((job.length + job.cutoff + 0.11) * job.make_qty) + acc end)
       bar_to_order =
         if length_needed_to_order > 0.0 do
           [Material.create_stocked_material(%{material: material, bar_length: "#{length_needed_to_order}", in_house: false, remaining_length_not_assigned: "#{length_needed_to_order}"})
@@ -485,6 +486,7 @@ defmodule Shophawk.MaterialCache do
           sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
           #add cutoff and blade width for cutting
           job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: job.make_qty}
+          #8 here
 
           {assigned_bars, _remaining_qty} = assign_to_bars(materials, job_that_needs_sawing)
           assigned_bars
