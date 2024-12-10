@@ -175,15 +175,17 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   def handle_event("save_material", %{"stocked_material" => stocked_material_params}, socket) do
-    found_bar =
-      Material.get_stocked_material!(stocked_material_params["id"])
+    found_bar = Material.get_stocked_material!(stocked_material_params["id"])
+
+    {:ok, _saved_material} = Material.update_stocked_material(found_bar, stocked_material_params)
+
+    updated_found_bar =
+      found_bar
       |> Map.put(:bar_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
       |> Map.put(:slug_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
       |> Map.put(:saved, true)
-    {:ok, saved_material} = Material.update_stocked_material(found_bar, stocked_material_params)
-
     #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
-    MaterialCache.update_single_material_size_in_cache(saved_material.material)
+    MaterialCache.update_single_material_size_in_cache(updated_found_bar.material)
 
     {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
   end

@@ -126,11 +126,10 @@ defmodule Shophawk.Material do
 
     case updated_material do
       {:ok, struct} ->
-        [size, _material_name] = String.split(struct.material, "X", parts: 2)
         [{:data, material_list}] = :ets.lookup(:material_list, :data)
         size_info = Enum.find_value(material_list, fn mat ->
           Enum.find(mat.sizes, fn s ->
-            s.size == make_float(size)
+            s.material_name == struct.material
           end)
         end)
         update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
@@ -154,11 +153,10 @@ defmodule Shophawk.Material do
 
       case updated_material do
         {:ok, struct} ->
-          [size, _material_name] = String.split(struct.material, "X", parts: 2)
           [{:data, material_list}] = :ets.lookup(:material_list, :data)
           size_info = Enum.find_value(material_list, fn mat ->
             Enum.find(mat.sizes, fn s ->
-              s.size == make_float(size)
+              s.material_name == struct.material
             end)
           end)
           update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
@@ -169,9 +167,9 @@ defmodule Shophawk.Material do
   end
 
   def update_on_hand_qty_in_Jobboss(material, location_id) do
+    IO.inspect(material)
     bars =
       Shophawk.Material.list_material_not_used_by_material(material)
-      |> Enum.filter(fn bar -> bar.in_house == true end)
     on_hand_qty =
       Enum.reduce(bars, 0.0, fn bar, acc ->
         case bar.bar_length do
@@ -179,7 +177,8 @@ defmodule Shophawk.Material do
           length -> length + acc
         end
       end)
-    if System.get_env("MIX_ENV") == "prod", do: Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
+      IO.inspect(on_hand_qty)
+    Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty)
 
   end
 
@@ -198,10 +197,12 @@ defmodule Shophawk.Material do
   def delete_stocked_material(%StockedMaterial{} = stocked_material) do
     Repo.delete(stocked_material)
     #Update Jobboss on hand qty
-    [size, material_name] = String.split(stocked_material.material, "X", parts: 2)
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
-    sizes = Enum.find(material_list, fn mat -> mat.material == material_name end).sizes
-    size_info = Enum.find(sizes, fn s -> s.size == make_float(size) end)
+    size_info = Enum.find_value(material_list, fn mat ->
+      Enum.find(mat.sizes, fn s ->
+        s.material_name == stocked_material.material
+      end)
+    end)
 
     update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id)
   end

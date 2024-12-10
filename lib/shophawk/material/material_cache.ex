@@ -97,8 +97,6 @@ defmodule Shophawk.MaterialCache do
                   cost_uofm: found_info.cost_uofm,
                   standard_cost: number_to_currency(found_info.standard_cost)
                   }
-                  #IO.inspect(found_info)
-                  #%{material_name: found_info.material_name, location_id: found_info.location_id, on_hand_qty: found_info.on_hand_qty, lbs_per_inch: found_info.lbs_per_inch}
               end
 
 
@@ -342,7 +340,6 @@ defmodule Shophawk.MaterialCache do
             case s.material_name == material_name do
               true ->
                 matching_size_reqs = Jobboss_db.load_single_material_requirements(material_name)
-                IO.inspect(Enum.count(matching_size_reqs))
 
                 matching_material = Material.list_material_not_used_by_material(material_name)
                 matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
