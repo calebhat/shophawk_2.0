@@ -167,7 +167,6 @@ defmodule Shophawk.Material do
   end
 
   def update_on_hand_qty_in_Jobboss(material, location_id) do
-    IO.inspect(material)
     bars =
       Shophawk.Material.list_material_not_used_by_material(material)
     on_hand_qty =

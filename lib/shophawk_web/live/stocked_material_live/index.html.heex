@@ -1,7 +1,7 @@
 <div class="relative"  style="z-index: 8">
 
   <!-- material column -->
-  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">    
+  <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-4 right-auto w-[12rem] pb-2 pt-2 px-2 overflow-y-auto">    
     <!-- <div><.button class="" phx-click="test">Reload material</.button></div> -->
     <div>
       <%= for {group, index} <- @grouped_materials do %>
@@ -46,7 +46,7 @@
   </div>
 
   <!-- Size column -->
-  <div class="bg-cyan-900 fixed rounded inset-0 top-[5.71rem] left-40 w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+  <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-40 w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
     <div 
     :for={size <- @selected_sizes}
     class={["flex items-center justify-between rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_size_bg_color(@selected_size, size.size)]}
@@ -64,7 +64,7 @@
   </div>
 
   <!-- Primary Center block -->
-  <div class="bg-cyan-900 fixed rounded ml-[17rem] top-[5.71rem] right-[2vw] left-[2vw] bottom-[1rem]">
+  <div class="bg-cyan-900 fixed rounded-t inset-0 ml-[17rem] top-[5.71rem] right-[2vw] left-[2vw]">
     <div>
       <!-- to order and receive buttons -->
       <div class="flex pl-4 pt-2">
@@ -111,7 +111,7 @@
 
           </div>
         <!-- main grid -->
-        <div class="grid grid-cols-10 m-2 text-stone-200">
+        <div class="grid grid-cols-10 m-2 text-stone-200 relative">
           <!-- Info -->
           <div class="col-span-2">
             <div class="bg-cyan-800 rounded-lg p-2 mx-2 mb-2 text-lg">
@@ -155,8 +155,9 @@
           </div>
           
           <!-- Bars -->
-          <div class="col-span-5">
-          <!-- bars in stock -->
+          <div class="col-span-5 relative overflow-y-auto" style="max-height: calc(100vh - 11rem);">
+            
+            <!-- bars in stock -->
             <div class="bg-cyan-800 rounded-lg p-4 mx-2">
               <div class="grid grid-cols-3 pb-2">
                 <div></div>
@@ -251,6 +252,7 @@
                 </.form>
               </div>
             </div>
+          
 
             <br>
 
@@ -290,7 +292,7 @@
                     </div>
 
                     <div>
-                               
+                              
                     </div>
                     
                     <div class="w-48">
@@ -334,7 +336,7 @@
           </div>
 
           <!-- Slugs -->
-          <div class="col-span-3">
+          <div class="col-span-3 relative overflow-y-auto" style="max-height: calc(100vh - 11rem);">
             <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
               <div class="grid grid-cols-3">
                 <div></div>
