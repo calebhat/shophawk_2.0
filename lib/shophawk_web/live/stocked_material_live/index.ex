@@ -12,7 +12,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     #reload material into cache with assignments
     socket =
       if !connected?(socket) do
-        #Shophawk.MaterialCache.create_material_cache
+        Shophawk.MaterialCache.create_material_cache
         socket
         |> assign(:material_list, [])
         |> assign(:grouped_materials, [])

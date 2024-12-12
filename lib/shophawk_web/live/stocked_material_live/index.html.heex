@@ -155,7 +155,7 @@
           </div>
           
           <!-- Bars -->
-          <div class="col-span-5 relative overflow-y-auto" style="max-height: calc(100vh - 11rem);">
+          <div class="col-span-5 relative overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 11rem);">
             
             <!-- bars in stock -->
             <div class="bg-cyan-800 rounded-lg p-4 mx-2">
@@ -228,11 +228,12 @@
                           </.delete_button>
                         </div>    
                         <%= if Enum.count(bar.data.job_assignments) > 0 do %>
-                        <div class=" dark-tooltip-container">
+                        <div class=" dark-tooltip-container h-full">
                           <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2">
                             <%= Enum.count(bar.data.job_assignments) %>
                           </div>
-                          <div class="tooltip flex w-56" style="z-index: 12;">
+                          <div class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
+                                style="z-index: 12; white-space: nowrap;">
                               <.fixed_widths_table_with_show_job 
                               id="bar_assignments" 
                               rows={Enum.reverse(bar.data.job_assignments)} 
@@ -313,17 +314,18 @@
                           <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2 w-6">
                             <%= Enum.count(bar.data.job_assignments) %>
                           </div>
-                          <div class="tooltip flex w-56 shadow-2xl" style="z-index: 12;">
-                              <.fixed_widths_table_with_show_job 
-                              id="bar_assignments" 
-                              rows={Enum.reverse(bar.data.job_assignments)} 
-                              row_click={fn _row_data -> "show_job" end}
-                              >                            
-                                <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                                <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
-                                <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
-                              </.fixed_widths_table_with_show_job>
-                            </div> 
+                          <div class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
+                          style="z-index: 12; white-space: nowrap;">
+                            <.fixed_widths_table_with_show_job 
+                            id="bar_assignments" 
+                            rows={Enum.reverse(bar.data.job_assignments)} 
+                            row_click={fn _row_data -> "show_job" end}
+                            >                            
+                              <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                              <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
+                              <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
+                            </.fixed_widths_table_with_show_job>
+                          </div> 
                         </div>
                         <% end %>                       
                         </div>
@@ -336,7 +338,7 @@
           </div>
 
           <!-- Slugs -->
-          <div class="col-span-3 relative overflow-y-auto" style="max-height: calc(100vh - 11rem);">
+          <div class="col-span-3 relative overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 11rem);">
             <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
               <div class="grid grid-cols-3">
                 <div></div>
