@@ -180,7 +180,12 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def load_material_to_order(material_list) do
-    material_to_order = Material.list_material_needed_to_order
+    material_to_order =
+      Material.list_material_needed_to_order
+      |> ignore_material_to_order()
+
+
+
     list_of_sizes =
       Enum.reduce(material_list, [], fn mat, acc ->
         [mat.sizes | acc]
@@ -262,6 +267,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           [map] ++ acc
       end)
     {material_to_order_changeset, past_years_usage_list}
+  end
+
+  def ignore_material_to_order(material_list) do
+    words_to_ignore = ["knurled", "delrin", "nsm", "natural", "kevlar", "nyoil", "acetron", "acetal", "nylong", "gsm", "mc901", "teflon"]
+    Enum.reject(material_list, fn m -> String.contains?(String.downcase(m.material), words_to_ignore) end)
   end
 
   def load_material_being_quoted(material_list) do
