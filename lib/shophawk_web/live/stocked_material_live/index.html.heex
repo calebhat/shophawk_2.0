@@ -352,7 +352,7 @@
               <br>
               
               <%= if @slugs_form != [] do %>
-              <div class="flex text-center place-content-center">
+              <div class="flex text-center place-content-start">
                 <div class="w-24">Inches</div>
                 <div class="w-20">Slugs</div>
                 <div class="w-40"></div>
@@ -410,7 +410,7 @@
                               row_click={fn _row_data -> "show_job" end}
                               >             
                                 <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                                <:col :let={bar} label="Slugs" width="w-16"><%= bar.slug_qty %></:col>
+                                <:col :let={bar} label="Parts" width="w-16"><%= bar.slug_qty %></:col>
                               </.fixed_widths_table_with_show_job>
                           </div>
                         </div>

@@ -588,9 +588,26 @@ defmodule Shophawk.MaterialCache do
                 slugs_used = Enum.reduce(list, 0.0, fn x, acc -> x.slug_qty + acc end)
                 material.number_of_slugs - slugs_used
             end
+
           if slugs_left > 0 do
-            updated_assignments = [%{material_id: material.id, job: job_id, slug_qty: min(remaining_qty, material.number_of_slugs), length_to_use: 0.0, parts_from_bar: 0} | assignments]
-            remaining_qty = max(0, remaining_qty - material.number_of_slugs)
+
+            # Calculate how many parts can be made from this slug
+            parts_from_this_slug = (material.slug_length / (length_needed + 0.2)) |> Float.floor()
+            slug_qty_to_use = min(remaining_qty, parts_from_this_slug * slugs_left)
+
+            # Calculate remaining quantity after using slugs
+            remaining_qty = remaining_qty - slug_qty_to_use
+            length_to_use = slug_qty_to_use * length_needed
+
+            updated_assignments = [
+              %{
+                material_id: material.id,
+                job: job_id,
+                slug_qty: slug_qty_to_use,
+                length_to_use: length_to_use,
+                parts_from_bar: parts_from_this_slug
+              } | assignments
+            ]
 
             updated_material = Map.put(material, :job_assignments, updated_assignments)
             {:cont, {[updated_material | acc], remaining_qty}}
