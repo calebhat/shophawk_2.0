@@ -768,7 +768,7 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
-  def update_material(material, location_id, on_hand_qty) do
+  def update_material(material, location_id, on_hand_qty, purchase_price, sell_price) do
     if material != nil and location_id != nil do
       on_hand_qty = on_hand_qty / 12 #Convert to Feet for Jobboss
       query =
@@ -777,7 +777,20 @@ defmodule Shophawk.Jobboss_db do
         |> where([r], r.material == ^material)
         |> update([r], set: [on_hand_qty: ^on_hand_qty])
 
-        Shophawk.Repo_jb.update_all(query, [])
+      Shophawk.Repo_jb.update_all(query, [])
+
+
+
+      rounded_purchase_price = Float.round(purchase_price, 2)
+      rounded_sell_price = Float.round(sell_price, 2)
+      query =
+        Shophawk.Jb_material
+        |> where([r], r.material == ^material)
+        |> update([r], set: [standard_cost: ^rounded_purchase_price])
+        |> update([r], set: [selling_price: ^rounded_sell_price])
+
+
+      Shophawk.Repo_jb.update_all(query, [])
     end
   end
 

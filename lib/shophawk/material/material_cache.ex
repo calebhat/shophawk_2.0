@@ -57,8 +57,8 @@ defmodule Shophawk.MaterialCache do
                   on_hand_qty: 0.0,
                   lbs_per_inch: 0.0,
                   past_years_usage: 0.0,
-                  purchase_price: number_to_currency(0.0),
-                  sell_price: number_to_currency(0.0),
+                  purchase_price: 0.0,
+                  sell_price: 0.0,
                   cost_per_inch: number_to_currency(0.0),
                   cost_uofm: 0.0,
                   standard_cost: 0.0
@@ -91,8 +91,8 @@ defmodule Shophawk.MaterialCache do
                   on_hand_qty: Float.round(total_material_on_hand, 2),
                   lbs_per_inch: found_info.lbs_per_inch,
                   past_years_usage: Float.round(material_year_history, 2),
-                  purchase_price: number_to_currency(average_price),
-                  sell_price: number_to_currency(sell_price),
+                  purchase_price: average_price,
+                  sell_price: sell_price,
                   cost_per_inch: number_to_currency(sell_price * found_info.lbs_per_inch),
                   cost_uofm: found_info.cost_uofm,
                   standard_cost: number_to_currency(found_info.standard_cost)
@@ -246,6 +246,8 @@ defmodule Shophawk.MaterialCache do
                       location_id: nil,
                       on_hand_qty: nil,
                       lbs_per_inch: nil,
+                      purchase_price: nil,
+                      sell_price: nil,
                       need_to_order_amt: nil,
                       assigned_material_info: nil,
                       cost_uofm: nil
@@ -263,6 +265,8 @@ defmodule Shophawk.MaterialCache do
                       material_name: mat.material,
                       location_id: nil,
                       on_hand_qty: nil,
+                      purchase_price: nil,
+                      sell_price: nil,
                       lbs_per_inch: nil,
                       need_to_order_amt: nil,
                       assigned_material_info: nil,
@@ -345,11 +349,6 @@ defmodule Shophawk.MaterialCache do
                 matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
                 matching_material_to_order = Enum.reject(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered == true end)
 
-                #material_year_history = Enum.filter(year_history, fn m -> m.material == found_info.material_name end) |> Enum.reduce(0.0, fn m, acc -> m.act_qty + acc end)
-
-
-                #CAN SKIP THIS IF WRITING ON HAND AMOUNT TO JB
-                #matching_jobboss_material_info = Jobboss_db.load_all_jb_material_on_hand([material_name]) |> List.first()
                 matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
                 total_material_on_hand = Enum.reduce(matching_material_on_floor, 0.0, fn m, acc ->
                   case m.bar_length do
@@ -370,8 +369,8 @@ defmodule Shophawk.MaterialCache do
                   on_hand_qty: Float.round(total_material_on_hand, 2),
                   lbs_per_inch: s.lbs_per_inch,
                   past_years_usage: s.past_years_usage,
-                  purchase_price: number_to_currency(average_price),
-                  sell_price: number_to_currency(sell_price),
+                  purchase_price: average_price,
+                  sell_price: sell_price,
                   cost_per_inch: number_to_currency(sell_price * s.lbs_per_inch),
                   cost_uofm: s.cost_uofm
                 }

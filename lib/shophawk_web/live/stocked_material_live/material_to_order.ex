@@ -453,7 +453,9 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         "as" => "Alro Steel",
         "ap" => "Alro Plastics",
         "c" => "Castle",
-        "d" => "Durabar"
+        "d" => "Durabar",
+        "bs" => "Best Stainless",
+        "w" => "Wieland"
       }
 
       value =
