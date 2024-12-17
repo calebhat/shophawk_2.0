@@ -7,46 +7,89 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   alias Shophawk.MaterialCache
   #import Number.Currency
 
+  @topic "materials:updates"
+
   @impl true
   def mount(_params, _session, socket) do
-    #reload material into cache with assignments
+
+    if connected?(socket) do
+      ShophawkWeb.Endpoint.subscribe(@topic)
+    end
+
+    case :ets.lookup(:material_list, :data) do
+      [{:data, []}] ->
+        {:ok, initial_material_list_creation(socket)}
+
+      [{:data, material_list}] ->
+        {:ok, assign_material_data(socket, material_list)}
+    end
+  end
+
+  defp assign_material_data(socket, material_list) do
+    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+    material_on_order_count = Enum.count(Material.list_material_on_order())
+
+    socket
+    |> assign(:material_list, material_list)
+    |> assign(:grouped_materials, group_materials(material_list))
+    |> assign(:collapsed_groups, [1, 2])
+    |> assign(:selected_material, "")
+    |> assign(:selected_sizes, [])
+    |> assign(:selected_size, "0.0")
+    |> assign(:loading, false)
+    |> assign(:size_info, nil)
+    |> assign(:material_name, "")
+    |> assign(:material_to_order_count, material_needed_to_order_count)
+    |> assign(:material_on_order_count, material_on_order_count)
+  end
+
+  defp initial_material_list_creation(socket) do
+    material_list = Shophawk.MaterialCache.create_material_cache()
+    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+    material_on_order_count = Enum.count(Material.list_material_on_order())
+
+    socket
+    |> assign(:material_list, material_list)
+    |> assign(:grouped_materials, group_materials(material_list))
+    |> assign(:collapsed_groups, [1, 2])
+    |> assign(:selected_material, "")
+    |> assign(:selected_sizes, [])
+    |> assign(:selected_size, "0.0")
+    |> assign(:loading, false)
+    |> assign(:size_info, nil)
+    |> assign(:material_name, "")
+    |> assign(:material_to_order_count, material_needed_to_order_count)
+    |> assign(:material_on_order_count, material_on_order_count)
+  end
+
+  defp push_material_data_update(socket, material_list) do
+    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+    material_on_order_count = Enum.count(Material.list_material_on_order())
+
     socket =
-      if !connected?(socket) do
-        Shophawk.MaterialCache.create_material_cache
-        socket
-        |> assign(:material_list, [])
-        |> assign(:grouped_materials, [])
-        |> assign(:collapsed_groups, [])
-        |> assign(:selected_material, "")
-        |> assign(:selected_sizes, [])
-        |> assign(:selected_size, "0.0")
-        |> assign(:loading, false)
-        |> assign(:size_info, nil)
-        |> assign(:material_name, "")
-        |> assign(:material_to_order_count, 0)
-        |> assign(:material_on_order_count, 0)
-      else
-        [{:data, material_list}] = :ets.lookup(:material_list, :data)
+      socket
+      |> assign(:material_list, material_list)
+      |> assign(:grouped_materials, group_materials(material_list))
+      |> assign(:material_to_order_count, material_needed_to_order_count)
+      |> assign(:material_on_order_count, material_on_order_count)
 
-        material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
-        material_on_order_count = Enum.count(Material.list_material_on_order())
 
-        #material_list = if connected?(socket), do: Jobboss_db.load_materials_and_sizes_into_cache(), else: []
+    sizes = Enum.find(material_list, fn mat -> mat.material == socket.assigns.selected_material end).sizes
+    size_info =  Enum.find(sizes, fn size -> size.size >= String.to_float(socket.assigns.selected_size) end) || List.first(sizes)
+    selected_size = Float.to_string(size_info.size)
 
-          socket
-          |> assign(:material_list, material_list)
-          |> assign(:grouped_materials, group_materials(material_list))
-          |> assign(:collapsed_groups, [1, 2])
-          |> assign(:selected_material, "")
-          |> assign(:selected_sizes, [])
-          |> assign(:selected_size, "0.0")
-          |> assign(:loading, false)
-          |> assign(:size_info, nil)
-          |> assign(:material_name, "")
-          |> assign(:material_to_order_count, material_needed_to_order_count)
-          |> assign(:material_on_order_count, material_on_order_count)
-       end
-      {:ok, socket}
+    socket =
+      socket
+      |> assign(:selected_size, selected_size)
+      |> assign(:selected_sizes, sizes)
+      |> assign(:selected_material, socket.assigns.selected_material)
+
+    if size_info do
+      socket = assign(socket, :size_info, size_info)
+      #load_material_forms(socket, %{material_name: size_info.material_name, location_id: size_info.location_id, on_hand_qty: size_info.on_hand_qty, assigned_material_info: size_info.assigned_material_info})
+    else
+      socket
+    end
   end
 
   @impl true
@@ -73,6 +116,11 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   @impl true
+  def handle_info(%{event: "material_update", payload: new_material_list}, socket) do
+    IO.inspect("push update")
+    {:noreply, push_material_data_update(socket, new_material_list)}
+  end
+
   def handle_info({ShophawkWeb.StockedMaterialLive.FormComponent, {:saved, _stocked_material}}, socket) do
     {:noreply, socket}
   end

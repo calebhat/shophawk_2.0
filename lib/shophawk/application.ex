@@ -35,6 +35,7 @@ defmodule Shophawk.Application do
 
       #Started app repeating functions
       ScheduledTasks, #run initial task startup and ets initialization
+      Shophawk.MaterialCache,
       Shophawk.Scheduler #to start quantum scheduling for tasks
     ]
 

@@ -1,0 +1,43 @@
+<.header>
+  Listing Stockedmaterials
+  <:actions>
+    <.link patch={~p"/stockedmaterials/new"}>
+      <.button>New Stocked material</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="stockedmaterials"
+  rows={@streams.stockedmaterials}
+  row_click={fn {_id, stocked_material} -> JS.navigate(~p"/stockedmaterials/#{stocked_material}") end}
+>
+  <:col :let={{_id, stocked_material}} label="Material"><%= stocked_material.material %></:col>
+  <:col :let={{_id, stocked_material}} label="Bars"><%= stocked_material.bars %></:col>
+  <:col :let={{_id, stocked_material}} label="Slugs"><%= stocked_material.slugs %></:col>
+  <:action :let={{_id, stocked_material}}>
+    <div class="sr-only">
+      <.link navigate={~p"/stockedmaterials/#{stocked_material}"}>Show</.link>
+    </div>
+    <.link patch={~p"/stockedmaterials/#{stocked_material}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, stocked_material}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: stocked_material.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="stocked_material-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
+  <.live_component
+    module={ShophawkWeb.StockedMaterialLive.FormComponent}
+    id={@stocked_material.id || :new}
+    title={@page_title}
+    action={@live_action}
+    stocked_material={@stocked_material}
+    patch={~p"/stockedmaterials"}
+  />
+</.modal>

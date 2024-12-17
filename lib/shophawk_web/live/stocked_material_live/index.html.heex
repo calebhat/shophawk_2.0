@@ -410,7 +410,8 @@
                               row_click={fn _row_data -> "show_job" end}
                               >             
                                 <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                                <:col :let={bar} label="Parts" width="w-16"><%= bar.slug_qty %></:col>
+                                <:col :let={bar} label="slugs" width="w-16"><%= bar.slug_qty %></:col>
+                                <:col :let={bar} label="Parts" width="w-16"><%= bar.part_qty %></:col>
                               </.fixed_widths_table_with_show_job>
                           </div>
                         </div>

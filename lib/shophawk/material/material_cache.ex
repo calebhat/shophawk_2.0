@@ -1,8 +1,37 @@
 defmodule Shophawk.MaterialCache do
+  use GenServer
   alias Shophawk.Jobboss_db
   alias Shophawk.Material
   import Number.Currency
-  #Used for all loading of ETS Caches related to the Material
+
+
+  @topic "materials:updates"
+
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
+  end
+
+  def init(state) do
+    schedule_refresh()
+    {:ok, state}
+  end
+
+  def handle_info(:refresh_cache, state) do
+    material_list = create_material_cache()
+
+    # Broadcast the updated material list
+    ShophawkWeb.Endpoint.broadcast(@topic, "material_update", material_list)
+
+    schedule_refresh()
+    {:noreply, state}
+  end
+
+  defp schedule_refresh() do
+    Process.send_after(self(), :refresh_cache, :timer.minutes(1))
+  end
+
+
+
 
   def create_material_cache() do
     #Create bare bones list for material cache and save to cache
@@ -117,7 +146,7 @@ defmodule Shophawk.MaterialCache do
 
 
     :ets.insert(:material_list, {:data, merged_material_list})
-    updated_material_list
+    merged_material_list
   end
 
   def merge_materials(material_list) do
@@ -421,7 +450,7 @@ defmodule Shophawk.MaterialCache do
               {materials, remaining_qty}
             end
 
-          # Assign to any long slugs
+          #Assign to any long slugs
           {materials, remaining_qty} =
             if remaining_qty > 0 do
               longer_slugs_needed = Map.put(job, :make_qty, remaining_qty)
@@ -442,7 +471,7 @@ defmodule Shophawk.MaterialCache do
 
 
       length_needed_to_order = Enum.reduce(remaining_jobs, 0.0, fn job, acc ->
-        ((job.length + job.cutoff + 0.1) * job.make_qty) + acc
+        ((job.length + job.cutoff + 0.2) * job.make_qty) + acc
       end)
       |> Float.round(2)
       bar_to_order =
@@ -520,7 +549,7 @@ defmodule Shophawk.MaterialCache do
     end)
     |> Enum.reduce_while({[], make_qty}, fn material, {acc, remaining_qty} ->
       #if slug is withing .25" of length needed, assign to slug
-      if material.slug_length >= (length_needed + 0.03) and material.slug_length <= (length_needed + 0.25) do
+      if material.slug_length >= (length_needed + 0.05) and material.slug_length <= (length_needed + 0.25) do
         assignments = Map.get(material, :job_assignments, [])
         slugs_available_to_use =
           case assignments do
@@ -530,7 +559,7 @@ defmodule Shophawk.MaterialCache do
               material.number_of_slugs - slugs_used
           end
         if slugs_available_to_use > 0 do
-          updated_assignments = [%{material_id: material.id, job: job_id, slug_qty: min(remaining_qty, material.number_of_slugs), length_to_use: 0.0, parts_from_bar: 0} | assignments]
+          updated_assignments = [%{material_id: material.id, job: job_id, slug_qty: min(remaining_qty, material.number_of_slugs), part_qty: min(remaining_qty, material.number_of_slugs), length_to_use: 0.0, parts_from_bar: 0} | assignments]
           remaining_qty = max(0, remaining_qty - material.number_of_slugs)
 
           updated_material = Map.put(material, :job_assignments, updated_assignments)
@@ -560,7 +589,7 @@ defmodule Shophawk.MaterialCache do
 
           remaining_length_not_assigned = Float.round(material.remaining_length_not_assigned - length_to_use, 2)
 
-          updated_assignments = [%{material_id: material.id, job: job, length_to_use: length_to_use, parts_from_bar: parts_from_bar, slug_qty: 0} | assignments]
+          updated_assignments = [%{material_id: material.id, job: job, length_to_use: length_to_use, parts_from_bar: parts_from_bar, slug_qty: 0, part_qty: 0} | assignments]
           updated_material =
             material
             |> Map.put(:job_assignments, updated_assignments)
@@ -579,8 +608,10 @@ defmodule Shophawk.MaterialCache do
     Enum.reduce_while(materials, {[], make_qty}, fn material, {acc, remaining_qty} ->
       #if slug is withing .25" of length needed, assign to slug
       if material.slug_length != nil do
-        if material.slug_length >= length_needed do
+        if (material.slug_length + 0.05) >= length_needed do
+          #Gets assignments
           assignments = Map.get(material, :job_assignments, [])
+          #calcs how many slugs are not used
           slugs_left =
             case assignments do
               [] -> material.number_of_slugs
@@ -590,26 +621,38 @@ defmodule Shophawk.MaterialCache do
             end
 
           if slugs_left > 0 do
+            parts_from_one_slug =
+              cond do
+                (material.slug_length + 0.05) / length_needed < 2.0 and (material.slug_length + 0.05) / length_needed >= 1.0 -> 1
+                (material.slug_length + 0.05) / length_needed < 1.0 -> 0
+                true -> (material.slug_length / (length_needed + 0.2)) |> Float.floor() |> trunc()
+              end
 
-            # Calculate how many parts can be made from this slug
-            parts_from_this_slug = (material.slug_length / (length_needed + 0.2)) |> Float.floor()
-            slug_qty_to_use = min(remaining_qty, parts_from_this_slug * slugs_left)
+            slug_qty_to_use =
+              case parts_from_one_slug do
+                0 -> 0
+                _ ->
+                  slugs_needed = Float.ceil((remaining_qty / parts_from_one_slug))
+                  min(slugs_needed, slugs_left)
+                  |> trunc()
+                end
 
-            # Calculate remaining quantity after using slugs
-            remaining_qty = remaining_qty - slug_qty_to_use
-            length_to_use = slug_qty_to_use * length_needed
+            parts_from_slugs = min((slug_qty_to_use * parts_from_one_slug), remaining_qty)
 
-            updated_assignments = [
-              %{
-                material_id: material.id,
-                job: job_id,
-                slug_qty: slug_qty_to_use,
-                length_to_use: length_to_use,
-                parts_from_bar: parts_from_this_slug
-              } | assignments
-            ]
+            updated_assignments =
+                [
+                  %{
+                    material_id: material.id,
+                    job: job_id,
+                    slug_qty: slug_qty_to_use,
+                    part_qty: parts_from_slugs,
+                    length_to_use: 0.0,
+                    parts_from_bar: parts_from_one_slug
+                  } | assignments
+                ]
 
             updated_material = Map.put(material, :job_assignments, updated_assignments)
+            remaining_qty = remaining_qty - parts_from_slugs
             {:cont, {[updated_material | acc], remaining_qty}}
           else
             {:cont, {[material | acc], remaining_qty}}
