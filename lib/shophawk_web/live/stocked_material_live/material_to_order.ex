@@ -22,8 +22,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           <div class="grid grid-cols-5 text-lg underline">
             <div>Material</div>
             <div>Length Needed</div>
-            <div>On Hand</div>
             <div>12 Month Usage</div>
+            <div>On Hand</div>
             <div>Request sent</div>
           </div>
           <div :for={bar <- @bars_to_order_form}>
@@ -54,11 +54,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                 <div class="font-bold"><%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %></div>
 
                 <div>
-                <%= bar.data.on_hand_qty %> ft
+                <%= get_past_years_usage(@past_years_usage_list, bar.data.material) %> ft
                 </div>
 
                 <div>
-                <%= get_past_years_usage(@past_years_usage_list, bar.data.material) %> ft
+                <%= bar.data.on_hand_qty %> ft
                 </div>
 
                 <div class="px-2 text-center">
@@ -79,10 +79,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
             <div class="mb-4 text-2xl underline w-max col-span-3">Material Wating on a Quote</div>
             <div><.button type="button" phx-click="set_all_to_material_to_recieve">Save All</.button></div>
           </div>
-          <div class="grid grid-cols-5 text-lg underline">
+          <div class="grid grid-cols-6 text-lg underline">
             <div>Material</div>
             <div>Length Needed</div>
             <div>Vendor</div>
+            <div>Length</div>
             <div>Price (lb or ft)</div>
             <div>On Order</div>
           </div>
@@ -93,7 +94,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               phx-change="validate_bar_waiting_on_quote"
               phx-submit="save_bar_waiting_on_quote"
             >
-              <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-800 rounded-lg m-2">
+              <div class="grid grid-cols-6 p-1 place-items-center text-center text-lg bg-cyan-800 rounded-lg m-2">
                 <div class="dark-tooltip-container">
                     <%= "#{bar.data.material}" %>
                     <!-- Loop through job assignments and display colored sections -->
@@ -123,7 +124,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                 </div>
 
                 <div class="mx-2">
-                  <.input field={bar[:purchase_price]} type="number" step=".01" />
+                  <.input field={bar[:bar_length]} type="number" step=".01" placeholder="inches" />
+                </div>
+
+                <div class="mx-2">
+                  <.input field={bar[:purchase_price]} type="number" step=".01" placeholder={"Per #{bar.data.cost_uofm}"} />
                 </div>
                 <div class="px-2 text-center">
                   <.button type="submit">
@@ -284,9 +289,10 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
     material_with_assignments =
       Enum.map(material_to_order, fn mat ->
-        found_assignments =
-          Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
+        found_assignments = Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
+
         Map.put(mat, :job_assignments, found_assignments)
+        |> Map.put(:cost_uofm, Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).cost_uofm)
       end)
 
     sorted_material_to_order =

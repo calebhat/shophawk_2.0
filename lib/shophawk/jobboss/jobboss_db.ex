@@ -777,7 +777,7 @@ defmodule Shophawk.Jobboss_db do
         |> where([r], r.material == ^material)
         |> update([r], set: [on_hand_qty: ^on_hand_qty])
 
-      Shophawk.Repo_jb.update_all(query, [])
+      #Shophawk.Repo_jb.update_all(query, [])
 
 
 
@@ -790,7 +790,7 @@ defmodule Shophawk.Jobboss_db do
         |> update([r], set: [selling_price: ^rounded_sell_price])
 
 
-      Shophawk.Repo_jb.update_all(query, [])
+      #Shophawk.Repo_jb.update_all(query, [])
     end
   end
 
