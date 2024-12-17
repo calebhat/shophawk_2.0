@@ -242,7 +242,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   def handle_event("delete", %{"id" => id}, socket) do
     stocked_material = Material.get_stocked_material!(id)
-    {:ok, _} = Material.delete_stocked_material(stocked_material)
+    Material.delete_stocked_material(stocked_material)
 
     {:noreply, socket}
   end

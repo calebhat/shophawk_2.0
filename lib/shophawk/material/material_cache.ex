@@ -27,7 +27,7 @@ defmodule Shophawk.MaterialCache do
   end
 
   defp schedule_refresh() do
-    Process.send_after(self(), :refresh_cache, :timer.minutes(1))
+    Process.send_after(self(), :refresh_cache, :timer.minutes(5))
   end
 
 
@@ -60,11 +60,6 @@ defmodule Shophawk.MaterialCache do
     #Reduce through material, save info, and assign jobs
     updated_material_list =
       Enum.map(material_list, fn mat ->
-        #material_name = List.first(mat.sizes).material_name
-        #matching_mat_reqs = Enum.reduce(mat_reqs, [], fn req, acc -> if String.ends_with?(req.material, material_name), do: [req | acc], else: acc end)
-        #This is not correct here
-        #mat = Map.put(mat, :mat_reqs_count, Enum.count(matching_mat_reqs))
-
         sizes =
           Enum.map(mat.sizes, fn s ->
             material_name = s.material_name
@@ -427,6 +422,7 @@ defmodule Shophawk.MaterialCache do
   end
 
   def assign_jobs_to_material(jobs, material_on_floor, material) do
+    sorted_job = Enum.sort_by(jobs, fn j -> j.length end, :asc)
     if material_on_floor != [] do
       updated_material_on_floor =
         Enum.map(material_on_floor, fn map ->
@@ -435,8 +431,9 @@ defmodule Shophawk.MaterialCache do
             _ -> Map.put(map, :remaining_length_not_assigned, map.bar_length)
           end
         end)
+        |> Enum.sort_by(fn b -> b.remaining_length_not_assigned end, :desc)
       {materials, remaining_jobs} =
-        Enum.reduce(jobs, {updated_material_on_floor, []}, fn job, {materials, remaining_jobs} ->
+        Enum.reduce(sorted_job, {updated_material_on_floor, []}, fn job, {materials, remaining_jobs} ->
           sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
           # Use slugs within .25" of length
           {materials, remaining_qty} = assign_to_slugs(materials, job)

@@ -146,24 +146,9 @@ defmodule Shophawk.Material do
   end
 
   def update_stocked_material(%StockedMaterial{} = stocked_material, attrs, :receive) do
-    updated_material =
       stocked_material
       |> StockedMaterial.changeset_material_receiving(attrs)
       |> Repo.update()
-
-      case updated_material do
-        {:ok, struct} ->
-          [{:data, material_list}] = :ets.lookup(:material_list, :data)
-          size_info = Enum.find_value(material_list, fn mat ->
-            Enum.find(mat.sizes, fn s ->
-              s.material_name == struct.material
-            end)
-          end)
-          update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id, size_info.purchase_price, size_info.sell_price)
-          updated_material
-        _ ->
-          updated_material
-      end
   end
 
   def update_on_hand_qty_in_Jobboss(material, location_id, purchase_price, sell_price) do
@@ -176,7 +161,6 @@ defmodule Shophawk.Material do
           length -> length + acc
         end
       end)
-      IO.inspect(on_hand_qty)
     Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty, purchase_price, sell_price)
 
   end

@@ -433,7 +433,6 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         if Integer.to_string(bar.data.id) == form_id do
           changeset =
             Material.change_stocked_material(bar.data, params, :waiting_on_quote)
-            |> Map.put(:action, :validate)
 
           to_form(changeset)
         else

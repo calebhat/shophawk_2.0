@@ -10,7 +10,15 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
     <div class="rounded-lg text-center text-white p-4 flex justify-center">
       <div class="bg-cyan-900 p-4 rounded-lg w-max">
         <div class="bg-cyan-900 rounded-lg m-2 pb-2">
-          <div class="mb-4 text-2xl underline">Material To Receive</div>
+        <div class="grid grid-cols-3 items-center">
+          <div class="p-1"></div>
+          <div class="text-2xl underline text-center">Material To Receive</div>
+          <div class="flex justify-end">
+            <.button type="" phx-click="receive_all" phx-disable-with="Saving...">
+              Receive All
+            </.button>
+          </div>
+        </div>
             <table class="table-auto m-4">
               <thead class="text-lg underline">
                 <tr>
@@ -66,7 +74,13 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                           >
                             <div class="flex items-center justify-between">
                               <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                              <div class=" pb-2 px-2 w-28"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>
+                              <div class=" pb-2 px-2 w-28">
+                                <.input field={bar[:bar_length]}
+                                type="number"
+                                placeholder={if Map.has_key?(bar.data, :bar_length_placeholder), do: bar.data.bar_length_placeholder}
+                                step=".01"
+                                value={if Map.has_key?(bar.source.changes, :bar_length), do: bar.source.changes.bar_length, else: nil} />
+                              </div>
                               <div class="mr-2 pb-2"><.input field={bar[:location]} type="text" placeholder="Location"/></div>
                               <div class=""><.button type="submit" phx-disable-with="Saving...">Receive</.button></div>
                             </div>
@@ -149,27 +163,29 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
         found_assignments =
           Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
         Map.put(mat, :job_assignments, found_assignments)
+        |> Map.put(:bar_length_placeholder, mat.bar_length)
+        |> Map.put(:bar_length, nil)
       end)
 
     sorted_material_to_order =
       material_with_assignments
       |> Enum.map(fn material ->
-      [size_str, material_name] =
-        material.material
-        |> String.split("X")
-        |> Enum.map(&String.trim/1)
+        [size_str, material_name] =
+          material.material
+          |> String.split("X")
+          |> Enum.map(&String.trim/1)
 
-      size =
-        case Float.parse(size_str) do
-          {size, ""} -> size
-          _ ->
-            case Integer.parse(size_str) do
-              {int_size, ""} -> int_size / 1
-              _ -> 0.0
-            end
-        end
+        size =
+          case Float.parse(size_str) do
+            {size, ""} -> size
+            _ ->
+              case Integer.parse(size_str) do
+                {int_size, ""} -> int_size / 1
+                _ -> 0.0
+              end
+          end
 
-      {size, material_name, material}
+        {size, material_name, material}
       end)
       |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
       |> Enum.map(fn {_, _, material} -> material end)
@@ -217,22 +233,45 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       {:error, _changeset} ->
         bars = socket.assigns.bars_on_order_form
         updated_bars =
-          Enum.map(bars, fn bar ->
-            if bar.data.id == found_bar.id do
+          Enum.map(bars, fn vendor ->
+            Enum.map(vendor, fn bar ->
+              if bar.data.id == found_bar.id do
 
-              changeset =
-                Material.change_stocked_material(found_bar, params, :receive)
-                |> Map.put(:action, :validate)
+                changeset =
+                  Material.change_stocked_material(found_bar, params, :receive)
+                  |> Map.put(:action, :validate)
 
-              to_form(changeset)
-            else
-              bar
-            end
+                to_form(changeset)
+              else
+                bar
+              end
+            end)
           end)
 
         {:noreply, assign(socket, bars_on_order_form: updated_bars)}
     end
 
+  end
+
+  def handle_event("receive_all", _params, socket) do
+    Enum.each(socket.assigns.bars_on_order_form, fn vendor ->
+      Enum.each(vendor, fn bar ->
+        case bar.source.valid? do
+          true ->
+            updated_params = Map.put(bar.params, "ordered", false) |> Map.put("in_house", true)
+            updated_params =
+              case updated_params["bar_length"] do
+                nil -> updated_params
+                length -> Map.put(updated_params, "original_bar_length", length)
+              end
+
+            Material.update_stocked_material(bar.data, updated_params, :receive)
+            Shophawk.MaterialCache.update_single_material_size_in_cache(bar.data.material)
+          _ -> nil
+          end
+        end)
+      end)
+    {:noreply, update_material_forms(socket)}
   end
 
   def handle_event("add_bar", %{"id" => id}, socket) do
@@ -288,8 +327,9 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       Enum.map(vendors, fn bars ->
         Enum.map(bars, fn bar ->
           if Integer.to_string(bar.data.id) == form_id do
+            updated_params = Map.put(params, "original_bar_length", params["bar_length"])
             changeset =
-              Material.change_stocked_material(bar.data, params, :receive)
+              Material.change_stocked_material(bar.data, updated_params, :receive)
               |> Map.put(:action, :validate)
 
             to_form(changeset)
