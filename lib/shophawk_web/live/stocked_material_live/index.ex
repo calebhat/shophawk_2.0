@@ -26,7 +26,10 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   defp assign_material_data(socket, material_list) do
-    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+    material_needed_to_order_count =
+      Material.list_material_needed_to_order_and_material_being_quoted()
+      |> ShophawkWeb.StockedMaterialLive.MaterialToOrder.ignore_material_to_order()
+      |> Enum.count()
     material_on_order_count = Enum.count(Material.list_material_on_order())
 
     socket
@@ -45,7 +48,10 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   defp initial_material_list_creation(socket) do
     material_list = Shophawk.MaterialCache.create_material_cache()
-    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+    material_needed_to_order_count =
+      Material.list_material_needed_to_order_and_material_being_quoted()
+      |> ShophawkWeb.StockedMaterialLive.MaterialToOrder.ignore_material_to_order()
+      |> Enum.count()
     material_on_order_count = Enum.count(Material.list_material_on_order())
 
     socket
@@ -63,7 +69,10 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   defp push_material_data_update(socket, material_list) do
-    material_needed_to_order_count = Enum.count(Material.list_material_needed_to_order_and_material_being_quoted())
+    material_needed_to_order_count =
+      Material.list_material_needed_to_order_and_material_being_quoted()
+      |> ShophawkWeb.StockedMaterialLive.MaterialToOrder.ignore_material_to_order()
+      |> Enum.count()
     material_on_order_count = Enum.count(Material.list_material_on_order())
 
     socket =
