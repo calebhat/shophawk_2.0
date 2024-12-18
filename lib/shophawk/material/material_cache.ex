@@ -323,7 +323,7 @@ defmodule Shophawk.MaterialCache do
 
     jobs_to_assign =
       Enum.map(mat_reqs, fn job ->
-        %{job: job.job, length: Float.round((job.part_length + 0.05), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
+        %{job: job.job, length: Float.round((job.part_length), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
       end)
       |> Enum.sort_by(&(&1.make_qty), :desc)
 
@@ -422,7 +422,7 @@ defmodule Shophawk.MaterialCache do
   end
 
   def assign_jobs_to_material(jobs, material_on_floor, material) do
-    sorted_job = Enum.sort_by(jobs, fn j -> j.length end, :asc)
+    sorted_jobs = Enum.sort_by(jobs, fn j -> j.length end, :asc)
     if material_on_floor != [] do
       updated_material_on_floor =
         Enum.map(material_on_floor, fn map ->
@@ -433,7 +433,7 @@ defmodule Shophawk.MaterialCache do
         end)
         |> Enum.sort_by(fn b -> b.remaining_length_not_assigned end, :desc)
       {materials, remaining_jobs} =
-        Enum.reduce(sorted_job, {updated_material_on_floor, []}, fn job, {materials, remaining_jobs} ->
+        Enum.reduce(sorted_jobs, {updated_material_on_floor, []}, fn job, {materials, remaining_jobs} ->
           sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
           # Use slugs within .25" of length
           {materials, remaining_qty} = assign_to_slugs(materials, job)
@@ -442,16 +442,36 @@ defmodule Shophawk.MaterialCache do
           {materials, remaining_qty} =
             if remaining_qty > 0 do
               job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: remaining_qty}
-              assign_to_bars(materials, job_that_needs_sawing)
+
+              bars_not_in_house = Enum.reject(materials, fn mat -> mat.in_house == true end)
+              bars_in_house = Enum.filter(materials, fn mat -> mat.in_house == true end)
+              {materials, remaining_qty} = assign_to_bars(bars_in_house, job_that_needs_sawing)
+              materials = materials ++ bars_not_in_house
+              {materials, remaining_qty}
             else
               {materials, remaining_qty}
             end
 
+            #WHY IS REMAINING QTY 0 BEFORE ASSIGNMENTS ARE DONE???
           #Assign to any long slugs
           {materials, remaining_qty} =
             if remaining_qty > 0 do
               longer_slugs_needed = Map.put(job, :make_qty, remaining_qty)
               last_resort_assign_to_slugs(materials, longer_slugs_needed)
+            else
+              {materials, remaining_qty}
+            end
+
+          #assign to any bars being ordered
+          {materials, remaining_qty} =
+            if remaining_qty > 0 do
+              job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: remaining_qty}
+
+              bars_not_in_house = Enum.reject(materials, fn mat -> mat.in_house == true end) |> IO.inspect
+              bars_in_house = Enum.filter(materials, fn mat -> mat.in_house == true end)
+              {materials, remaining_qty} = assign_to_bars(bars_not_in_house, job_that_needs_sawing)
+              materials = bars_in_house ++ materials
+              {materials, remaining_qty}
             else
               {materials, remaining_qty}
             end
@@ -603,6 +623,7 @@ defmodule Shophawk.MaterialCache do
   #DOES THIS LOOK AT MULTIPLE PARTS PER SLUG?
   defp last_resort_assign_to_slugs(materials, %{length: length_needed, make_qty: make_qty, job: job_id}) do
     Enum.reduce_while(materials, {[], make_qty}, fn material, {acc, remaining_qty} ->
+      IO.inspect("there")
       #if slug is withing .25" of length needed, assign to slug
       if material.slug_length != nil do
         if (material.slug_length + 0.05) >= length_needed do
@@ -616,8 +637,10 @@ defmodule Shophawk.MaterialCache do
                 slugs_used = Enum.reduce(list, 0.0, fn x, acc -> x.slug_qty + acc end)
                 material.number_of_slugs - slugs_used
             end
+            IO.inspect(slugs_left)
 
           if slugs_left > 0 do
+            IO.inspect("here")
             parts_from_one_slug =
               cond do
                 (material.slug_length + 0.05) / length_needed < 2.0 and (material.slug_length + 0.05) / length_needed >= 1.0 -> 1
