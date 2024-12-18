@@ -262,7 +262,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
     #if this months sales are less than the min value from other months, don't add it to the chart data
     #This keeps the y axis autoscaled correctly
-    min_amount = Enum.min_by(sales_table_data, fn m -> m.amount end).amount
+    min_amount =
+      case sales_table_data do
+        [] -> 0.0
+        data -> Enum.min_by(data, fn m -> m.amount end).amount
+      end
     sales_chart_data =
       if current_months_sales.amount >= min_amount do
         case Enum.find(sales_table_data, fn month -> month.date == beginning_of_this_month end) do
@@ -309,6 +313,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:projected_yearly_sales, project_sales)
     |> assign(:monthly_average, monthly_average)
   end
+
   def generate_monthly_sales(start_date, end_date, list \\ []) do
     if Date.after?(start_date, end_date) do
       list
@@ -317,7 +322,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       case Jobboss_db.load_invoices(start_date, Date.end_of_month(start_date)) do
         [] -> list #if no deliveries found
         invoices ->
-          invoice_total = Enum.reduce(invoices, 0, fn inv, acc -> inv.orig_invoice_amt + acc end)
+          invoice_total = Enum.reduce(invoices, 0, fn inv, acc -> inv.orig_invoice_amt + acc end) |> Float.round(2)
           total_sales = %{amount: invoice_total, date: start_date}
           generate_monthly_sales(Date.add(start_date, 35), end_date, [total_sales | list])
       end
@@ -365,6 +370,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     assign(socket, :travelor_count, travelor_count)
     |> assign(:travelor_totals, travelor_totals)
   end
+
   def generate_travelors_released(start_date, end_date, list \\ []) do
     if Date.after?(start_date, end_date) do
       list
@@ -604,17 +610,22 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def handle_event("test_click", _params, socket) do
-
+    #beginning_of_this_month = Date.utc_today() |> Date.add(-30) |> Date.beginning_of_month()
+    #end_of_month = Date.utc_today() |> Date.add(-30) |> Date.end_of_month()
+    #current_months_sales = generate_monthly_sales(beginning_of_this_month, end_of_month) |> List.first()
+    #|> IO.inspect
     #IO.inspect()
     #save_last_months_sales()
 
     #save_this_weeks_revenue()
+    #save_last_months_sales()
 
     ######################Functions to load history into db for first load with new dashboard####################
     load_10_year_history_into_db()
     {:noreply, socket}
   end
 
+  @spec customer_key(any(), any()) :: any()
   def customer_key(map, matching_map) do
     Enum.find(matching_map, fn {substrings, _group} ->
       Enum.any?(substrings, fn substring -> String.contains?(String.downcase(map.customer), substring) end)
@@ -628,15 +639,31 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   ############## Scheduled jobs to run via quantum ##########
   def save_last_months_sales() do
-    beginning_of_last_month = Date.utc_today |> Date.beginning_of_month() |> Date.add(-1) |> Date.beginning_of_month()
-    end_of_last_month = Date.utc_today |> Date.beginning_of_month() |> Date.add(-1) |> Date.end_of_month()
+    today = Date.utc_today()
+    beginning_of_last_month = today |> Date.beginning_of_month() |> Date.add(-1) |> Date.beginning_of_month()
+    end_of_last_month = beginning_of_last_month |> Date.end_of_month()
+
     case Dashboard.list_monthly_sales(beginning_of_last_month) do
       [] ->
-        last_months_sales = List.first(generate_monthly_sales(beginning_of_last_month, end_of_last_month))
-        Shophawk.Dashboard.create_monthly_sales(last_months_sales)
-      _ -> :ok
+        # Generate and save last month's sales
+        last_months_sales = generate_monthly_sales(beginning_of_last_month, end_of_last_month)
+        case List.first(last_months_sales) do
+          nil ->
+            IO.puts("No sales data to save for last month.")
+            :ok
+          sales_data ->
+            case Shophawk.Dashboard.create_monthly_sales(sales_data) do
+              {:ok, _result} ->
+                IO.puts("Monthly sales successfully saved.")
+              {:error, reason} ->
+                IO.puts("Failed to save monthly sales: #{inspect(reason)}")
+            end
+        end
+
+      _existing_sales ->
+        IO.puts("Monthly sales for last month already exist.")
+        :ok
     end
-    IO.puts("monthly sales saved")
   end
 
   def save_this_weeks_revenue() do
