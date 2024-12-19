@@ -32,7 +32,7 @@ config :shophawk, Shophawk.Mailer, adapter: Swoosh.Adapters.Local
 jobs =
   [
     #Runs every 5 minutes
-    {"*/5 * * * *", {ScheduledTasks, :update_all_runlist_loads, []}},
+    #{"*/5 * * * *", {ScheduledTasks, :update_all_runlist_loads, []}},
     # Run once a day
     {"@daily", {ScheduledTasks, :load_current_week_birthdays, []}},
 

@@ -30,9 +30,6 @@ defmodule Shophawk.MaterialCache do
     Process.send_after(self(), :refresh_cache, :timer.minutes(5))
   end
 
-
-
-
   def create_material_cache() do
     #Create bare bones list for material cache and save to cache
     {material_list, jobboss_material_info} = create_barebones_material_list()

@@ -41,13 +41,35 @@ defmodule Shophawk.Material do
   def list_stockedmaterials_last_12_month_entries(material) do
     from_date = NaiveDateTime.add(NaiveDateTime.utc_now(), -365, :day)
 
-    StockedMaterial
-    |> where([m], m.material == ^material)
-    |> where([m], is_nil(m.purchase_price) != true)
-    |> where([m], is_nil(m.original_bar_length) != true)
-    |> where([m], m.inserted_at >= ^from_date)
-    |> order_by(desc: :inserted_at)
-    |> Repo.all()
+    year_history =
+      StockedMaterial
+      |> where([m], m.material == ^material)
+      |> where([m], is_nil(m.purchase_price) != true)
+      |> where([m], is_nil(m.original_bar_length) != true)
+      |> where([m], m.inserted_at >= ^from_date)
+      |> order_by(desc: :inserted_at)
+      |> Repo.all()
+
+    case year_history do
+      [] ->
+        one_bar =
+          StockedMaterial
+          |> where([m], m.material == ^material)
+          |> where([m], not is_nil(m.purchase_price)) # Ensures purchase_price is not nil
+          |> where([m], not is_nil(m.original_bar_length)) # Ensures original_bar_length is not nil
+          |> order_by(asc: :inserted_at) # Sort by oldest entries first
+          |> limit(1) # Limit to a single result
+          |> Repo.one() # Fetch the last matching entry based on ordering
+
+        case one_bar do
+          nil -> []
+          value -> [value]
+        end
+      _ ->
+        year_history
+    end
+
+
   end
 
   def list_material_needed_to_order do
