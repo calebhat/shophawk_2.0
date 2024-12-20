@@ -9,7 +9,7 @@ defmodule ShophawkWeb.ToolLive.Index do
     socket =
       socket
       |> assign(results: [])
-      |> assign(restock: Inventory.needs_restock?())
+      |> assign(restock: [])
       |> assign(search_term: "")
       |> stream(:tools, Inventory.list_tools())
     {:ok, socket}
@@ -17,7 +17,7 @@ defmodule ShophawkWeb.ToolLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
-    socket = assign(socket, restock: Inventory.needs_restock?() ++ Inventory.ordered?())
+    socket = assign(socket, restock: Inventory.all_not_stocked?())
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
@@ -121,25 +121,6 @@ defmodule ShophawkWeb.ToolLive.Index do
 
   def handle_event("clear_search", _params, socket) do
     {:noreply, socket |> assign(:search_term, "")}
-  end
-
-  def handle_event("ordered", %{"id" => id}, socket) do
-    Inventory.update_tool(Inventory.get_tool!(id), %{status: "ordered"})
-    send_update(self(), ShophawkWeb.ToolLive.RestockComponent, id: "restock")
-
-    {:noreply, socket}
-  end
-
-  def handle_event("needs_restock", %{"id" => id}, socket) do
-    Inventory.update_tool(Inventory.get_tool!(id), %{status: "needs_restock"})
-    send_update(self(), ShophawkWeb.ToolLive.RestockComponent, id: "restock")
-    {:noreply, socket}
-  end
-
-  def handle_event("in_cart", %{"id" => id}, socket) do
-    Inventory.update_tool(Inventory.get_tool!(id), %{status: "in cart"})
-    send_update(self(), ShophawkWeb.ToolLive.RestockComponent, id: "restock")
-    {:noreply, socket}
   end
 
 

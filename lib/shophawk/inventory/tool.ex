@@ -31,7 +31,7 @@ defmodule Shophawk.Inventory.Tool do
     |> checkout_amount_message() #used to send custom message if number is negative
     |> validate_required([:part_number, :description, :balance, :minimum, :location, :vendor, :tool_info, :number_of_checkouts, :status])
     |> unique_constraint(:part_number)
-    |> set_status()
+    #|> set_status()
     |> clear_amount_to_be_checked_out()
   end
 
@@ -55,14 +55,11 @@ defmodule Shophawk.Inventory.Tool do
   end
 
   defp set_status(changeset) do
-    if get_field(changeset, :status) != "ordered" do
-      if get_field(changeset, :balance) >= get_field(changeset, :minimum) do
-        put_change(changeset, :status, "stocked")
-      else
-        put_change(changeset, :status, "needs restock")
-      end
-    else
-      changeset
+    case get_field(changeset, :minimum) >= get_field(changeset, :balance) and get_field(changeset, :status) == "stocked" do
+      true ->
+        IO.inspect("here")
+        put_change(changeset, :status, "needs_restock")
+      false -> changeset
     end
   end
 

@@ -111,10 +111,17 @@ defmodule Shophawk.Inventory do
     Repo.all(query)
   end
 
+  def all_not_stocked?() do
+    query =
+      from t in Tool,
+      where: t.status != "stocked"
+    Repo.all(query)
+  end
+
   def needs_restock?() do
     query =
       from t in Tool,
-      where: t.status == "needs restock"
+      where: t.status == "needs_restock"
     Repo.all(query)
   end
 
@@ -128,7 +135,7 @@ defmodule Shophawk.Inventory do
   def in_cart?() do
     query =
       from t in Tool,
-      where: t.status == "in cart"
+      where: t.status == "in_cart"
     Repo.all(query)
   end
 

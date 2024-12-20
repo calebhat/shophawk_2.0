@@ -24,10 +24,10 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
         <.input field={@form[:balance]} type="number" label="Balance" />
         <.input field={@form[:minimum]} type="number" label="Minimum to have in Stock" />
         <.input field={@form[:location]} type="text" label="Location" />
-        <.input field={@form[:vendor]} type="text" label="Vendor (name/website)" />
-        <.input field={@form[:tool_info]} type="text" label="Tool info (website)" />
-        <.input field={@form[:number_of_checkouts]} type="number" label="Number of checkouts" readonly />
-        <.input field={@form[:status]} type="text" label="Status" readonly />
+        <.input field={@form[:vendor]} type="text" label="Brand" />
+        <.input field={@form[:tool_info]} type="text" label="Purchase Page (website)" />
+        <.input field={@form[:status]} type="runlist_assignment_select" label="Status" selected_assignment={@selected_assignment} options={[ "stocked", "needs_restock", "in_cart", "ordered"]} />
+
        <!-- <.input field={@form[:department]} type="text" label="Department" /> -->
         <:actions>
           <.button phx-disable-with="Saving...">Save Tool</.button>
@@ -40,10 +40,12 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
   @impl true
   def update(%{tool: tool} = assigns, socket) do
     changeset = Inventory.change_tool(tool)
+    selected_assignment = tool.status
 
     {:ok,
      socket
      |> assign(assigns)
+     |> assign(:selected_assignment, selected_assignment)
      |> assign_form(changeset)}
   end
 
@@ -62,6 +64,7 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
   end
 
   defp save_tool(socket, :edit, tool_params) do
+    tool_params = set_status(tool_params)
     case Inventory.update_tool(socket.assigns.tool, tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
@@ -77,6 +80,7 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
   end
 
   defp save_tool(socket, :new, tool_params) do
+    tool_params = set_status(tool_params)
     case Inventory.create_tool(tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
@@ -96,4 +100,23 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
   end
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
+
+
+  #NOT WORKING YET
+  defp set_status(tool_params) do
+    new_balance =
+      if tool_params["checkout_amount"] == nil do
+        String.to_integer(tool_params["balance"])
+      else
+        String.to_integer(tool_params["balance"]) - String.to_integer(tool_params["checkout_amount"])
+      end
+
+    case String.to_integer(tool_params["minimum"]) >= new_balance and tool_params["status"] == "stocked" do
+      true ->
+        Map.put(tool_params, "status", "needs_restock")
+      false ->
+        IO.inspect("here")
+        IO.inspect(if tool_params["status"] == "needs_restock", do: Map.put(tool_params, "status", "stocked"), else: tool_params)
+    end
+  end
 end

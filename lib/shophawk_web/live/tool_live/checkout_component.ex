@@ -6,16 +6,22 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <.header>
-        <%= @title %>
-        <:subtitle></:subtitle>
-      </.header>
-      <div class="text-xl">
-      <%= @tool.part_number %>
+      <div class="text-center content-center">
+        <.header>
+          <%= @title %>
+          <:subtitle></:subtitle>
+        </.header>
       </div>
-      <%= @tool.description %>
-      <br>
-      <%= @tool.location %>
+      <div class="text-4xl">
+        <%= @tool.part_number %>
+      </div>
+      <div class="text-2xl">
+        <%= @tool.description %>
+        <br>
+        <%= @tool.vendor %>
+        <br>
+        <%= @tool.location %>
+      </div>
 
       <.simple_form
         for={@form}
@@ -35,6 +41,7 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
 
         <.input field={@form[:balance]} type="number" label="New Balance" readonly />
         <div class="hidden">
+          <.input field={@form[:minimum]} type="number" label="Minimum to have in Stock" readonly />
           <.input field={@form[:original_balance]} type="number" label="Original Balance" readonly />
           <.input field={@form[:number_of_checkouts]} type="number" label="checkouts" readonly />
         </div>
@@ -73,6 +80,11 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
   end
 
   defp save_tool(socket, :checkout, tool_params) do
+    tool_params =
+      case tool_params[:minimum] >= tool_params[:balance] do
+        true -> Map.put(tool_params, "status", "needs_restock")
+        false -> tool_params
+      end
     case Inventory.update_tool(socket.assigns.tool, tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
