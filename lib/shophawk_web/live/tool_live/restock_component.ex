@@ -17,13 +17,17 @@ defmodule ShophawkWeb.ToolLive.RestockComponent do
           rows={@streams.needs_restock}
           row_click={fn {_id, tool} -> JS.navigate(~p"/tools/#{tool}/checkin") end}
         >
-          <:col :let={{_id, tool}} label="Part number"><%= tool.part_number %></:col>
-          <:col :let={{_id, tool}} label="Description"><%= tool.description %></:col>
-          <:col :let={{_id, tool}} label="Balance"><%= tool.balance %></:col>
-          <:col :let={{_id, tool}} label="Minimum"><%= tool.minimum %></:col>
-          <:col :let={{_id, tool}} label="Location"><%= tool.location %></:col>
+          <:col :let={{_id, tool}} label="Part number" width="w-1/12"><%= tool.part_number %></:col>
+          <:col :let={{_id, tool}} label="Description" width="w-max"><%= tool.description %></:col>
+          <:col :let={{_id, tool}} label="Balance" width="w-16"><%= tool.balance %></:col>
+          <:col :let={{_id, tool}} label="Minimum" width="w-16"><%= tool.minimum %></:col>
           <:action :let={{_id, tool}}>
-              <a class="hover:text-stone-900" href={tool.vendor} target="_blank">Order Website</a>
+            <%= if String.contains?(tool.vendor, ".com") do %>
+            <.light_link_button link={tool.vendor}>Order Page </.light_link_button>
+            <% else %>
+            <span class="px-2"><%= tool.vendor %></span>
+            <% end %>
+            <.light_link_button link={tool.tool_info}>Tool Info</.light_link_button>
           </:action>
           <:action :let={{_id, tool}}>
             <.link class="" navigate={~p"/tools/#{tool}/edit"}>Edit</.link>
@@ -43,13 +47,17 @@ defmodule ShophawkWeb.ToolLive.RestockComponent do
           rows={@streams.in_cart}
           row_click={fn {_id, tool} -> JS.navigate(~p"/tools/#{tool}/checkin") end}
         >
-          <:col :let={{_id, tool}} label="Part number"><%= tool.part_number %></:col>
-          <:col :let={{_id, tool}} label="Description"><%= tool.description %></:col>
-          <:col :let={{_id, tool}} label="Balance"><%= tool.balance %></:col>
-          <:col :let={{_id, tool}} label="Minimum"><%= tool.minimum %></:col>
-          <:col :let={{_id, tool}} label="Location"><%= tool.location %></:col>
+          <:col :let={{_id, tool}} label="Part number" width="w-1/12"><%= tool.part_number %></:col>
+          <:col :let={{_id, tool}} label="Description" width="w-max"><%= tool.description %></:col>
+          <:col :let={{_id, tool}} label="Balance" width="w-16"><%= tool.balance %></:col>
+          <:col :let={{_id, tool}} label="Minimum" width="w-16"><%= tool.minimum %></:col>
           <:action :let={{_id, tool}}>
-              <a class="hover:text-stone-900" href={tool.vendor} target="_blank">Order Website</a>
+            <%= if String.contains?(tool.vendor, ".com") do %>
+            <.light_link_button link={tool.vendor}>Order Page </.light_link_button>
+            <% else %>
+            <span class="px-2"><%= tool.vendor %></span>
+            <% end %>
+            <.light_link_button link={tool.tool_info}>Tool Info</.light_link_button>
           </:action>
           <:action :let={{_id, tool}}>
             <.link class="" navigate={~p"/tools/#{tool}/edit"}>Edit</.link>
@@ -69,13 +77,17 @@ defmodule ShophawkWeb.ToolLive.RestockComponent do
           rows={@streams.ordered}
           row_click={fn {_id, tool} -> JS.navigate(~p"/tools/#{tool}/checkin") end}
         >
-          <:col :let={{_id, tool}} label="Part number"><%= tool.part_number %></:col>
-          <:col :let={{_id, tool}} label="Description"><%= tool.description %></:col>
-          <:col :let={{_id, tool}} label="Balance"><%= tool.balance %></:col>
-          <:col :let={{_id, tool}} label="Minimum"><%= tool.minimum %></:col>
-          <:col :let={{_id, tool}} label="Location"><%= tool.location %></:col>
+          <:col :let={{_id, tool}} label="Part number" width="w-1/12"><%= tool.part_number %></:col>
+          <:col :let={{_id, tool}} label="Description" width="w-max"><%= tool.description %></:col>
+          <:col :let={{_id, tool}} label="Balance" width="w-16"><%= tool.balance %></:col>
+          <:col :let={{_id, tool}} label="Minimum" width="w-16"><%= tool.minimum %></:col>
           <:action :let={{_id, tool}}>
-              <a class="hover:text-stone-900" href={tool.vendor} target="_blank">Order Website</a>
+            <%= if String.contains?(tool.vendor, ".com") do %>
+            <.light_link_button link={tool.vendor}>Order Page </.light_link_button>
+            <% else %>
+            <span class="px-2"><%= tool.vendor %></span>
+            <% end %>
+            <.light_link_button link={tool.tool_info}>Tool Info</.light_link_button>
           </:action>
           <:action :let={{_id, tool}}>
             <.link class="" navigate={~p"/tools/#{tool}/edit"}>Edit</.link>

@@ -183,7 +183,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
             total_revenue: Enum.map(data, fn %{week: week, total_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end),
             six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
           }
-        socket = assign(socket, :revenue_chart_data, Jason.encode!(chart_data))
+
         {six_weeks_revenue_amount, total_revenue, active_jobs} = calc_current_revenue()
 
         percentage_diff =
@@ -196,6 +196,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
             end
 
         socket
+        |> assign(:revenue_chart_data, Jason.encode!(chart_data))
         |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
         |> assign(:total_revenue, total_revenue)
         |> assign(:active_jobs, active_jobs)
@@ -233,7 +234,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
         |> Map.drop([:updated_at])
       end)
 
-      ### Prepare sales table data ###
+    ### Prepare sales table data ###
     # Create a list of all months in the current year
     all_months = for month <- 1..12, do: %{date: Date.new!(Date.utc_today().year, month, 1), amount: nil}
     # Filter for future months
@@ -291,7 +292,11 @@ defmodule ShophawkWeb.DashboardLive.Index do
           |> Enum.reverse
         %{name: "#{year}", data: month_amounts}
       end)
-    this_year_data = Enum.find(sales_chart_data, fn data -> data.name == Integer.to_string(Date.utc_today().year) end)
+    this_year_data =
+      case Enum.find(sales_chart_data, fn data -> data.name == Integer.to_string(Date.utc_today().year) end) do
+        nil -> %{data: [current_months_sales.amount], name: Integer.to_string(Date.utc_today().year)}
+        data -> data
+      end
     this_years_sales =
       Enum.reduce(this_year_data.data, 0, fn d, acc ->
         case d do
@@ -613,15 +618,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
     #beginning_of_this_month = Date.utc_today() |> Date.add(-30) |> Date.beginning_of_month()
     #end_of_month = Date.utc_today() |> Date.add(-30) |> Date.end_of_month()
     #current_months_sales = generate_monthly_sales(beginning_of_this_month, end_of_month) |> List.first()
-    #|> IO.inspect
-    #IO.inspect()
-    #save_last_months_sales()
 
-    #save_this_weeks_revenue()
-    #save_last_months_sales()
 
     ######################Functions to load history into db for first load with new dashboard####################
-    load_10_year_history_into_db()
+    #load_10_year_history_into_db()
     {:noreply, socket}
   end
 

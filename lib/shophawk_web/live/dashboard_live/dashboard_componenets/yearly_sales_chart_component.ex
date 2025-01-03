@@ -8,7 +8,7 @@ defmodule ShophawkWeb.YearlySalesChartComponent do
         <div class="text-2xl underline pb-4">
             Top 10 Customers & Yearly Sales
         </div>
-        <%= if @total_sales == 0 do  %>
+        <%= if @yearly_sales_data == [] do  %>
             <div class="loader"></div>
         <% else %>
             <div class="grid grid-cols-2 text-4xl">

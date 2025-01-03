@@ -11,11 +11,12 @@ defmodule ShophawkWeb.ToolLive.CheckinComponent do
         <:subtitle></:subtitle>
       </.header>
       <div class="text-xl">
-      <%= @tool.part_number %>
-      </div>
       <%= @tool.description %>
       <br>
+      <%= @tool.part_number %>
+      <br>
       <%= @tool.location %>
+      </div>
 
       <.simple_form
         for={@form}
@@ -24,10 +25,12 @@ defmodule ShophawkWeb.ToolLive.CheckinComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:checkout_amount]} type="text" label="Amount to Checkout" autofocus="true" />
+        <.input field={@form[:checkout_amount]} type="text" label="Amount to Checkin" autofocus="true" />
         <.input field={@form[:balance]} type="number" label="Balance" readonly />
         <div class="hidden">
           <.input field={@form[:original_balance]} type="number" label="Original Balance" readonly />
+          <.input field={@form[:minimum]} type="number" label="minimum" readonly />
+          <.input field={@form[:status]} type="text" label="status" readonly />
         </div>
         <:actions>
           <.button phx-disable-with="Saving...">Check In</.button>
@@ -68,14 +71,40 @@ defmodule ShophawkWeb.ToolLive.CheckinComponent do
   end
 
   defp save_tool(socket, :checkin, tool_params) do
+
+    min = String.to_integer(tool_params["minimum"])
+    balance = String.to_integer(tool_params["balance"])
+    tool_params =
+      case min <= balance do
+        true -> Map.put(tool_params, "status", "stocked")
+        false -> tool_params
+      end
     case Inventory.update_tool(socket.assigns.tool, tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
 
+        case Inventory.all_not_stocked?() do #navigates back to /tools if no more to order
+          [] ->
+            {:noreply,
+            socket
+            |> put_flash(:info, "Tool updated successfully")
+            |> push_patch(to: socket.assigns.patch )}
+          nil ->
+            {:noreply,
+            socket
+            |> put_flash(:info, "Tool updated successfully")
+            |> push_patch(to: socket.assigns.patch )}
+          _ ->
+            {:noreply,
+            socket
+            |> put_flash(:info, "Tool updated successfully")
+            |> push_patch(to: "/tools/restock")}
+        end
+
         {:noreply,
          socket
          |> put_flash(:info, "Tool updated successfully")
-         |> push_patch(to: socket.assigns.patch)}
+         |> push_patch(to: socket.assigns.patch )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

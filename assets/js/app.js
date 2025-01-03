@@ -26,9 +26,20 @@ import "../vendor/download_from_server"; //handles file downloads from push_redi
 // Import the chart hooks from charts.js
 import ChartHooks from "./charts";
 
-// Register hooks with LiveSocket
-let Hooks = {...ChartHooks}; // Merge ChartHooks with other hooks if you have more
+let AutofocusHook = {
+  mounted() {
+    setTimeout(() => {
+      document.activeElement.blur();
+      this.el.focus();
+    }, 1); // Small delay to ensure element is ready
+  }
+};
 
+// Register hooks with LiveSocket
+let Hooks = {
+  ...ChartHooks,
+  AutofocusHook
+}; // Merge hooks
 
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

@@ -410,6 +410,56 @@ defmodule ShophawkWeb.CoreComponents do
     """
   end
 
+  attr :type, :string, default: nil
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(disabled form name value)
+  attr :link, :string, default: nil
+
+  slot :inner_block, required: true
+
+  def link_button(assigns) do
+    ~H"""
+    <a
+      href={@link}
+      target="_blank"
+      class={[
+        "hx-submit-loading:opacity-75 rounded-lg underline hover:bg-stone-300 px-1",
+        "text-xl font-semibold leading-6 text-black hover:text-cyan-800 active:text-white/80",
+        @class
+      ]}
+      {@rest}
+    >
+      <%= render_slot(@inner_block) %>
+    </a>
+
+    """
+  end
+
+  attr :type, :string, default: nil
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(disabled form name value)
+  attr :link, :string, default: nil
+
+  slot :inner_block, required: true
+
+  def light_link_button(assigns) do
+    ~H"""
+    <a
+      href={@link}
+      target="_blank"
+      class={[
+        "hx-submit-loading:opacity-75 rounded-lg underline px-1 text-white",
+        "text-xl font-semibold leading-6 text-black hover:text-stone-900 active:text-white/80",
+        @class
+      ]}
+      {@rest}
+    >
+      <%= render_slot(@inner_block) %>
+    </a>
+
+    """
+  end
+
   @doc """
   Renders an input with label and error messages.
 
@@ -797,33 +847,33 @@ defmodule ShophawkWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] mt-4 sm:w-full">
-        <thead class="text-lgleading-6 text-white text-center">
+    <div class="overflow-y-auto  px-4 sm:overflow-visible sm:px-0">
+      <table class="w-[40rem] mt-4 sm:w-full table-fixed">
+        <thead class="text-lg leading-6 text-white text-center">
           <tr>
-            <th :for={col <- @col} class="p-0 pr-6 pb-4 font-normal"><%= col[:label] %></th>
+            <th :for={col <- @col} class={["p-0 pr-6 pb-4 font-normal", col[:width]]}><%= col[:label] %></th>
 
           </tr>
         </thead>
         <tbody
           id={@id}
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="relative divide-y divide-zinc-100 border-t border-zinc-400 text-lg leading-6 text-zinc-200"
+          class="relative divide-y divide-cyan-700 border-t border-cyan-700 text-lg leading-6 text-zinc-200"
         >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-zinc-400 text-center">
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class={["group hover:bg-cyan-700 text-center"]}>
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
               class={["relative p-0", @row_click && "hover:cursor-pointer"]}
             >
-              <div class="block py-1 pr-6">
+              <div class="block py-1 pr-6 truncate">
                 <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-cyan-700 sm:rounded-l-xl" />
                 <span class={["relative", i == 0 && "font-semibold text-zinc-200"]}>
                   <%= render_slot(col, @row_item.(row)) %>
                 </span>
               </div>
             </td>
-            <td :if={@action != []} class="relative w-14 p-0">
+            <td :if={@action != []} class="relative p-0">
               <div class="relative whitespace-nowrap py-1 text-right text-lg font-medium">
                 <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-cyan-700 sm:rounded-r-xl" />
                 <span

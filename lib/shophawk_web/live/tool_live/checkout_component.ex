@@ -13,12 +13,15 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
         </.header>
       </div>
       <div class="text-4xl">
-        <%= @tool.part_number %>
+        <%= @tool.description %>
       </div>
       <div class="text-2xl">
-        <%= @tool.description %>
+        <%= @tool.part_number %>
         <br>
-        <%= @tool.vendor %>
+        <.link_button link={@tool.tool_info}>Tool Info</.link_button>
+        <br>
+        <.link_button link={@tool.vendor}>Order Page </.link_button>
+
         <br>
         <%= @tool.location %>
       </div>
@@ -30,7 +33,7 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:checkout_amount]} type="text" label="Amount to Checkout" autofocus="true" />
+        <.input field={@form[:checkout_amount]} type="text" label="Amount to Checkout" phx-hook="AutofocusHook"/>
 
         <%= if Map.has_key?(assigns.form.source.changes, :negative_checkout_message ) do %>
           <p class="mt-3 flex gap-3 text-sm leading-6 text-rose-600 phx-no-feedback:hidden">
