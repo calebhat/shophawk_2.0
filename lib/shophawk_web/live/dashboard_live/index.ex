@@ -71,6 +71,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:yearly_sales_data, [])
     |> assign(:total_sales, 0)
     |> assign(:complete_yearly_sales_data, [])
+    |> assign(:top_10_startdate, Date.new!(Date.utc_today().year, 1, 1))
+    |> assign(:top_10_enddate, Date.utc_today())
 
     #late Deliveries
     |> assign(:late_deliveries, [])
@@ -96,15 +98,15 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      |> load_checkbook_component() #5 seconds
-      |> load_open_invoices_component() #5 sec
-      |> load_travelors_released_componenet() #1 second
-      |> load_anticipated_revenue_component() #2 sec
-      |> load_monthly_sales_chart_component() #instant
-      |> load_hot_jobs()
-      |> load_time_off()
-      |> load_late_shipments()
-      |> load_yearly_sales_chart()
+      #|> load_checkbook_component() #5 seconds
+      #|> load_open_invoices_component() #5 sec
+      #|> load_travelors_released_componenet() #1 second
+      #|> load_anticipated_revenue_component() #2 sec
+      #|> load_monthly_sales_chart_component() #instant
+      #|> load_hot_jobs()
+      #|> load_time_off()
+      #|> load_late_shipments()
+      |> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
     }
   end
 
@@ -405,8 +407,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     assign(socket, :hot_jobs, Shophawk.Shop.get_hot_jobs())
   end
 
-  def load_yearly_sales_chart(socket) do
-    first_day_of_year = Date.new!(Date.utc_today().year, 1, 1)
+  def load_yearly_sales_chart(socket, start_date, end_date) do
     matching_map = %{
       ["alro"] => "Alro Plastics",
       ["amcor"] => "Amcor",
@@ -438,7 +439,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       ["tyson"] => "Tyson Foods",
       ["valmet"] => "Valmet"
     }
-    deliveries_this_year = case Jobboss_db.load_invoices(first_day_of_year, Date.utc_today()) do
+    deliveries_this_year = case Jobboss_db.load_invoices(start_date, end_date) do
       [] -> [] #if no deliveries found
       invoices -> invoices
     end
@@ -462,6 +463,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:yearly_sales_data, Jason.encode!(yearly_sales_data))
     |> assign(:total_sales, total_sales)
     |> assign(:complete_yearly_sales_data, yearly_sales_data)
+    |> assign(:top_10_startdate, start_date)
+    |> assign(:top_10_enddate, end_date)
   end
 
   def load_late_shipments(socket) do
@@ -612,6 +615,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def handle_event("close_job_attachments", _params, socket) do
     {:noreply, assign(socket, live_action: :show_job)}
+  end
+
+  def handle_event("reload_top_10_dates", %{"end_date" => enddate, "start_date" => startdate}, socket) do
+    {:noreply, load_yearly_sales_chart(socket, Date.from_iso8601!(startdate), Date.from_iso8601!(enddate))}
   end
 
   def handle_event("test_click", _params, socket) do

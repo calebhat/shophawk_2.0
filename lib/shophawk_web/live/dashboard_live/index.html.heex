@@ -1,5 +1,5 @@
 <div>
-    <div class="grid justify-contents-end"><.button phx-click="test_click">CLICK ME</.button></div>
+    <!-- <div class="grid justify-contents-end"><.button phx-click="test_click">CLICK ME</.button></div> -->
 
     <div class="grid grid-cols-2 place-content-center text-stone-100">
         
@@ -76,9 +76,11 @@
         />
 
         <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
+        top_10_startdate={@top_10_startdate}
+        top_10_enddate={@top_10_enddate}
         yearly_sales_data={@yearly_sales_data}
         complete_yearly_sales_data={@complete_yearly_sales_data}
-        total_sales={@total_sales}
+        total_sales={@total_sales}        
         />
     </div>
 
