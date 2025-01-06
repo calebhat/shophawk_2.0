@@ -13,6 +13,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.WeektwoTimeoffComponent
   alias ShophawkWeb.YearlySalesChartComponent
   alias ShophawkWeb.LateShipmentsComponent
+  alias ShophawkWeb.TopVendorsComponent
   alias Shophawk.Dashboard
 
 
@@ -78,6 +79,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:late_deliveries, [])
     |> assign(:late_delivery_count, 0)
     |> assign(:late_deliveries_loaded, false)
+
+    #Top Vendors
+    |> assign(:top_vendors, [])
+    |> assign(:top_vendors_startdate, Date.new!(Date.utc_today().year, 1, 1))
+    |> assign(:top_vendors_enddate, Date.utc_today())
+    |> assign(:empty_vendor_list, false)
   end
 
   @impl true
@@ -107,6 +114,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> load_time_off()
       |> load_late_shipments()
       |> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
+      |> load_top_vendors(socket.assigns.top_vendors_startdate, socket.assigns.top_vendors_enddate)
     }
   end
 
@@ -469,6 +477,31 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:top_10_enddate, end_date)
   end
 
+  def load_top_vendors(socket, start_date, end_date) do
+    payments = case Jobboss_db.load_vendor_payments(start_date, end_date) do
+      [] -> [] #if no deliveries found
+      checks -> checks
+    end
+    |> Enum.group_by(fn v -> v.vendor end)
+    |> Enum.map(fn {vendor, sales_list} ->
+      total_payments = Enum.reduce(sales_list, 0, fn map, acc -> map.check_amt + acc end) |> Float.round(2)
+      %{vendor: vendor, payments: total_payments}
+    end)
+    |> Enum.sort_by(&(&1.payments), :desc)
+
+    top_vendors = Enum.take(payments, 30)
+
+    total_sales = Enum.reduce(payments, 0, fn c, acc -> c.payments + acc end)
+    empty_vendor_list = if top_vendors == [], do: true, else: false
+
+    socket
+    |> assign(:top_vendors, top_vendors)
+    |> assign(:top_vendors_startdate, start_date)
+    |> assign(:top_vendors_enddate, end_date)
+    |> assign(:total_payments, total_sales)
+    |> assign(:empty_vendor_list, empty_vendor_list)
+  end
+
   def load_late_shipments(socket) do
     runlists =
       case :ets.lookup(:runlist, :active_jobs) do
@@ -621,6 +654,10 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def handle_event("reload_top_10_dates", %{"end_date" => enddate, "start_date" => startdate}, socket) do
     {:noreply, load_yearly_sales_chart(socket, Date.from_iso8601!(startdate), Date.from_iso8601!(enddate))}
+  end
+
+  def handle_event("reload_top_vendor_dates", %{"end_date" => enddate, "start_date" => startdate}, socket) do
+    {:noreply, load_top_vendors(socket, Date.from_iso8601!(startdate), Date.from_iso8601!(enddate))}
   end
 
   def handle_event("test_click", _params, socket) do

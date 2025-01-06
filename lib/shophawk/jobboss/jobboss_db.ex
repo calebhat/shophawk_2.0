@@ -19,6 +19,7 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_address
     alias Shophawk.Jb_material
     alias Shophawk.Jb_material_location
+    alias Shophawk.Jb_Ap_Check
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
 
@@ -649,6 +650,15 @@ defmodule Shophawk.Jobboss_db do
     query =
       from r in Jb_InvoiceHeader,
       where: r.document_date >= ^start_date and r.document_date <= ^end_date
+    failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+  end
+
+  def load_vendor_payments(start_date, end_date) do
+    start_date = NaiveDateTime.new(start_date, ~T[00:00:00]) |> elem(1)
+    end_date = NaiveDateTime.new(end_date, ~T[00:00:00]) |> elem(1)
+    query =
+      from r in Jb_Ap_Check,
+      where: r.check_date >= ^start_date and r.check_date <= ^end_date
     failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 

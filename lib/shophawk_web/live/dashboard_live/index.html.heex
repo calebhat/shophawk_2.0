@@ -82,6 +82,13 @@
         complete_yearly_sales_data={@complete_yearly_sales_data}
         total_sales={@total_sales}        
         />
+
+        <.live_component module={TopVendorsComponent} id="top_ten_vendors_1"
+        top_vendors={@top_vendors}        
+        empty_vendor_list={@empty_vendor_list}
+        top_vendors_startdate={@top_vendors_startdate}
+        top_vendors_enddate={@top_vendors_enddate}
+        />
     </div>
 
     <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard?reload=#{false}")}>

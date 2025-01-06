@@ -22,7 +22,7 @@ defmodule ShophawkWeb.YearlySalesChartComponent do
                 <.button phx-click="clear_yearly_sales_customer">Clear Graph</.button>
               </div>
               <div class="">
-                <.form for={:dates} phx-submit="reload_top_10_dates">
+                <.form for={%{}} as={:dates} phx-submit="reload_top_10_dates">
                   <div class="flex justify-center text-white">
                     <div class="text-xl self-center mx-4">Start:</div>
                     <.input type="date" name="start_date" value={@top_10_startdate} />
