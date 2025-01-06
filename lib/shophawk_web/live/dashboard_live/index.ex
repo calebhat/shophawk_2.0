@@ -98,14 +98,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      #|> load_checkbook_component() #5 seconds
-      #|> load_open_invoices_component() #5 sec
-      #|> load_travelors_released_componenet() #1 second
-      #|> load_anticipated_revenue_component() #2 sec
-      #|> load_monthly_sales_chart_component() #instant
-      #|> load_hot_jobs()
-      #|> load_time_off()
-      #|> load_late_shipments()
+      |> load_checkbook_component() #5 seconds
+      |> load_open_invoices_component() #5 sec
+      |> load_travelors_released_componenet() #1 second
+      |> load_anticipated_revenue_component() #2 sec
+      |> load_monthly_sales_chart_component() #instant
+      |> load_hot_jobs()
+      |> load_time_off()
+      |> load_late_shipments()
       |> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
     }
   end
@@ -363,13 +363,14 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> Enum.reverse
     |> Enum.take(5)
 
-    travelor_totals = Enum.reduce(travelor_count, %{dave_total: 0, jamie_total: 0, brent_total: 0, greg_total: 0, caleb_total: 0, mike_total: 0, total_total: 0}, fn t, acc->
+    travelor_totals = Enum.reduce(travelor_count, %{dave_total: 0, jamie_total: 0, brent_total: 0, greg_total: 0, caleb_total: 0, mike_total: 0, nolan_total: 0, total_total: 0}, fn t, acc->
       acc
       |> Map.put(:dave_total, acc.dave_total + t.dave)
       |> Map.put(:jamie_total, acc.jamie_total + t.jamie)
       |> Map.put(:brent_total, acc.brent_total + t.brent)
       |> Map.put(:greg_total, acc.greg_total + t.greg)
       |> Map.put(:caleb_total, acc.caleb_total + t.caleb)
+      |> Map.put(:caleb_total, acc.nolan_total + t.nolan)
       |> Map.put(:mike_total, acc.mike_total + t.mike)
       |> Map.put(:total_total, acc.total_total + t.total)
     end)
@@ -383,7 +384,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       list
     else
       released_jobs = Jobboss_db.released_jobs(start_date)
-      totals_list = %{date: nil, caleb: 0, dave: 0, greg: 0, brent: 0, jamie: 0, mike: 0, total: 0}
+      totals_list = %{date: nil, caleb: 0, dave: 0, greg: 0, brent: 0, jamie: 0, mike: 0, nolan: 0, total: 0}
       job_totals =
         Enum.reduce(released_jobs, totals_list, fn job, acc ->
           acc = if acc.date == nil, do: Map.put(acc, :date, job.released_date), else: acc
@@ -396,6 +397,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
             String.contains?(note_text, "brent") -> Map.put(acc, :brent, acc.brent + 1)
             String.contains?(note_text, "jamie") -> Map.put(acc, :jamie, acc.jamie + 1)
             String.contains?(note_text, "mike") -> Map.put(acc, :mike, acc.mike + 1)
+            String.contains?(note_text, "nolan") -> Map.put(acc, :nolan, acc.nolan + 1)
             true -> acc
           end
         end)

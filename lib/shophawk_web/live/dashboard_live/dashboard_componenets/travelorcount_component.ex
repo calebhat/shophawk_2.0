@@ -22,6 +22,7 @@ defmodule ShophawkWeb.TravelorcountComponent do
                             <th class="px-2 py-1">Brent</th>
                             <th class="px-2 py-1">Greg</th>
                             <th class="px-2 py-1">Caleb</th>
+                            <th class="px-2 py-1">Nolan</th>
                             <th class="px-2 py-1">Mike</th>
                             <th class="px-2 py-1">Total</th>
                         </tr>
@@ -35,6 +36,7 @@ defmodule ShophawkWeb.TravelorcountComponent do
                             <td class="border border-stone-500 px-2"><%= t.brent %></td>
                             <td class="border border-stone-500 px-2"><%= t.greg %></td>
                             <td class="border border-stone-500 px-2"><%= t.caleb %></td>
+                            <td class="border border-stone-500 px-2"><%= t.nolan %></td>
                             <td class="border border-stone-500 px-2"><%= t.mike %></td>
                             <td class="border border-stone-500 px-2"><%= t.total %></td>
                         </tr>
@@ -46,6 +48,7 @@ defmodule ShophawkWeb.TravelorcountComponent do
                             <td class="border border-stone-500 px-2"><%= t.brent_total %></td>
                             <td class="border border-stone-500 px-2"><%= t.greg_total %></td>
                             <td class="border border-stone-500 px-2"><%= t.caleb_total %></td>
+                            <td class="border border-stone-500 px-2"><%= t.nolan_total %></td>
                             <td class="border border-stone-500 px-2"><%= t.mike_total %></td>
                             <td class="border border-stone-500 px-2"><%= t.total_total %></td>
                         </tr>
