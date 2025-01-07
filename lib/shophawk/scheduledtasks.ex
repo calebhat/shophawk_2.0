@@ -70,6 +70,7 @@ defmodule ScheduledTasks do
         {_runlist, weekly_load, _jobs_that_ship_today} = Shop.list_runlists(workcenters, Shop.get_department_by_name(department_name))
         acc ++ [weekly_load]
       end)
+      |> Enum.filter(&is_map/1)
     :ets.insert(:runlist_loads, {:data, department_loads})  # Store the data in ETS
     #Process.send_after(self(), :update_all_runlist_loads, 300000)
     IO.puts("Loads Updated")
