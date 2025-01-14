@@ -378,7 +378,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> Map.put(:brent_total, acc.brent_total + t.brent)
       |> Map.put(:greg_total, acc.greg_total + t.greg)
       |> Map.put(:caleb_total, acc.caleb_total + t.caleb)
-      |> Map.put(:caleb_total, acc.nolan_total + t.nolan)
+      |> Map.put(:nolan_total, acc.nolan_total + t.nolan)
       |> Map.put(:mike_total, acc.mike_total + t.mike)
       |> Map.put(:total_total, acc.total_total + t.total)
     end)

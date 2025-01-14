@@ -84,7 +84,7 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
 
   defp save_tool(socket, :checkout, tool_params) do
     tool_params =
-      case String.to_integer(tool_params["minimum"]) >= String.to_integer(tool_params["balance"]) do
+      case String.to_integer(tool_params["minimum"]) > String.to_integer(tool_params["balance"]) do
         true -> Map.put(tool_params, "status", "needs_restock")
         false -> tool_params
       end

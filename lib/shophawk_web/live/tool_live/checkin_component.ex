@@ -75,7 +75,7 @@ defmodule ShophawkWeb.ToolLive.CheckinComponent do
     min = String.to_integer(tool_params["minimum"])
     balance = String.to_integer(tool_params["balance"])
     tool_params =
-      case min <= balance do
+      case min < balance do
         true -> Map.put(tool_params, "status", "stocked")
         false -> tool_params
       end
