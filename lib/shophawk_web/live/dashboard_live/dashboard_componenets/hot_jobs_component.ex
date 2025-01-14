@@ -63,7 +63,7 @@ defmodule ShophawkWeb.HotjobsComponent do
   def bg_class(dots) do
     case dots do
       1 -> "bg-cyan-500/30 hover:bg-cyan-600/30"
-      2 -> "bg-cyan-500/30 hover:bg-cyan-600/30"
+      2 -> "bg-amber-500/30 hover:bg-amber-600/30"
       3 -> "bg-red-600/30 hover:bg-red-700/30"
       _ -> ""
     end
