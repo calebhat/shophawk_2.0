@@ -83,11 +83,15 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
   end
 
   defp save_tool(socket, :checkout, tool_params) do
+    min = String.to_integer(tool_params["minimum"])
+    balance = String.to_integer(tool_params["balance"])
     tool_params =
-      case String.to_integer(tool_params["minimum"]) > String.to_integer(tool_params["balance"]) do
-        true -> Map.put(tool_params, "status", "needs_restock")
-        false -> tool_params
+      cond do
+        min > balance -> Map.put(tool_params, "status", "needs_restock")
+        min <= balance -> Map.put(tool_params, "status", "stocked")
+        true -> tool_params
       end
+
     case Inventory.update_tool(socket.assigns.tool, tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
