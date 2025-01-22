@@ -21,6 +21,13 @@ defmodule Shophawk.Material do
     Repo.all(StockedMaterial)
   end
 
+  def list_stockedmaterials_history do
+    StockedMaterial
+    |> order_by(desc: :updated_at)
+    |> limit(100)
+    Repo.all(StockedMaterial |> limit(100))
+  end
+
   def list_material_not_used do
     Repo.all(from r in StockedMaterial, where: r.bar_used == false)
   end
@@ -154,8 +161,13 @@ defmodule Shophawk.Material do
             s.material_name == struct.material
           end)
         end)
-        update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id, size_info.purchase_price, size_info.sell_price)
-        updated_material
+        case size_info do
+          nil -> updated_material
+          size_info ->
+            update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id, size_info.purchase_price, size_info.sell_price)
+            updated_material
+        end
+
       _ ->
         updated_material
     end

@@ -10,8 +10,7 @@
 
 <.list>
   <:item title="Material"><%= @stocked_material.material %></:item>
-  <:item title="Bars"><%= @stocked_material.bars %></:item>
-  <:item title="Slugs"><%= @stocked_material.slugs %></:item>
+  <:item title="Slugs"><%= @stocked_material.number_of_slugs %></:item>
 </.list>
 
 <.back navigate={~p"/stockedmaterials"}>Back to stockedmaterials</.back>

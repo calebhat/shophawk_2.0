@@ -74,17 +74,20 @@
           </.link>
           <.link patch={~p"/stockedmaterials/receive_material"}>
             <div class="pl-2"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
-          </.link>        
+          </.link>
+          <.link patch={~p"/stockedmaterials/history"}>
+            <div class="pl-2"><.button class="">History</.button></div>
+          </.link>
         <% end %>
       </div>
     
       <!-- if a size is loaded -->
       <%= if @size_info != nil do %>
       <div id="main-content" style={if @loading, do: "display: none;"} class="">
-        <div class=" grid grid-cols-10 text-center content-center">          
+        <div class=" grid grid-cols-11 text-center content-center">          
           
           <!-- to order and receive buttons -->
-          <div class="relative inline-block col-span-2">
+          <div class="relative inline-block col-span-3">
             <div class="">
               
               <div class="flex pl-4">
@@ -94,16 +97,19 @@
                 <.link patch={~p"/stockedmaterials/receive_material"}>
                   <div class="pl-2 flex-1"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
                 </.link>
+                <.link patch={~p"/stockedmaterials/history"}>
+                  <div class="pl-2"><.button class="">History</.button></div>
+                </.link>
               </div>
             </div>
            
           </div>
 
-          <div class="text-stone-200 text-4xl col-span-5">
+          <div class="text-stone-200 text-4xl col-span-4">
             <%= @size_info.material_name %>
           </div>
             
-          <div class="col-span-3 flex justify-end mr-4">
+          <div class="col-span-4 flex justify-end mr-4">
             <.link patch={~p"/stockedmaterials/new"}>
               <.button>Manually Receive Bar</.button>
             </.link>
@@ -448,23 +454,35 @@
   />
 </.modal>
 
-    <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
-    <.live_component
-        module={ShophawkWeb.RunlistLive.ShowJob}
-        id={@id || :show_job}
-        job_ops={@job_ops}
-        job_info={@job_info}
-        title={@page_title}
-        action={@live_action}
-    />
-    </.modal>
+<.modal :if={@live_action in [:detailededit]} id="stocked_material-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
+  <.live_component
+    module={ShophawkWeb.StockedMaterialLive.DetailedFormComponent}
+    id={@stocked_material.id || :detailededit}
+    title={@page_title}
+    action={@live_action}
+    stocked_material={@stocked_material}    
+    material={if @size_info == nil, do: "", else: @size_info.material_name}
+    patch={~p"/stockedmaterials"}
+  />
+</.modal>
 
-    <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
-    <.live_component
-        module={ShophawkWeb.RunlistLive.JobAttachments}
-        id={@id || :job_attachments}
-        attachments={@attachments}
-        title={@page_title}
-        action={@live_action}
-    />
-    </.modal>
+<.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
+<.live_component
+    module={ShophawkWeb.RunlistLive.ShowJob}
+    id={@id || :show_job}
+    job_ops={@job_ops}
+    job_info={@job_info}
+    title={@page_title}
+    action={@live_action}
+/>
+</.modal>
+
+<.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
+<.live_component
+    module={ShophawkWeb.RunlistLive.JobAttachments}
+    id={@id || :job_attachments}
+    attachments={@attachments}
+    title={@page_title}
+    action={@live_action}
+/>
+</.modal>

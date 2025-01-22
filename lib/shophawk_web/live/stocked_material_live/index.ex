@@ -114,6 +114,12 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     |> assign(:stocked_material, Material.get_stocked_material!(id))
   end
 
+  defp apply_action(socket, :detailededit, %{"id" => id}) do
+    socket
+    |> assign(:page_title, "Edit Stocked material")
+    |> assign(:stocked_material, Material.get_stocked_material!(id))
+  end
+
   defp apply_action(socket, :new, _params) do
     socket
     |> assign(:page_title, "New Stocked material")
@@ -128,11 +134,13 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def handle_info(%{event: "material_update", payload: new_material_list}, socket) do
-    IO.inspect("push update")
     {:noreply, push_material_data_update(socket, new_material_list)}
   end
 
   def handle_info({ShophawkWeb.StockedMaterialLive.FormComponent, {:saved, _stocked_material}}, socket) do
+    {:noreply, socket}
+  end
+  def handle_info({ShophawkWeb.StockedMaterialLive.DetailedFormComponent, {:saved, _stocked_material}}, socket) do
     {:noreply, socket}
   end
 

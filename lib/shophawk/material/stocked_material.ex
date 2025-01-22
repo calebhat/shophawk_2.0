@@ -22,6 +22,7 @@ defmodule Shophawk.Material.StockedMaterial do
     #field :enough_bar_for_job, :boolean, default: true, virtual: true
     field :job_assignments, {:array, :map}, default: [], virtual: true
     field :remaining_length_not_assigned, :float, default: 0.0, virtual: true
+    field :status, :string, virtual: true
 
 
     timestamps()
