@@ -216,7 +216,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def calc_current_revenue() do
     jobs = Jobboss_db.active_jobs_with_cost()
     job_numbers = Enum.map(jobs, fn job -> job.job end)
-    deliveries = Jobboss_db.load_deliveries(job_numbers)
+    deliveries = Jobboss_db.load_active_deliveries(job_numbers)
     merged_deliveries = Enum.reduce(deliveries, [], fn d, acc ->
       job = Enum.find(jobs, fn job -> job.job == d.job end)
       acc ++ [Map.merge(d, job)]

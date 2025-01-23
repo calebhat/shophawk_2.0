@@ -637,11 +637,21 @@ defmodule Shophawk.Jobboss_db do
   def load_deliveries(job_numbers) do
     query =
       from r in Jb_delivery,
+      where: r.job in ^job_numbers and r.promised_quantity > 0
+
+    failsafed_query(query)
+    |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+    |> Enum.sort_by(&(&1.job), :desc)
+  end
+
+  def load_active_deliveries(job_numbers) do
+    query =
+      from r in Jb_delivery,
       where: r.job in ^job_numbers and is_nil(r.shipped_date) and r.promised_quantity > 0
 
     failsafed_query(query)
-      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
-      |> Enum.sort_by(&(&1.job), :desc)
+    |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+    |> Enum.sort_by(&(&1.job), :desc)
   end
 
   def load_invoices(start_date, end_date) do

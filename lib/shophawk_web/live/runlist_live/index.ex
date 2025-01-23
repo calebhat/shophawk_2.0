@@ -295,12 +295,14 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def showjob(socket, job) do
     {job_ops, job_info} = Shop.list_job(job)
+    deliveries = Shophawk.Jobboss_db.load_deliveries([job])
+    updated_job_info = Map.put(job_info, :deliveries, deliveries)
     socket
     |> assign(id: job)
     |> assign(page_title: "Job #{job}")
     |> assign(:live_action, :show_job)
     |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
-    |> assign(:job_info, job_info)
+    |> assign(:job_info, updated_job_info)
   end
 
   defp finalize_department_stream(socket, department_id) do

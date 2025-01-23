@@ -11,7 +11,7 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
           <div><.info_button phx-click="attachments">Attachments</.info_button> </div>
         </div>
       </div>
-      <div class="text-lg text-center border-b-4 border-zinc-400 p-6">
+      <div class="text-lg text-center border-b-4 border-zinc-400 p-4">
         <div class="grid grid-cols-4 grid-rows-3">
           <div class="underline text-base">Part</div>
           <div class="underline text-base">Make</div>
@@ -30,6 +30,30 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
           <div class="text-lg"><%= assigns.job_info.material %> </div>
           <div class="text-lg"><%= (assigns.job_info.customer_po || "") <> ", line: " <> (assigns.job_info.customer_po_line || "") %> </div>
 
+        </div>
+      </div>
+
+      <div class="border-b-4 border-zinc-400 pb-4 pt-4">
+        <div class="flex justify-center text-center text-xl underline">Deliveries</div>
+        <div class="flex justify-center text-center">
+          <table class="">
+            <thead>
+              <tr>
+                <td class="w-32">Qty</td>
+                <td class="w-32">Promised Date</td>
+                <td class="w-32">Shipped Date</td>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for d <- @job_info.deliveries do %>
+                <tr>
+                  <td class=""><%= d.promised_quantity %></td>
+                  <td class=""><%= d.promised_date %></td>
+                  <td class=""><%= d.shipped_date %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
         </div>
       </div>
 

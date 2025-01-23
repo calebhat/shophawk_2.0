@@ -8,27 +8,27 @@ defmodule Shophawk.Shop do
   alias Shophawk.Shop.Assignment
 
   def list_job(job) do #loads all operations for a job
-  found_jobs =
+  found_ops =
     case Shophawk.RunlistCache.job(job) do
       [] -> Shophawk.Jobboss_db.load_job_history([job]) |> List.flatten #Function here to load job history directly from JB (not active job in cache(part history))
       active_job -> active_job
     end
 
     job_ops =
-    Enum.map(found_jobs, fn map ->
-      map = case map do
-        %{operation_service: nil} -> Map.put(map, :operation_service, nil)
-        %{operation_service: ""} -> Map.put(map, :operation_service, nil)
-        %{operation_service: value} -> Map.put(map, :operation_service, " -" <> value)
-        _ -> map
-      end
-      |> Map.put(:status, status_change(map.status))
-      map = if map.rev == nil, do: Map.put(map, :rev, ""), else: Map.put(map, :rev, ", Rev: " <> map.rev)
-      if map.customer_po_line == nil, do: Map.put(map, :customer_po_line, ""), else: map
-      if map.operation_note_text == nil, do:  Map.put(map, :operation_note_text, ""), else: map
-    end)
-    [job | _tail] = job_ops
-    {job_ops, sort_job_info(job)}
+      Enum.map(found_ops, fn map ->
+        map = case map do
+          %{operation_service: nil} -> Map.put(map, :operation_service, nil)
+          %{operation_service: ""} -> Map.put(map, :operation_service, nil)
+          %{operation_service: value} -> Map.put(map, :operation_service, " -" <> value)
+          _ -> map
+        end
+        |> Map.put(:status, status_change(map.status))
+        map = if map.rev == nil, do: Map.put(map, :rev, ""), else: Map.put(map, :rev, ", Rev: " <> map.rev)
+        if map.customer_po_line == nil, do: Map.put(map, :customer_po_line, ""), else: map
+        if map.operation_note_text == nil, do:  Map.put(map, :operation_note_text, ""), else: map
+      end)
+    [first_operation | _tail] = job_ops
+    {job_ops, sort_job_info(first_operation)}
   end
 
   def sort_job_info(job) do
