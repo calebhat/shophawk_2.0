@@ -54,7 +54,7 @@ defmodule ShophawkWeb.StockedMaterialLive.History do
             true -> h
           end
       end)
-    {:ok, stream(socket, :stockedmaterials, history)}
+    {:ok, stream(socket, :stockedmaterials, history, reset: true)}
   end
 
 end
