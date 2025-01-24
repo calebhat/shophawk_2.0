@@ -160,6 +160,11 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         {slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
         slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
         slides = if String.trim(slideshow.photo) != "", do: slides ++ [:photo], else: slides
+
+
+        {slideshow, slides} = load_customer_photo(slideshow, slides)
+
+
         {slideshow, slides} = if Enum.all?(week1_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week1_timeoff, week1_timeoff), slides ++ [:week1_timeoff]}, else: {Map.put(slideshow, :week1_timeoff, [m: [], t: [], w: [], thur: [], f: []]), slides}
 
         {slideshow, slides, List.first(slides)}
@@ -167,6 +172,23 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         {slideshow, slides, next_slide}
       end
     {slideshow, slides, next_slide, (index + 1)}
+  end
+
+  defp load_customer_photo(slideshow, slides) do
+    images =
+      File.ls!("//EG-SRV-FP01/Data/Shophawk/slideshow_photos")
+      |> Enum.filter(&String.ends_with?(String.downcase(&1), ~w(.jpg .jpeg .png .gif)))
+
+      if Enum.empty?(images) do
+        {slideshow, slides}
+      else
+        selected_image = Path.basename((Enum.random(images)))
+        encoded_image_name = URI.encode(selected_image)
+        slideshow =
+          Map.put(slideshow, :eg_photo, encoded_image_name)
+        slides = slides ++ [:eg_photo]
+        {slideshow, slides}
+      end
   end
 
   defp personal_time?() do #determines if personal time usage slide should be displayed

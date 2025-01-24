@@ -214,6 +214,7 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
           </div>
         <% :quote -> %><img style="object-fit: cover;  height: 90vh" src={@slideshow.quote}>
         <% :photo -> %><img style="object-fit: cover;  height: 90vh" src={@slideshow.photo}>
+        <% :eg_photo -> %><img style="object-fit: cover; height: 90vh" src={"/slideshow_photos/" <> @slideshow.eg_photo}>
         <% :birthdays -> %>
           <div class="h-screen w-[90vw] flex flex-col justify-between">
             <div class="text-center grid grid-cols-3">

@@ -141,4 +141,14 @@ defmodule ShophawkWeb.Router do
       live "/users/confirm", UserConfirmationInstructionsLive, :new
     end
   end
+
+  #adds a scope outside of the app folder for file uploads
+  #Example usage:
+  #<img style="object-fit: cover; height: 90vh" src={"/slideshow_photos/" <> @slideshow.eg_photo}>
+  #will serve a file over http.
+  scope "/slideshow_photos", ShophawkWeb do
+    pipe_through :browser
+    get "/:filename", FileSenderController, :serve_customer_photo
+  end
+
 end
