@@ -151,4 +151,9 @@ defmodule ShophawkWeb.Router do
     get "/:filename", FileSenderController, :serve_customer_photo
   end
 
+  scope "/", ShophawkWeb do
+    pipe_through :browser
+    get "/serve_pdf/*filepath", FileSenderController, :serve_pdf
+  end
+
 end

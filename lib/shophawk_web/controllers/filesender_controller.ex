@@ -15,4 +15,19 @@ defmodule ShophawkWeb.FileSenderController do
       |> send_resp(404, "File not found")
     end
   end
+
+  def serve_pdf(conn, %{"filepath" => filepath}) do
+    IO.inspect(filepath, label: "File path")
+    full_path = "//" <> Path.join(filepath)
+    IO.inspect(full_path, label: "Full path")
+
+    if File.exists?(full_path) do
+      conn
+      |> put_resp_content_type("application/pdf")
+      |> send_file(200, full_path)
+    else
+      conn
+      |> send_resp(404, "File not found")
+    end
+  end
 end

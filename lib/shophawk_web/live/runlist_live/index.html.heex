@@ -230,7 +230,8 @@
   />
 </.modal>
 
-<.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
+<.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/runlists")}>
+  <div class="w-[1600px]">
   <.live_component
     module={ShophawkWeb.RunlistLive.JobAttachments}
     id={@id || :job_attachments}
@@ -238,6 +239,7 @@
     title={@page_title}
     action={@live_action}
   />
+  </div>
 </.modal>
 
 <.modal :if={@live_action in [:color_key]} id="color-key-modal" show on_cancel={JS.patch(~p"/runlists")}>
