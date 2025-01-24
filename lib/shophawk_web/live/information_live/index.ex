@@ -120,7 +120,19 @@ defmodule ShophawkWeb.InformationLive.Index do
         </div>
       </div>
 
-      <div></div>
+      <div  class="text-center justify-center rounded-2xl p-4 bg-cyan-900 m-4">
+        <div class="text-2xl underline">
+          Commitee Leaders
+        </div>
+        <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2">
+          <ul>
+            <li>Human Resources: Brent/Greg/Caleb</li>
+            <li>Training: Brent</li>
+            <li>Future Planning: Nolan</li>
+            <li>Party Planning: Nicole</li>
+          </ul>
+        </div>
+      </div>
       <div class="text-center justify-center rounded-2xl p-4 bg-cyan-900 m-4">
         <div class="text-2xl underline">
           Human Resources
