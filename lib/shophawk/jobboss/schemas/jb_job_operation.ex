@@ -11,6 +11,7 @@ defmodule Shophawk.Jb_job_operation do
     field :job, :string
     field :job_operation, :integer
     field :wc_vendor, :string
+    field :inside_oper, :boolean
     field :operation_service, :string
     field :sched_start, :naive_datetime
     field :sched_end, :naive_datetime
@@ -25,7 +26,7 @@ defmodule Shophawk.Jb_job_operation do
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :job_operation, :wc_vendor, :operation_service, :sched_end, :sched_end, :sequence, :status, :est_total_hrs, :note_text])
+    |> cast(attrs, [:job, :job_operation, :wc_vendor, :inside_oper, :operation_service, :sched_end, :sched_end, :sequence, :status, :est_total_hrs, :note_text])
     |> validate_required([:job, :job_operation, :status])
   end
 end

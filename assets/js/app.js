@@ -35,10 +35,21 @@ let AutofocusHook = {
   }
 };
 
+let StandAloneInputboxChange = {
+  mounted() {
+    this.el.addEventListener("input", (e) => {
+      this.pushEvent("save_comment", {
+        input: e.target.value,
+        id: this.el.id });
+    });
+  }
+}
+
 // Register hooks with LiveSocket
 let Hooks = {
   ...ChartHooks,
-  AutofocusHook
+  AutofocusHook,
+  StandAloneInputboxChange
 }; // Merge hooks
 
 

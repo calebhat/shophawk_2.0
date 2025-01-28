@@ -634,14 +634,50 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.sort_by(&(&1.job), :desc)
   end
 
+  def load_deliveries() do
+    two_years_ago = NaiveDateTime.new(Date.add(Date.utc_today(), -730), ~T[00:00:00]) |> elem(1)
+
+    query =
+      from r in Jb_delivery,
+      where: r.promised_date >= ^two_years_ago and r.promised_quantity > r.shipped_quantity
+
+      list =
+        failsafed_query(query)
+        |> Enum.map(fn op ->
+          Map.from_struct(op)
+          |> Map.drop([:__meta__])
+          |> Map.put(:deliveryo, Integer.to_string(op.delivery))
+          |> Map.drop([:delivery])
+          |> sanitize_map()
+        end)
+
+        Enum.map(list, fn op ->
+          Map.put(op, :delivery, op.deliveryo)
+          |> Map.drop([:deliveryo])
+        end)
+        |> Enum.sort_by(&(&1.job), :desc)
+  end
+
   def load_deliveries(job_numbers) do
     query =
       from r in Jb_delivery,
-      where: r.job in ^job_numbers and r.promised_quantity > 0
+      where: r.job in ^job_numbers and r.promised_quantity > 0 and is_nil(r.shipped_date)
 
-    failsafed_query(query)
-    |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
-    |> Enum.sort_by(&(&1.job), :desc)
+    list =
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> Map.put(:deliveryo, Integer.to_string(op.delivery))
+        |> Map.drop([:delivery])
+        |> sanitize_map()
+      end)
+
+      Enum.map(list, fn op ->
+        Map.put(op, :delivery, op.deliveryo)
+        |> Map.drop([:deliveryo])
+      end)
+      |> Enum.sort_by(&(&1.job), :desc)
   end
 
   def load_active_deliveries(job_numbers) do

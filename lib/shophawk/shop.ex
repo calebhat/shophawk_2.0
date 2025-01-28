@@ -802,4 +802,28 @@ defmodule Shophawk.Shop do
   def change_department(%Department{} = department, attrs \\ %{}) do
     Department.changeset(department, attrs)
   end
+
+  def create_delivery(attrs \\ %{}) do
+    %Shophawk.Shop.Delivery{}
+    |> Shophawk.Shop.Delivery.changeset(attrs)
+    |> Shophawk.Repo.insert()
+  end
+
+  def update_delivery(%Shophawk.Shop.Delivery{} = delivery, attrs) do
+    delivery
+    |> Shophawk.Shop.Delivery.changeset(attrs)
+    |> Shophawk.Repo.update()
+  end
+
+  def get_delivery!(id), do: Shophawk.Repo.get!(Shophawk.Shop.Delivery, id)
+
+  def get_department_by_delivery(delivery) do
+    Repo.get_by(Shophawk.Shop.Delivery, delivery: delivery)
+  end
+
+  def get_deliveries(), do: Repo.all(Shophawk.Shop.Delivery)
+
+  def get_deliveries_delivery(), do: Repo.all(from d in Shophawk.Shop.Delivery, select: d.delivery)
+
+
 end

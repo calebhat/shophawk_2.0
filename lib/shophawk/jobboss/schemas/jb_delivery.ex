@@ -10,6 +10,12 @@ defmodule Shophawk.Jb_delivery do
     field :promised_date, :naive_datetime
     field :promised_quantity, :integer
     field :shipped_date, :naive_datetime
+    field :shipped_quantity, :integer
+    field :comment, :string
+    field :delivery, :integer
+
+    field :wc_vendor, :string, virtual: true
+    field :customer, :string, virtual: true
   end
 
   @doc false
