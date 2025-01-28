@@ -40,7 +40,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                     <div class="tooltip ml-8 w-60 font-normal" style="z-index: 12;">
                       <.fixed_widths_table_with_show_job
                       id="bar_assignments"
-                      rows={Enum.reverse(bar.data.job_assignments)}
+                      rows={Enum.reverse(bar.data.job_assignments) |> Enum.filter(fn bar -> bar.length_to_use > 0.0 end)}
                       row_click={fn _row_data -> "show_job" end}
                       >
                         <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
@@ -103,7 +103,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                       <div class="tooltip ml-8 w-60" style="z-index: 12;">
                         <.fixed_widths_table_with_show_job
                         id="bar_assignments"
-                        rows={Enum.reverse(bar.data.job_assignments)}
+                        rows={Enum.reverse(bar.data.job_assignments) |> Enum.filter(fn bar -> bar.length_to_use > 0.0 end)}
                         row_click={fn _row_data -> "show_job" end}
                         >
                           <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>

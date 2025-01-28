@@ -57,4 +57,12 @@ defmodule ShophawkWeb.StockedMaterialLive.History do
     {:ok, stream(socket, :stockedmaterials, history, reset: true)}
   end
 
+  @impl true
+  def handle_event("delete", %{"id" => id}, socket) do
+    stocked_material = Material.get_stocked_material!(id)
+    Material.delete_stocked_material(stocked_material)
+
+    {:noreply, socket}
+  end
+
 end

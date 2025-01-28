@@ -500,7 +500,7 @@ defmodule Shophawk.MaterialCache do
 
       materials =
         Enum.reduce(remaining_jobs, material_with_bar_to_order, fn job, material ->
-          sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
+          sawed_length = Float.round((job.length + job.cutoff + 0.2), 2)
           #add cutoff and blade width for cutting
           job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: job.make_qty}
 
@@ -512,7 +512,7 @@ defmodule Shophawk.MaterialCache do
       {materials, Float.round(length_needed_to_order, 2)}
 
     else #if no stocked material assign_to_bars
-      length_needed_to_order = Enum.reduce(jobs, 0.0, fn job, acc -> ((job.length + job.cutoff + 0.11) * job.make_qty) + acc end)
+      length_needed_to_order = Enum.reduce(jobs, 0.0, fn job, acc -> ((job.length + job.cutoff + 0.2) * job.make_qty) + acc end)
       bar_to_order =
         if length_needed_to_order > 0.0 do
           [Material.create_stocked_material(%{material: material, bar_length: "#{length_needed_to_order}", in_house: false, remaining_length_not_assigned: "#{length_needed_to_order}"})
@@ -522,7 +522,7 @@ defmodule Shophawk.MaterialCache do
         end
       assigned_bars =
         Enum.reduce(jobs, bar_to_order, fn job, materials ->
-          sawed_length = Float.round((job.length + job.cutoff + 0.1), 2)
+          sawed_length = Float.round((job.length + job.cutoff + 0.2), 2)
           #add cutoff and blade width for cutting
           job_that_needs_sawing = %{job: job.job, sawed_length: sawed_length, remaining_qty: job.make_qty}
           #8 here
@@ -563,7 +563,7 @@ defmodule Shophawk.MaterialCache do
     end)
     |> Enum.reduce_while({[], make_qty}, fn material, {acc, remaining_qty} ->
       #if slug is withing .25" of length needed, assign to slug
-      if material.slug_length >= (length_needed + 0.05) and material.slug_length <= (length_needed + 0.25) do
+      if material.slug_length >= (length_needed + 0.1) and material.slug_length <= (length_needed + 0.25) do
         assignments = Map.get(material, :job_assignments, [])
         slugs_available_to_use =
           case assignments do
