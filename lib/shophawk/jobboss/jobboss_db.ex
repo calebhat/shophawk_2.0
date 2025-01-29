@@ -839,14 +839,14 @@ defmodule Shophawk.Jobboss_db do
 
       rounded_purchase_price = Float.round(purchase_price, 2)
       rounded_sell_price = Float.round(sell_price, 2)
-      query =
-        Shophawk.Jb_material
-        |> where([r], r.material == ^material)
-        |> update([r], set: [standard_cost: ^rounded_purchase_price])
-        |> update([r], set: [selling_price: ^rounded_sell_price])
-
-
-      Shophawk.Repo_jb.update_all(query, [])
+      if rounded_sell_price <= 0.0 do
+        query =
+          Shophawk.Jb_material
+          |> where([r], r.material == ^material)
+          |> update([r], set: [standard_cost: ^rounded_purchase_price])
+          |> update([r], set: [selling_price: ^rounded_sell_price])
+        Shophawk.Repo_jb.update_all(query, [])
+      end
     end
   end
 
