@@ -78,9 +78,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
           |> Enum.flat_map(fn {_bool, list} -> list end)
           |> Enum.sort_by(fn list -> list.customer end)
         sorted_deliveries = deliveries ++ vendors
-
-
-      {date, sorted_deliveries}
+        {date, sorted_deliveries}
       end)
       |> Enum.sort_by(fn {date, _} -> date end, {:asc, Date})
       |> Enum.flat_map(fn {_date, deliveries} -> deliveries end)

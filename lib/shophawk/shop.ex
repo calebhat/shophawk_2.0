@@ -451,10 +451,10 @@ defmodule Shophawk.Shop do
       Enum.reduce(runlists, weekly_hours_list, fn row, acc ->
         start = row.sched_start
         cond do
-          Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
-          Date.after?(start, Date.add(today, 6)) and Date.before?(start, Date.add(today, 14)) -> Map.update(acc, :weektwo, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
-          Date.after?(start, Date.add(today, 13)) and Date.before?(start, Date.add(today, 21)) -> Map.update(acc, :weekthree, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
-          Date.after?(start, Date.add(today, 20)) and Date.before?(start, Date.add(today, 28)) -> Map.update(acc, :weekfour, 0, fn hours -> Float.round(hours - row.act_run_hrs, 2) end)
+          Date.before?(start, Date.add(today, 7)) -> Map.update(acc, :weekone, 0, fn hours -> Float.round(hours - row.act_run_labor_hrs, 2) end)
+          Date.after?(start, Date.add(today, 6)) and Date.before?(start, Date.add(today, 14)) -> Map.update(acc, :weektwo, 0, fn hours -> Float.round(hours - row.act_run_labor_hrs, 2) end)
+          Date.after?(start, Date.add(today, 13)) and Date.before?(start, Date.add(today, 21)) -> Map.update(acc, :weekthree, 0, fn hours -> Float.round(hours - row.act_run_labor_hrs, 2) end)
+          Date.after?(start, Date.add(today, 20)) and Date.before?(start, Date.add(today, 28)) -> Map.update(acc, :weekfour, 0, fn hours -> Float.round(hours - row.act_run_labor_hrs, 2) end)
           true -> acc
         end
       end)
@@ -804,7 +804,6 @@ defmodule Shophawk.Shop do
   end
 
   def create_delivery(attrs \\ %{}) do
-    IO.inspect(attrs)
     %Shophawk.Shop.Delivery{}
     |> Shophawk.Shop.Delivery.changeset(attrs)
     |> Shophawk.Repo.insert()
