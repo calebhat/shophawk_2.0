@@ -63,13 +63,23 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         |> Map.put(:user_comment, "")
       end)
       |> Enum.reject(fn d -> d.comment == "PUT IN INVENTORY WHEN DONE" and d.currentop == "RED LINE" end)
+
     deliveries =
       deliveries
       |> Enum.group_by(& &1.promised_date)
       |> Enum.map(fn {date, deliveries} ->
-      sorted_deliveries = Enum.sort_by(deliveries, fn d ->
-        {if(d.wc_vendor in ["", nil], do: 1, else: 0), String.downcase(d.customer || "")}
-      end)
+        grouped_by_vendor = Enum.group_by(deliveries, fn g -> g.wc_vendor in ["", nil] end)
+        vendors =
+          Enum.filter(grouped_by_vendor, fn {bool, _list} -> bool == false end)
+          |> Enum.flat_map(fn {_bool, list} -> list end)
+          |> Enum.sort_by(fn list -> list.wc_vendor end)
+        deliveries =
+          Enum.filter(grouped_by_vendor, fn {bool, _list} -> bool == true end)
+          |> Enum.flat_map(fn {_bool, list} -> list end)
+          |> Enum.sort_by(fn list -> list.customer end)
+        sorted_deliveries = deliveries ++ vendors
+
+
       {date, sorted_deliveries}
       end)
       |> Enum.sort_by(fn {date, _} -> date end, {:asc, Date})
