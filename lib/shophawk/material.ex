@@ -188,6 +188,7 @@ defmodule Shophawk.Material do
   def update_on_hand_qty_in_Jobboss(material, location_id, purchase_price, sell_price) do
     bars =
       Shophawk.Material.list_material_not_used_by_material(material)
+      |> Enum.filter(fn b -> b.in_house == true end)
     on_hand_qty =
       Enum.reduce(bars, 0.0, fn bar, acc ->
         case bar.bar_length do

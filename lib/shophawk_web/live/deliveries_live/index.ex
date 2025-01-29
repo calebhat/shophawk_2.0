@@ -39,7 +39,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         end
       end)
       |> Enum.reject(fn s -> s == nil end)
-    {service_operations, _} =
+    {service_operations, _} = #add a random delivery value for searching in shophawk db
       Enum.reduce(service_operations, {[], all_deliveries_delievery}, fn s, {acc, used_names} ->
         unique_value = generate_unique_value(used_names)
         Map.put(s, :delivery, unique_value)
@@ -49,35 +49,43 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
 
     unique_ops = Enum.uniq_by(active_routing_ops, fn r -> r.job end)
     job_numbers = Enum.map(unique_ops, fn r -> r.job end)
-    jobs_with_current_location = Enum.map(unique_ops, fn j -> %{job: j.job, currentop: j.currentop} end)
+    jobs_with_current_location = Enum.map(unique_ops, fn j -> %{job: j.job, currentop: j.currentop, customer: j.customer} end)
     deliveries = Shophawk.Jobboss_db.load_deliveries(job_numbers)
 
     deliveries_and_services = deliveries ++ service_operations
-    sorted_deliveries_and_services =
-      Enum.sort_by(deliveries_and_services, fn d ->
-        [d.promised_date,
-          d.wc_vendor not in ["", nil],
-          d.wc_vendor,
-          d.comment
-        ]
-      end)
+
 
     deliveries_with_id =
-      Enum.with_index(sorted_deliveries_and_services)
+      Enum.with_index(deliveries_and_services)
       |> Enum.map(fn {map, index} -> Map.put(map, :id, index) end)
-      |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
+      #|> Enum.sort_by(&(&1.promised_date), {:asc, Date})
 
     deliveries =
       Enum.map(deliveries_with_id, fn d ->
         job = Enum.find(jobs_with_current_location, fn j -> j.job == d.job end)
         Map.put(d, :currentop, job.currentop)
+        |> Map.put(:customer, job.customer)
         |> Map.put(:packaged, false)
         |> Map.put(:user_comment, "")
       end)
+    deliveries =
+      deliveries
+      |> Enum.group_by(& &1.promised_date)
+      |> Enum.map(fn {date, deliveries} ->
+      sorted_deliveries = Enum.sort_by(deliveries, fn d ->
+        {if(d.wc_vendor in ["", nil], do: 1, else: 0), String.downcase(d.customer || "")}
+      end)
+      {date, sorted_deliveries}
+      end)
+      |> Enum.sort_by(fn {date, _} -> date end, {:asc, Date})
+      |> Enum.flat_map(fn {_date, deliveries} -> deliveries end)
+
+
+
+
     merge_with_shophawk_db(deliveries)
     |> add_date_rows()
     |> add_vendor_rows()
-
   end
 
   def generate_unique_value(existing_values) do
@@ -165,7 +173,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
                 <% :date_separator -> %> <%= Calendar.strftime(row.promised_date, "%A") %>
               <% end %>
             </td>
-            <td><%= if row.type != :vendor, do: row.promised_date %></td>
+            <td><%= if row.type == :date_separator, do: row.promised_date %><%= if row.type == :normal, do: row.customer %></td>
             <td><%= if row.type == :normal, do: row.promised_quantity %></td>
             <td>
               <%= cond do %>
