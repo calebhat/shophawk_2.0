@@ -661,7 +661,7 @@ defmodule Shophawk.Jobboss_db do
   def load_deliveries(job_numbers) do
     query =
       from r in Jb_delivery,
-      where: r.job in ^job_numbers and r.promised_quantity > 0 and is_nil(r.shipped_date)
+      where: r.job in ^job_numbers and r.promised_quantity > 0 and is_nil(r.shipped_date) and is_nil(r.packlist)
 
     list =
       failsafed_query(query)

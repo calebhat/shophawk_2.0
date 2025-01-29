@@ -804,6 +804,7 @@ defmodule Shophawk.Shop do
   end
 
   def create_delivery(attrs \\ %{}) do
+    IO.inspect(attrs)
     %Shophawk.Shop.Delivery{}
     |> Shophawk.Shop.Delivery.changeset(attrs)
     |> Shophawk.Repo.insert()
@@ -819,6 +820,10 @@ defmodule Shophawk.Shop do
 
   def get_department_by_delivery(delivery) do
     Repo.get_by(Shophawk.Shop.Delivery, delivery: delivery)
+  end
+
+  def get_department_by_job_and_promised_date(job, promised_date) do
+    Repo.get_by(Shophawk.Shop.Delivery, [job: job, promised_date: promised_date])
   end
 
   def get_deliveries(), do: Repo.all(Shophawk.Shop.Delivery)

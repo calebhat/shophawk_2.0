@@ -5,12 +5,14 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    deliveries = load_active_deliveries()
+    if connected?(socket) do
+      deliveries = load_active_deliveries()
+      :ets.insert(:delivery_list, {:data, deliveries})
+      {:ok, stream(socket, :deliveries, deliveries, reset: true)}
+    else
+      {:ok, stream(socket, :deliveries, [], reset: true)}
+    end
 
-
-
-    :ets.insert(:delivery_list, {:data, deliveries})
-    {:ok, stream(socket, :deliveries, deliveries, reset: true)}
   end
 
   def load_active_deliveries() do
@@ -21,10 +23,8 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         [] -> []
       end
 
-    all_deliveries_delievery = Shophawk.Shop.get_deliveries_delivery()
-
     service_operations =
-      Enum.filter(active_routing_ops, fn j -> j.inside_oper == false end)
+      Enum.filter(active_routing_ops, fn j -> j.inside_oper == false and j.status == "O" end)
       |> Enum.map(fn j ->
         if j.status != "C" do
           j
@@ -39,12 +39,6 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         end
       end)
       |> Enum.reject(fn s -> s == nil end)
-    {service_operations, _} = #add a random delivery value for searching in shophawk db
-      Enum.reduce(service_operations, {[], all_deliveries_delievery}, fn s, {acc, used_names} ->
-        unique_value = generate_unique_value(used_names)
-        Map.put(s, :delivery, unique_value)
-        {acc ++ [Map.put(s, :delivery, unique_value)], [unique_value | used_names]}
-      end)
 
 
     unique_ops = Enum.uniq_by(active_routing_ops, fn r -> r.job end)
@@ -68,6 +62,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         |> Map.put(:packaged, false)
         |> Map.put(:user_comment, "")
       end)
+      |> Enum.reject(fn d -> d.comment == "PUT IN INVENTORY WHEN DONE" and d.currentop == "RED LINE" end)
     deliveries =
       deliveries
       |> Enum.group_by(& &1.promised_date)
@@ -80,10 +75,30 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
       |> Enum.sort_by(fn {date, _} -> date end, {:asc, Date})
       |> Enum.flat_map(fn {_date, deliveries} -> deliveries end)
 
+    all_shophawk_deliveries =
+      Shophawk.Shop.get_deliveries()
+      |> Enum.map(fn d -> Map.put(d, :promised_date, NaiveDateTime.to_date(d.promised_date)) end)
+    used_delivery_values = Enum.map(all_shophawk_deliveries, fn d -> d.delivery end)
 
+    {deliveries, _} = #add a random delivery value for searching in shophawk db
+      Enum.reduce(deliveries, {[], used_delivery_values}, fn s, {acc, used_values} ->
+        case Enum.find(all_shophawk_deliveries, fn d -> d.job == s.job and d.promised_date == s.promised_date end) do
+          nil ->
+            unique_value = if s.delivery != nil, do: s.delivery, else: generate_unique_value(used_values)
+            Map.put(s, :delivery, unique_value)
+            |> Map.put(:packaged, false)
+            |> Map.put(:user_comment, nil)
+            {acc ++ [Map.put(s, :delivery, unique_value)], [unique_value | used_values]}
+          found ->
+            updated_map =
+              Map.put(s, :packaged, found.packaged)
+              |> Map.put(:user_comment, found.user_comment)
+              |> Map.put(:delivery, found.delivery)
+            {acc ++ [updated_map], used_values}
+        end
+      end)
 
-
-    merge_with_shophawk_db(deliveries)
+    deliveries
     |> add_date_rows()
     |> add_vendor_rows()
   end
@@ -271,33 +286,14 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   @impl true
   #@spec handle_event(<<_::64, _::_*8>>, any(), any()) :: {:noreply, any()}
   def handle_event("save_comment", %{"input" => comment, "id" => delivery}, socket) do
-
-    updated_delivery =
-      case Shophawk.Shop.get_department_by_delivery(delivery) do
-        nil -> Shophawk.Shop.create_delivery(%{delivery: delivery, user_comment: comment})
-        found -> Shophawk.Shop.update_delivery(found, %{user_comment: comment})
-      end
-
-    {:noreply, assign(socket, :delivery, updated_delivery)}
+    updated_delivery = update_user_inputs(delivery, comment)
+    {:noreply, stream_insert(socket, :deliveries, updated_delivery)}
+    #{:noreply, assign(socket, :delivery, updated_delivery)}
   end
 
   def handle_event("toggle_checkbox", %{"delivery" => delivery}, socket) do
-    [{:data, rows}] = :ets.lookup(:delivery_list, :data)
-    {:ok, updated_delivery} =
-      case Shophawk.Shop.get_department_by_delivery(delivery) do
-        nil -> Shophawk.Shop.create_delivery(%{delivery: delivery, packaged: true})
-        found -> Shophawk.Shop.update_delivery(found, %{packaged: !found.packaged})
-      end
-
-    found_row = Enum.find(rows, &(&1.delivery) == updated_delivery.delivery)
-    merged_row =
-      Map.put(found_row, :packaged, updated_delivery.packaged)
-      |> Map.put(:user_comment, updated_delivery.user_comment)
-      |> Map.put(:type, :normal)
-
-    # Logic to toggle the checkbox state or do something with the id
-    # For example, you might want to update a state or perform an action based on this id
-    {:noreply, stream_insert(socket, :deliveries, merged_row)}
+    updated_delivery = update_user_inputs(delivery)
+    {:noreply, stream_insert(socket, :deliveries, updated_delivery)}
   end
 
   def handle_event("show_job", %{"job" => job}, socket), do: {:noreply, ShophawkWeb.RunlistLive.Index.showjob(socket, job)}
@@ -330,6 +326,39 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
 
   def handle_event("prevent_row_click", _, socket) do
     {:noreply, socket}
+  end
+
+  def update_user_inputs(delivery, comment \\ nil) do
+    [{:data, rows}] = :ets.lookup(:delivery_list, :data)
+    active_delivery = Enum.find(rows, fn d -> d.delivery == delivery end)
+    {:ok, updated_delivery} =
+      case Shophawk.Shop.get_department_by_delivery(active_delivery.delivery) do
+        nil -> Shophawk.Shop.create_delivery(%{delivery: active_delivery.delivery, packaged: true, job: active_delivery.job, user_comment: comment, promised_date: NaiveDateTime.new!(active_delivery.promised_date, ~T[00:00:00])})
+        found ->
+          cond do
+            comment == nil -> Shophawk.Shop.update_delivery(found, %{packaged: !found.packaged})
+            true -> Shophawk.Shop.update_delivery(found, %{user_comment: comment})
+          end
+
+      end
+
+    #found_row = Enum.find(rows, &(&1.delivery) == updated_delivery.delivery)
+    updated_delivery =
+      active_delivery
+      |> Map.put(:packaged, updated_delivery.packaged)
+      |> Map.put(:user_comment, updated_delivery.user_comment)
+      |> Map.put(:type, :normal)
+
+    updated_deliveries = #updates ets cache
+      Enum.map(rows, fn r ->
+        if r.delivery == updated_delivery.delivery do
+          Map.merge(r, updated_delivery)
+        else
+          r
+        end
+      end)
+    :ets.insert(:delivery_list, {:data, updated_deliveries})
+    updated_delivery
   end
 
 end

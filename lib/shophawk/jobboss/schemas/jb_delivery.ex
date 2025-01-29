@@ -13,6 +13,7 @@ defmodule Shophawk.Jb_delivery do
     field :shipped_quantity, :integer
     field :comment, :string
     field :delivery, :integer
+    field :packlist, :integer
 
     field :wc_vendor, :string, virtual: true
     field :customer, :string, virtual: true

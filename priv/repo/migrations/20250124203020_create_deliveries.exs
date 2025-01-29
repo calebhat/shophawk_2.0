@@ -7,6 +7,7 @@ defmodule Shophawk.Repo.Migrations.CreateDeliveries do
       add :job, :string
       add :packaged, :boolean
       add :user_comment, :string
+      add :promised_date, :naive_datetime
 
       timestamps()
     end
