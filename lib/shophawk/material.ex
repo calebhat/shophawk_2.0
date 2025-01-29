@@ -196,7 +196,7 @@ defmodule Shophawk.Material do
           length -> length + acc
         end
       end)
-    Shophawk.Jobboss_db.update_material(material, location_id, on_hand_qty, purchase_price, sell_price)
+    Shophawk.Jobboss_db.update_material(material, location_id, (on_hand_qty + 0.01) , purchase_price, sell_price)
 
   end
 
