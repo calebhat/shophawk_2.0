@@ -52,8 +52,6 @@ defmodule Shophawk.MaterialCache do
         end
       end)
 
-
-
     #Reduce through material, save info, and assign jobs
     updated_material_list =
       Enum.map(material_list, fn mat ->
@@ -82,7 +80,8 @@ defmodule Shophawk.MaterialCache do
                   sell_price: 0.0,
                   cost_per_inch: number_to_currency(0.0),
                   cost_uofm: 0.0,
-                  standard_cost: 0.0
+                  standard_cost: 0.0,
+                  shape: ""
                   }
                 found_info ->
                   matching_material_on_floor = Enum.filter(matching_material, fn mat -> mat.in_house == true && mat.being_quoted == false && mat.ordered ==  false end)
@@ -141,15 +140,15 @@ defmodule Shophawk.MaterialCache do
     merged_material_list
   end
 
-  def merge_materials(material_list) do
-    merge_material(material_list, "4150HT")
+  def merge_materials(material_list) do #combines similar named materials from Jobboss
+    merge_material(material_list, ["4150HT"])
     |> merge_material("100-70-03 DI", "DI 100-70-03", ["100-70-03 DI"])
     |> merge_material("1045", "1045", ["1045", "1045 HR", "1045HR", "1045."])
     |> merge_material("1045 G&P", "1045 G&P", ["1045 TG&P", "1045 TP&G", "1045 G&P"])
     |> merge_material("12FT. 1117 CR KNURLED BAR", "Knurled 1117", ["12FT. 1117 CR KNURLED BAR", "12FT 1117CF KNURLED BAR", "12FT.1117 CR KNURLED BAR"])
     |> merge_material("12FT. 1144 CR KNURLED BAR", "Knurled 1144", ["12FT. 1144 CR KNURLED BAR", "12FT. 1545 CR KNURLED BAR", "12FT 1144 CF KNURLED BAR "])
     |> merge_material("17-4PH", "17-4PH", ["17-4", "17-4PH", "17-4PH ", "17-4SS"])
-    |> merge_material("304")
+    |> merge_material(["304"])
     |> merge_material("4140", "4140", ["4140", "4140."])
     |> merge_material("4140CR", "4140CR", ["4140CF", "4140CR"])
     |> merge_material("4140HT C.F.", "4140HT CF", ["4140HT C.F.", "4140HT CR", "4140HTCR"])
@@ -161,8 +160,8 @@ defmodule Shophawk.MaterialCache do
     |> merge_material("440SS", "440SS", ["440SS", "440C", "440"])
     |> merge_material("630BRNZ", "630BRNZ", ["630BRNZ", "6300BRNZ", "630 NI/AL BRNZ"])
     |> merge_material("660BRNZ", "660BRNZ", ["660BRNZ", "660 BRZ", "660BRZ"])
-    |> merge_material("6061")
-    |> merge_material("7075")
+    |> merge_material("6061", "6061", ["6061", "6061 AL", "6061.", "6061AL"])
+    |> merge_material("7075", "7075", ["7075", "7075 (T-6)", "7075.", " 7075"])
     |> merge_material("8620", "8620", ["8620", "8620 CR", "8620 CF", "8620CR", "8620CD"])
     |> merge_material("903 TIN BRONZE", "903 TIN BRNZ", ["903 TIN BRONZE", "903"])
     |> merge_material("932BRNZ", "932BRNZ", ["932BRNZ", "932"])
@@ -180,16 +179,19 @@ defmodule Shophawk.MaterialCache do
     |> merge_material("MC901", "MC901 (BLUE)", ["MC901", "MC901 (BLUE)"])
     |> merge_material("TEFLON-15% G.F., 5% M.D.", "TEFLON-15% G.F., 5% M.D.", ["TEFLON-15% G.F., 5% M.D.", "TEFLON - 15% G.F., 5% M.D."])
     |> merge_material("SP", "SP", ["SP", "SP (1144 COLD DRAWN)", "SP (1144)"])
+
+    #Tubing
+    #|> merge_material("316 Tubing", "GSM", ["GSM", "GSM "])
   end
 
-  def merge_material(updated_material_list, mat_to_keep) do
-    good_material = Enum.find(updated_material_list, fn mat -> mat.material == mat_to_keep end)
+  def merge_material(material_list, mat_to_keep) do
+    good_material = Enum.find(material_list, fn mat -> mat.material == mat_to_keep end)
     case good_material do
-      nil -> updated_material_list
+      nil -> material_list
       _ ->
         grouped_material_list =
-          Enum.reduce(updated_material_list, [], fn mat, acc ->
-            if String.contains?(mat.material, mat_to_keep) do
+          Enum.reduce(material_list, [], fn mat, acc ->
+            if Enum.member?(mat_to_keep, mat.material) do
               acc ++ [mat.material]
             else
               acc
@@ -197,7 +199,7 @@ defmodule Shophawk.MaterialCache do
           end)
 
         sizes_to_merge =
-          Enum.reduce(updated_material_list, [], fn mat, acc ->
+          Enum.reduce(material_list, [], fn mat, acc ->
             if Enum.member?(grouped_material_list, mat.material) do
               acc ++ mat.sizes
             else
@@ -211,19 +213,19 @@ defmodule Shophawk.MaterialCache do
           |> Map.put(:mat_reqs_count, Enum.reduce(sizes_to_merge, 0, fn size, acc -> size.jobs_using_size + acc end))
 
         #remove all occurences of material
-        filtered_material_list = Enum.reject(updated_material_list, fn mat -> Enum.member?(grouped_material_list, mat.material) end)
+        filtered_material_list = Enum.reject(material_list, fn mat -> Enum.member?(grouped_material_list, mat.material) end)
         filtered_material_list ++ [updated_material]
       end
   end
 
-  def merge_material(updated_material_list, mat_to_keep, name_to_use, list_of_materials) do
-    good_material = Enum.find(updated_material_list, fn mat -> mat.material == mat_to_keep end)
+  def merge_material(material_list, mat_to_keep, name_to_use, list_of_materials) do
+    good_material = Enum.find(material_list, fn mat -> mat.material == mat_to_keep end)
 
     case good_material do
-      nil -> updated_material_list
+      nil -> material_list
       _ ->
         sizes_to_merge =
-          Enum.reduce(updated_material_list, [], fn mat, acc ->
+          Enum.reduce(material_list, [], fn mat, acc ->
             if Enum.member?(list_of_materials, mat.material) do
               acc ++ mat.sizes
             else
@@ -238,7 +240,7 @@ defmodule Shophawk.MaterialCache do
           |> Map.put(:mat_reqs_count, Enum.reduce(sizes_to_merge, 0, fn size, acc -> size.jobs_using_size + acc end))
 
         #remove all occurences of material
-        filtered_material_list = Enum.reject(updated_material_list, fn mat -> Enum.member?(list_of_materials, mat.material) end)
+        filtered_material_list = Enum.reject(material_list, fn mat -> Enum.member?(list_of_materials, mat.material) end)
 
         filtered_material_list ++ [updated_material]
     end
@@ -247,67 +249,144 @@ defmodule Shophawk.MaterialCache do
 
   def create_barebones_material_list() do
     jobboss_material_info = Shophawk.Jobboss_db.load_materials_and_sizes()
+    #round_stock = jobboss_material_info
+      #Enum.filter(jobboss_material_info, fn m -> m.shape == "Round" end)
 
     material_list =
       Enum.reduce(jobboss_material_info, [], fn mat, acc ->
-        case String.split(mat.material, "X", parts: 2) do
-          [_] -> acc
-          [size, material] ->
-            case Enum.find(acc, fn m -> m.material == material end) do
-              nil -> # New material/size not in list already
-                [%{
-                  material: material,
-                  mat_reqs_count: nil,
-                  sizes: [
-                    %{
-                      size: convert_string_to_float(size),
-                      jobs_using_size: nil,
-                      matching_jobs: nil,
-                      material_name: mat.material,
-                      location_id: nil,
-                      on_hand_qty: nil,
-                      lbs_per_inch: nil,
-                      purchase_price: nil,
-                      sell_price: nil,
-                      need_to_order_amt: nil,
-                      assigned_material_info: nil,
-                      cost_uofm: nil
-                    }
-                  ]
-                } | acc]
+        case mat.shape do
+          "Round" ->
+            case String.split(mat.material, "X", parts: 2) do
+              [_] -> acc
+              [size, material] ->
+                case Enum.find(acc, fn m -> m.material == material and m.shape == mat.shape end) do
+                  nil -> # New material/size not in list already
+                    [%{
+                      material: material,
+                      mat_reqs_count: nil,
+                      shape: mat.shape,
+                      sizes: [
+                        %{
+                          size: size,
+                          jobs_using_size: nil,
+                          matching_jobs: nil,
+                          material_name: mat.material,
+                          location_id: nil,
+                          on_hand_qty: nil,
+                          lbs_per_inch: nil,
+                          purchase_price: nil,
+                          sell_price: nil,
+                          need_to_order_amt: nil,
+                          assigned_material_info: nil,
+                          cost_uofm: nil,
+                          shape: mat.shape
+                        }
+                      ]
+                    } | acc]
 
-              found_material -> # Add new sizes to existing material in list
-                updated_map = Map.update!(found_material, :sizes, fn existing_sizes ->
-                  [
-                    %{
-                      size: convert_string_to_float(size),
-                      jobs_using_size: nil,
-                      matching_jobs: nil,
-                      material_name: mat.material,
-                      location_id: nil,
-                      on_hand_qty: nil,
-                      purchase_price: nil,
-                      sell_price: nil,
-                      lbs_per_inch: nil,
-                      need_to_order_amt: nil,
-                      assigned_material_info: nil,
-                      cost_uofm: nil
-                    } | existing_sizes
-                  ]
-                end)
-                updated_acc = Enum.reject(acc, fn m -> m.material == found_material.material end)
-                [updated_map | updated_acc]
+                  found_material -> # Add new sizes to existing material in list
+                    updated_map = Map.update!(found_material, :sizes, fn existing_sizes ->
+                      [
+                        %{
+                          size: size,
+                          jobs_using_size: nil,
+                          matching_jobs: nil,
+                          material_name: mat.material,
+                          location_id: nil,
+                          on_hand_qty: nil,
+                          purchase_price: nil,
+                          sell_price: nil,
+                          lbs_per_inch: nil,
+                          need_to_order_amt: nil,
+                          assigned_material_info: nil,
+                          cost_uofm: nil,
+                          shape: mat.shape
+                        } | existing_sizes
+                      ]
+                    end)
+                    updated_acc = Enum.reject(acc, fn m -> m.material == found_material.material end)
+                    [updated_map | updated_acc]
+                end
+
+              _ -> acc
             end
+          _rectangle_or_tubing ->
+            case String.split(mat.material, "X", parts: 3) do
+              [_] -> acc
+              [size1, size2, material] ->
+                material = material <> " " <> mat.shape
+                size = size1 <> "X" <> size2
+                case Enum.find(acc, fn m -> m.material == material and m.shape == mat.shape end) do
+                  nil -> # New material/size not in list already
+                    [%{
+                      material: material,
+                      mat_reqs_count: nil,
+                      shape: mat.shape,
+                      sizes: [
+                        %{
+                          size: size,
+                          jobs_using_size: nil,
+                          matching_jobs: nil,
+                          material_name: mat.material,
+                          location_id: nil,
+                          on_hand_qty: nil,
+                          lbs_per_inch: nil,
+                          purchase_price: nil,
+                          sell_price: nil,
+                          need_to_order_amt: nil,
+                          assigned_material_info: nil,
+                          cost_uofm: nil,
+                          shape: mat.shape
+                        }
+                      ]
+                    } | acc]
 
-          _ -> acc
+                  found_material -> # Add new sizes to existing material in list
+                    updated_map = Map.update!(found_material, :sizes, fn existing_sizes ->
+                      [
+                        %{
+                          size: size,
+                          jobs_using_size: nil,
+                          matching_jobs: nil,
+                          material_name: mat.material,
+                          location_id: nil,
+                          on_hand_qty: nil,
+                          purchase_price: nil,
+                          sell_price: nil,
+                          lbs_per_inch: nil,
+                          need_to_order_amt: nil,
+                          assigned_material_info: nil,
+                          cost_uofm: nil,
+                          shape: mat.shape
+                        } | existing_sizes
+                      ]
+                    end)
+                    updated_acc = Enum.reject(acc, fn m -> m.material == found_material.material end)
+                    [updated_map | updated_acc]
+                end
+
+              _ -> acc
+            end
         end
+
       end)
       |> Enum.map(fn material ->
-        Map.put(material, :sizes, Enum.sort_by(material.sizes, & &1.size, :asc))
+        Map.put(material, :sizes, sort_mixed_list(material.sizes))
       end)
       |> Enum.uniq_by(&(&1.material))
       |> Enum.sort_by(&(&1.material), :asc)
     {material_list, jobboss_material_info}
+  end
+
+  def sort_mixed_list(sizes) do
+    Enum.sort_by(sizes, fn s ->
+      size = if String.starts_with?(s.size, "."), do: "0" <> s.size, else: s.size
+      case Float.parse(size) do #sorts by numbers first, then letters
+        {n, ""} -> {0, n}
+        {_n, remainder} -> {1, remainder}
+        _ -> {2, size}
+      end
+    end)
   end
 
   def populate_single_material_size(s, material, mat_reqs, material_on_floor, matching_material_to_order, material_info) do
@@ -316,7 +395,16 @@ defmodule Shophawk.MaterialCache do
       Material.delete_stocked_material(mat)
     end)
 
-    [size, _material_name] = String.split(s.material_name, "X", parts: 2)
+    size =
+      case s.shape do
+        "Round" ->
+          [size, _material_name] = String.split(s.material_name, "X", parts: 2)
+          size
+        _rectangle_or_tubing ->
+          [size1, size2, _material] = String.split(s.material_name, "X", parts: 3)
+          size1 <> "X" <> size2
+      end
+
 
     jobs_to_assign =
       Enum.map(mat_reqs, fn job ->
@@ -337,7 +425,7 @@ defmodule Shophawk.MaterialCache do
 
     _bar_with_assignments =
       %{
-      size: convert_string_to_float(size),
+      size: size,
       jobs_using_size: Enum.count(mat_reqs),
       matching_jobs: matching_jobs,
       material_name: material_info.material_name,
@@ -350,7 +438,8 @@ defmodule Shophawk.MaterialCache do
       cost_per_inch: material_info.cost_per_inch,
       cost_uofm: material_info.cost_uofm,
       need_to_order_amt: need_to_order_amt,
-      assigned_material_info: assigned_material_info
+      assigned_material_info: assigned_material_info,
+      shape: s.shape
       }
   end
 
@@ -393,7 +482,8 @@ defmodule Shophawk.MaterialCache do
                   purchase_price: average_price,
                   sell_price: sell_price,
                   cost_per_inch: number_to_currency(sell_price * s.lbs_per_inch),
-                  cost_uofm: s.cost_uofm
+                  cost_uofm: s.cost_uofm,
+                  shape: s.shape
                 }
                 #updated_matching_jobboss_material_info =
                 #  case matching_jobboss_material_info do

@@ -855,7 +855,7 @@ defmodule Shophawk.Jobboss_db do
       from r in Jb_material,
       where: r.pick_buy_indicator == "P",
       where: r.stocked_uofm == "ft",
-      where: r.shape == "Round",
+      where: r.shape in ["Round", "Rectangle", "Tubing"],
       where: r.status == "Active"
     failsafed_query(query)
     |> Enum.map(fn op ->

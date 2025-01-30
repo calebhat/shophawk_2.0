@@ -16,6 +16,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       ShophawkWeb.Endpoint.subscribe(@topic)
     end
 
+    #{:ok, initial_material_list_creation(socket)}
+
     case :ets.lookup(:material_list, :data) do
       [{:data, []}] ->
         {:ok, initial_material_list_creation(socket)}
@@ -34,8 +36,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
     socket
     |> assign(:material_list, material_list)
-    |> assign(:grouped_materials, group_materials(material_list))
-    |> assign(:collapsed_groups, [1, 2])
+    |> assign(:grouped_materials, create_material_categories(material_list))
+    |> assign(:collapsed_groups, [1, 2, 3, 4])
     |> assign(:selected_material, "")
     |> assign(:selected_sizes, [])
     |> assign(:selected_size, "0.0")
@@ -56,8 +58,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
     socket
     |> assign(:material_list, material_list)
-    |> assign(:grouped_materials, group_materials(material_list))
-    |> assign(:collapsed_groups, [1, 2])
+    |> assign(:grouped_materials, create_material_categories(material_list))
+    |> assign(:collapsed_groups, [1, 2, 3, 4])
     |> assign(:selected_material, "")
     |> assign(:selected_sizes, [])
     |> assign(:selected_size, "0.0")
@@ -78,7 +80,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     socket =
       socket
       |> assign(:material_list, material_list)
-      |> assign(:grouped_materials, group_materials(material_list))
+      |> assign(:grouped_materials, create_material_categories(material_list))
       |> assign(:material_to_order_count, material_needed_to_order_count)
       |> assign(:material_on_order_count, material_on_order_count)
 
@@ -93,8 +95,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       case sizes do
         [] -> socket
         sizes ->
-          size_info =  Enum.find(sizes, fn size -> size.size >= String.to_float(socket.assigns.selected_size) end) || List.first(sizes)
-          selected_size = Float.to_string(size_info.size)
+          size_info =  Enum.find(sizes, fn size -> size.size >= socket.assigns.selected_size end) || List.first(sizes)
+          selected_size = size_info.size
           socket
           |> assign(:selected_size, selected_size)
           |> assign(:selected_sizes, sizes)
@@ -222,7 +224,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   def handle_event("new_bar", %{"selected-size" => selected_size, "selected-material" => selected_material}, socket) do
     sizes = Enum.find(socket.assigns.material_list, fn mat -> mat.material == selected_material end).sizes
     size_info =
-      case Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end) do
+      case Enum.find(sizes, fn size -> size.size == selected_size end) do
         nil -> nil
         size_info -> size_info
       end
@@ -233,7 +235,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   def handle_event("new_slug", %{"selected-size" => selected_size, "selected-material" => selected_material}, socket) do
     sizes = Enum.find(socket.assigns.material_list, fn mat -> mat.material == selected_material end).sizes
     size_info =
-      case Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end) do
+      case Enum.find(sizes, fn size -> size.size == selected_size end) do
         nil -> nil
         size_info -> size_info
       end
@@ -267,8 +269,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   def handle_event("load_material", %{"selected-material" => selected_material, "selected-size" => selected_size}, socket) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
-    size_info =  Enum.find(sizes, fn size -> size.size >= String.to_float(selected_size) end) || List.first(sizes)
-    selected_size = Float.to_string(size_info.size)
+    size_info =  Enum.find(sizes, fn size -> size.size == selected_size end) || List.first(sizes)
+    selected_size = size_info.size
 
     socket =
       socket
@@ -355,9 +357,9 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   defp reload_size(socket, selected_size, selected_material) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
-    size_info = Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end)
+    size_info = Enum.find(sizes, fn size -> size.size == selected_size end)
     material_info =
-      case Enum.find(sizes, fn size -> size.size == String.to_float(selected_size) end) do
+      case Enum.find(sizes, fn size -> size.size == selected_size end) do
         nil -> nil
         material -> material
       end
@@ -388,7 +390,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     slugs_list = Enum.filter(single_material_and_size, fn slug -> slug.slug_length != nil end) |> Enum.sort_by(&(&1.slug_length))
     slugs_changeset = Enum.map(slugs_list, fn slug -> Material.change_stocked_material(slug, %{}) |> to_form() end)
     related_jobs =
-      Enum.find(socket.assigns.selected_sizes, fn size -> size.size == String.to_float(socket.assigns.selected_size) end).matching_jobs
+      Enum.find(socket.assigns.selected_sizes, fn size -> size.size == socket.assigns.selected_size end).matching_jobs
       |> Enum.sort_by(&(&1.due_date), Date)
 
     socket
@@ -443,7 +445,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     if selected_entity == entity, do: "bg-cyan-500 ml-4 w-[5.75rem]", else: " ml-3 bg-stone-200 w-[6rem]"
   end
 
-  defp group_materials(materials) do
+  defp create_material_categories(materials) do
     most_used = ["1144", "1545", "4140", "4140HT", "GI","DI", "303", "304", "316", "6061"]
     kzoo =
       ["6/6 NATURAL",
@@ -464,7 +466,10 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       "GSM (BLUE)",
       "NYOIL",
       "MC901 (BLUE)",
+      "MC901 (BLACK)",
       "TEFLON-15% G.F., 5% M.D."]
+      tubing = ["PEEK Tubing", "316 Tubing", "954 Tubing", "GSM Tubing","NSM Tubing"]
+      rectangle = ["1018 C.F. Rectangle", "17-4 Rectangle", "17-4PH Rectangle", "303 Rectangle", "4140 Rectangle", "4140  Rectangle", "4140  Rectangle", "4140HT Rectangle", "6061 Rectangle", "932 Rectangle"]
     groups = [
       %{
         name: "Primary",
@@ -473,13 +478,21 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       %{
         name: "Main Saws",
         materials: Enum.filter(materials, fn material ->
-          not (material.material in (most_used ++ kzoo))
+          not (material.material in (most_used ++ kzoo ++ tubing ++ rectangle))
         end)
         |> Enum.sort_by(&(&1.material), :asc) |> Enum.sort_by(& &1.mat_reqs_count, :desc)
       },
       %{
         name: "Kzoo",
         materials: Enum.filter(materials, &(&1.material in kzoo)) |> Enum.sort_by(& &1.mat_reqs_count, :desc)
+      },
+      %{
+        name: "Tubing",
+        materials: Enum.filter(materials, &(&1.material in tubing)) |> Enum.sort_by(& &1.mat_reqs_count, :desc)
+      },
+      %{
+        name: "Rectangle",
+        materials: Enum.filter(materials, &(&1.material in rectangle)) |> Enum.sort_by(& &1.mat_reqs_count, :desc)
       }
     ]
 
