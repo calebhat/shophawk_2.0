@@ -8,8 +8,10 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
     if connected?(socket) do
       deliveries = load_active_deliveries()
       :ets.insert(:delivery_list, {:data, deliveries})
+      socket = if deliveries == [], do: assign(socket, :data_loaded?, false), else: assign(socket, :data_loaded?, true)
       {:ok, stream(socket, :deliveries, deliveries, reset: true)}
     else
+      socket = assign(socket, :data_loaded?, true)
       {:ok, stream(socket, :deliveries, [], reset: true)}
     end
 
@@ -170,74 +172,82 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   def render(assigns) do
     ~H"""
     <div class="flex justify-center">
-      <div class="w-10/12 bg-cyan-900 px-10 rounded-lg flex">
-
-      <table id="stockedmaterials" class="text-center w-full">
-        <thead class="text-white text-base">
-          <tr>
-            <th class="p-2">Job</th>
-            <th>Promised Date</th>
-            <th>Qty</th>
-            <th>Comment</th>
-            <th>Current Operation</th>
-            <th>Packaged?</th>
-            <th>User Comment</th>
-          </tr>
-        </thead>
-        <tbody phx-update="stream" id="deliveries">
-          <tr :for={{id, row} <- @streams.deliveries}
-              id={id}
-              phx-click={if row.type == :normal, do: JS.push("show_job", value: %{job: row.job}), else: nil}
-              class={[compact_row_color(row), "text-lg", underline(row)]}
-          >
-            <td>
-              <%= case row.type do %>
-                <% :normal -> %> <%= row.job %>
-                <% :vendor -> %>
-                <% :date_separator -> %> <%= Calendar.strftime(row.promised_date, "%A") %>
-              <% end %>
-            </td>
-            <td><%= if row.type == :date_separator, do: row.promised_date %><%= if row.type == :normal, do: row.customer %></td>
-            <td><%= if row.type == :normal, do: row.promised_quantity %></td>
-            <td>
-              <%= cond do %>
-                <% row.type == :normal && row.wc_vendor != nil -> %> <%= row.wc_vendor %>
-                <% row.type == :normal -> %> <%= row.comment %>
-                <% row.type == :vendor -> %> <%= "Vendor Shipments" %>
-                <% true -> %>
-              <% end %>
-            </td>
-            <td><%= if row.type == :normal, do: row.currentop %></td>
-            <td>
-              <%= if row.type == :normal do %>
-                <input
-                  class="h-6 w-6 rounded text-gray-800 focus:ring-0"
-                  type="checkbox"
-                  phx-click="toggle_checkbox"
-                  phx-value-delivery={row.delivery}
-                  checked={row.packaged}
-                />
-              <% end %>
-            </td>
-            <td>
-              <%= if row.type == :normal do %>
-                <input
-                  phx-click="prevent_row_click"
-                  type="text"
-                  phx-change="save_comment"
-                  phx-hook="StandAloneInputboxChange"
-                  id={"#{row.delivery}"}
-                  phx-value-user_comment={row.user_comment}
-                  value={row.user_comment}
-                  class="text-black block w-full rounded-lg text-zinc-900 focus:ring-0 text-lg"
-                />
-              <% end %>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-    </div>
+      <%= if @data_loaded? == false do %>
+        <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
+          <div class="pt-2 pb-2 px-2 text-center text-3xl border-b-2 border-black" >
+            <div class="grid grid-cols-1 gap-3" >
+              <div class="bg-stone-200 p-1 rounded-md border-2 border-black">Shophawk is Restarting. Please Refresh the page in 1 minute </div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="w-10/12 bg-cyan-900 px-10 rounded-lg flex">
+          <table id="stockedmaterials" class="text-center w-full">
+            <thead class="text-white text-base">
+              <tr>
+                <th class="p-2">Job</th>
+                <th>Promised Date</th>
+                <th>Qty</th>
+                <th>Comment</th>
+                <th>Current Operation</th>
+                <th>Packaged?</th>
+                <th>User Comment</th>
+              </tr>
+            </thead>
+            <tbody phx-update="stream" id="deliveries">
+              <tr :for={{id, row} <- @streams.deliveries}
+                  id={id}
+                  phx-click={if row.type == :normal, do: JS.push("show_job", value: %{job: row.job}), else: nil}
+                  class={[compact_row_color(row), "text-lg", underline(row)]}
+              >
+                <td>
+                  <%= case row.type do %>
+                    <% :normal -> %> <%= row.job %>
+                    <% :vendor -> %>
+                    <% :date_separator -> %> <%= Calendar.strftime(row.promised_date, "%A") %>
+                  <% end %>
+                </td>
+                <td><%= if row.type == :date_separator, do: row.promised_date %><%= if row.type == :normal, do: row.customer %></td>
+                <td><%= if row.type == :normal, do: row.promised_quantity %></td>
+                <td>
+                  <%= cond do %>
+                    <% row.type == :normal && row.wc_vendor != nil -> %> <%= row.wc_vendor %>
+                    <% row.type == :normal -> %> <%= row.comment %>
+                    <% row.type == :vendor -> %> <%= "Vendor Shipments" %>
+                    <% true -> %>
+                  <% end %>
+                </td>
+                <td><%= if row.type == :normal, do: row.currentop %></td>
+                <td>
+                  <%= if row.type == :normal do %>
+                    <input
+                      class="h-6 w-6 rounded text-gray-800 focus:ring-0"
+                      type="checkbox"
+                      phx-click="toggle_checkbox"
+                      phx-value-delivery={row.delivery}
+                      checked={row.packaged}
+                    />
+                  <% end %>
+                </td>
+                <td>
+                  <%= if row.type == :normal do %>
+                    <input
+                      phx-click="prevent_row_click"
+                      type="text"
+                      phx-change="save_comment"
+                      phx-hook="StandAloneInputboxChange"
+                      id={"#{row.delivery}"}
+                      phx-value-user_comment={row.user_comment}
+                      value={row.user_comment}
+                      class="text-black block w-full rounded-lg text-zinc-900 focus:ring-0 text-lg"
+                    />
+                  <% end %>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
 
       <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/deliveries")}>
         <.live_component
