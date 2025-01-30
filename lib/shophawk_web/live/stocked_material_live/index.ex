@@ -469,7 +469,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       "MC901 (BLACK)",
       "TEFLON-15% G.F., 5% M.D."]
       tubing = ["PEEK Tubing", "316 Tubing", "954 Tubing", "GSM Tubing","NSM Tubing"]
-      rectangle = ["1018 C.F. Rectangle", "17-4 Rectangle", "17-4PH Rectangle", "303 Rectangle", "4140 Rectangle", "4140  Rectangle", "4140  Rectangle", "4140HT Rectangle", "6061 Rectangle", "932 Rectangle"]
+      rectangle = ["1018 C.F. Rectangle", "17-4 Rectangle", "17-4PH Rectangle", "303 Rectangle", "304 Rectangle", "A-36 Rectangle", "C360 BRASS Rectangle", "4140 Rectangle", "4140  Rectangle", "4140  Rectangle", "4140HT Rectangle", "6061 Rectangle", "932 Rectangle"]
     groups = [
       %{
         name: "Primary",
