@@ -280,9 +280,10 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def load_material_being_quoted(material_list) do
-    material_to_order = Material.list_material_being_quoted
+    material_to_order = Material.list_material_being_quoted  |> Enum.reject(fn m -> m == nil end)
     list_of_sizes =
-      Enum.reduce(material_list, [], fn mat, acc ->
+      Enum.reject(material_list, fn m -> m == nil end)
+      |> Enum.reduce([], fn mat, acc ->
         [mat.sizes | acc]
       end)
       |> List.flatten
