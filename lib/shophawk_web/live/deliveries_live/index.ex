@@ -19,7 +19,8 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
     active_routing_ops =
       case :ets.lookup(:runlist, :active_jobs) do
         [{:active_jobs, runlists}] ->
-          Enum.reverse(runlists)
+          Enum.reject(runlists, fn r -> r.customer == "EDG GEAR" end)
+          |> Enum.sort_by(fn r -> r.job_operation end, :desc)
         [] -> []
       end
 
