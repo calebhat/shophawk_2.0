@@ -148,28 +148,44 @@ defmodule Shophawk.Material do
 
   """
   def update_stocked_material(%StockedMaterial{} = stocked_material, attrs) do
-    updated_material =
-      stocked_material
-      |> StockedMaterial.changeset(attrs)
-      |> Repo.update()
 
-    case updated_material do
-      {:ok, struct} ->
-        [{:data, material_list}] = :ets.lookup(:material_list, :data)
-        size_info = Enum.find_value(material_list, fn mat ->
-          Enum.find(mat.sizes, fn s ->
-            s.material_name == struct.material
-          end)
-        end)
-        case size_info do
-          nil -> updated_material
-          size_info ->
-            update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id, size_info.purchase_price, size_info.sell_price)
-            updated_material
+    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    size_info = Enum.find_value(material_list, fn mat ->
+      Enum.find(mat.sizes, fn s ->
+        s.material_name == stocked_material.material
+      end)
+    end)
+
+    bars =
+      Shophawk.Material.list_material_not_used_by_material(stocked_material.material)
+      |> Enum.filter(fn b -> b.in_house == true end)
+
+    bars_without_current_bar_to_update = Enum.reject(bars, fn b -> b.id == stocked_material.id end)
+    on_hand_qty =
+      Enum.reduce(bars_without_current_bar_to_update, 0.0, fn bar, acc ->
+        case bar.bar_length do
+          nil -> acc
+          length -> length + acc
         end
-
-      _ ->
-        updated_material
+      end)
+    on_hand_qty = if on_hand_qty == nil, do: 0.0, else: on_hand_qty
+    on_hand_qty =
+      if Map.has_key?(attrs, :bar_length) do
+        if attrs.bar_length != nil, do: on_hand_qty + String.to_float(attrs.bar_length) + 0.01, else: on_hand_qty + 0.01
+      else
+        on_hand_qty
+      end
+    if size_info != nil do
+      case Shophawk.Jobboss_db.update_material(size_info, on_hand_qty) do
+        true ->
+            stocked_material
+            |> StockedMaterial.changeset(attrs)
+            |> Repo.update()
+        _ ->
+          {:error, nil}
+      end
+    else
+      {:error, nil}
     end
   end
 
@@ -185,20 +201,6 @@ defmodule Shophawk.Material do
       |> Repo.update()
   end
 
-  def update_on_hand_qty_in_Jobboss(material, location_id, purchase_price, sell_price) do
-    bars =
-      Shophawk.Material.list_material_not_used_by_material(material)
-      |> Enum.filter(fn b -> b.in_house == true end)
-    on_hand_qty =
-      Enum.reduce(bars, 0.0, fn bar, acc ->
-        case bar.bar_length do
-          nil -> acc
-          length -> length + acc
-        end
-      end)
-    Shophawk.Jobboss_db.update_material(material, location_id, (on_hand_qty + 0.01) , purchase_price, sell_price)
-
-  end
 
   @doc """
   Deletes a stocked_material.
@@ -213,8 +215,7 @@ defmodule Shophawk.Material do
 
   """
   def delete_stocked_material(%StockedMaterial{} = stocked_material) do
-    Repo.delete(stocked_material)
-    #Update Jobboss on hand qty
+
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     size_info = Enum.find_value(material_list, fn mat ->
       Enum.find(mat.sizes, fn s ->
@@ -222,7 +223,44 @@ defmodule Shophawk.Material do
       end)
     end)
 
-    update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id, size_info.purchase_price, size_info.sell_price)
+    bars =
+      Shophawk.Material.list_material_not_used_by_material(stocked_material.material)
+      |> Enum.filter(fn b -> b.in_house == true end)
+
+    bars_without_current_bar_to_delete = Enum.reject(bars, fn b -> b.id == stocked_material.id end)
+    on_hand_qty =
+      Enum.reduce(bars_without_current_bar_to_delete, 0.0, fn bar, acc ->
+        case bar.bar_length do
+          nil -> acc
+          length -> length + acc
+        end
+      end)
+
+    if size_info != nil do
+      case Shophawk.Jobboss_db.update_material(size_info, on_hand_qty + 0.01) do
+        true ->
+          Repo.delete(stocked_material)
+          true
+        _ ->
+          false
+      end
+    else
+      false
+    end
+
+
+
+  #  Repo.delete(stocked_material)
+  #  #Update Jobboss on hand qty
+  #  [{:data, material_list}] = :ets.lookup(:material_list, :data)
+  #  size_info = Enum.find_value(material_list, fn mat ->
+  #    Enum.find(mat.sizes, fn s ->
+  #      s.material_name == stocked_material.material
+  #    end)
+  #  end)
+
+  #  saved = update_on_hand_qty_in_Jobboss(size_info.material_name, size_info.location_id, size_info.purchase_price, size_info.sell_price)
+  #  saved
   end
 
   def make_float(string) do

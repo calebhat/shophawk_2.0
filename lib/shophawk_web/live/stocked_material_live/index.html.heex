@@ -486,3 +486,24 @@
     action={@live_action}
 />
 </.modal>
+
+<.modal :if={@live_action in [:jobboss_save_error]} id="runlist-jobboss-save-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
+  <div class="text-xl">
+    <div class="text-center">
+    This Material is not saving in Jobboss correctly. 
+    <br>
+    To remedy this, do the following:
+    </div>
+    <br>
+    <ul>
+      <li>-Log into Jobboss</li>
+      <li>-Go to Material Adjustments Module</li>
+      <li>-Enter the material affected by this issue (copy the material title for this page at the Top Center of the screen)</li>
+      <li>-Enter "0.01" into the Quantity field</li>
+      <li>-select "Correction" for the reason</li>
+      <li>-Click "Apply</li>
+      <li>-Click "Save"</li>
+      <li>-Wait 2 minutes for ShopHawk notice the changes and try again.</li>
+    </ul>
+  </div>
+</.modal>

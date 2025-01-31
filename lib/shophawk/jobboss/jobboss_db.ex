@@ -513,7 +513,6 @@ defmodule Shophawk.Jobboss_db do
 
     jobs_to_update = jobs ++ job_operation_jobs ++ material_jobs ++ job_operation_time_jobs
     |> Enum.uniq
-    |> IO.inspect()
     operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
     [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
     runlist = List.flatten(runlist)
@@ -824,8 +823,13 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
-  def update_material(material, location_id, on_hand_qty, purchase_price, sell_price) do
-    if material != nil and location_id != nil do
+  def update_material(size_info, on_hand_qty) do
+    material = size_info.material_name
+    location_id = size_info.location_id
+    purchase_price = size_info.purchase_price
+    sell_price = size_info.sell_price
+    location_id = if location_id == nil, do: "", else: location_id
+    if is_nil(material) == false and location_id != "" do
       on_hand_qty = on_hand_qty / 12 #Convert to Feet for Jobboss
       query =
         Shophawk.Jb_material_location
@@ -847,6 +851,9 @@ defmodule Shophawk.Jobboss_db do
           |> update([r], set: [selling_price: ^rounded_sell_price])
         Shophawk.Repo_jb.update_all(query, [])
       end
+      true
+    else
+      false
     end
   end
 

@@ -192,8 +192,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   def handle_event("validate_slugs", %{"stocked_material" => stocked_material_params}, socket) do
     found_bar = Material.get_stocked_material!(stocked_material_params["id"]) |> Map.put(:saved, false)
-    #updated_changeset = Material.change_stocked_material(found_bar, stocked_material_params)
-    #updated_slug = Map.merge(found_bar, updated_changeset.changes)
     slugs_list =
       Material.list_material_not_used_by_material(found_bar.material) |> Enum.sort_by(&(&1.slug_length))
       |> Enum.reject(fn mat -> mat.in_house == false && mat.being_quoted == false && mat.ordered == false end)
@@ -206,19 +204,35 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   def handle_event("bar_used", %{"selected-size" => selected_size, "selected-material" => selected_material, "id" => id}, socket) do
     found_bar = Material.get_stocked_material!(id)
-    case found_bar.purchase_price do
-      nil -> Material.delete_stocked_material(found_bar)
-      _ -> Material.update_stocked_material(found_bar , %{slug_length: nil, bar_length: nil, bar_used: true})
-    end
+    updated_in_jobboss =
+      case found_bar.purchase_price do
+        nil -> Material.delete_stocked_material(found_bar)
+        _ -> Material.update_stocked_material(found_bar , %{slug_length: nil, bar_length: nil, bar_used: true})
+      end
     MaterialCache.update_single_material_size_in_cache(found_bar.material)
+
+    socket =
+      if updated_in_jobboss == false, do: socket |> assign(:live_action, :jobboss_save_error), else: socket
+
     {:noreply, reload_size(socket, selected_size, selected_material)}
   end
 
   def handle_event("make_slug", %{"selected-size" => selected_size, "selected-material" => selected_material, "id" => id}, socket) do
-    found_bar = Material.get_stocked_material!(id)
-    Material.update_stocked_material(found_bar , %{slug_length: found_bar.bar_length, number_of_slugs: 1, bar_length: nil})
-    MaterialCache.update_single_material_size_in_cache(found_bar.material)
-    {:noreply, reload_size(socket, selected_size, selected_material)}
+    sizes = Enum.find(socket.assigns.material_list, fn mat -> mat.material == selected_material end).sizes
+    size_info =
+      case Enum.find(sizes, fn size -> size.size == selected_size end) do
+        nil -> nil
+        size_info -> size_info
+      end
+    location = if size_info.location_id == nil, do: "", else: size_info.location_id
+    case location do
+      "" -> {:noreply, assign(socket, :live_action, :jobboss_save_error)}
+      _ ->
+        found_bar = Material.get_stocked_material!(id)
+        Material.update_stocked_material(found_bar , %{slug_length: found_bar.bar_length, number_of_slugs: 1, bar_length: nil})
+        MaterialCache.update_single_material_size_in_cache(found_bar.material)
+        {:noreply, reload_size(socket, selected_size, selected_material)}
+    end
   end
 
   def handle_event("new_bar", %{"selected-size" => selected_size, "selected-material" => selected_material}, socket) do
@@ -228,8 +242,14 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
         nil -> nil
         size_info -> size_info
       end
-    Material.create_stocked_material(%{material: size_info.material_name, bar_length: "0.0", in_house: true})
-    {:noreply, reload_size(socket, selected_size, selected_material)}
+    location = if size_info.location_id == nil, do: "", else: size_info.location_id
+    case location do
+      "" -> {:noreply, assign(socket, :live_action, :jobboss_save_error)}
+      _ ->
+        Material.create_stocked_material(%{material: size_info.material_name, bar_length: "0.0", in_house: true})
+        {:noreply, reload_size(socket, selected_size, selected_material)}
+    end
+
   end
 
   def handle_event("new_slug", %{"selected-size" => selected_size, "selected-material" => selected_material}, socket) do
@@ -239,24 +259,36 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
         nil -> nil
         size_info -> size_info
       end
-    Material.create_stocked_material(%{material: size_info.material_name, slug_length: "0.0", number_of_slugs: "1", in_house: true})
-    {:noreply, reload_size(socket, selected_size, selected_material)}
+    location = if size_info.location_id == nil, do: "", else: size_info.location_id
+    case location do
+      "" -> {:noreply, assign(socket, :live_action, :jobboss_save_error)}
+      _ ->
+        Material.create_stocked_material(%{material: size_info.material_name, slug_length: "0.0", number_of_slugs: "1", in_house: true})
+        {:noreply, reload_size(socket, selected_size, selected_material)}
+    end
   end
 
   def handle_event("save_material", %{"stocked_material" => stocked_material_params}, socket) do
     found_bar = Material.get_stocked_material!(stocked_material_params["id"])
 
-    {:ok, _saved_material} = Material.update_stocked_material(found_bar, stocked_material_params)
+    {jobboss_saved, _updated_material} = Material.update_stocked_material(found_bar, stocked_material_params)
 
-    updated_found_bar =
-      found_bar
-      |> Map.put(:bar_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
-      |> Map.put(:slug_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
-      |> Map.put(:saved, true)
-    #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
-    MaterialCache.update_single_material_size_in_cache(updated_found_bar.material)
+    case jobboss_saved do
+      :ok ->
+        updated_found_bar =
+          found_bar
+          |> Map.put(:bar_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
+          |> Map.put(:slug_length, nil) #need to clear value or it won't recognize there's a change bc we're changing the value during validations
+          |> Map.put(:saved, true)
+        #MATERIAL_LIST IS SAVED TO CACHE AND UPDATED HERE
+        MaterialCache.update_single_material_size_in_cache(updated_found_bar.material)
 
-    {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
+        {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
+      _ -> #if false displays a modal with instructions to make a material adjustment
+        {:noreply, assign(socket, :live_action, :jobboss_save_error)}
+    end
+
+
   end
 
   def handle_event("delete", %{"id" => id}, socket) do

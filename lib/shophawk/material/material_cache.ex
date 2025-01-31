@@ -27,7 +27,7 @@ defmodule Shophawk.MaterialCache do
   end
 
   defp schedule_refresh() do
-    Process.send_after(self(), :refresh_cache, :timer.minutes(5))
+    Process.send_after(self(), :refresh_cache, :timer.minutes(2))
   end
 
   def create_material_cache() do
@@ -421,8 +421,6 @@ defmodule Shophawk.MaterialCache do
     matching_jobs = Enum.map(mat_reqs, fn mat ->
       %{job: mat.job, qty: mat.est_qty, part_length: mat.part_length, make_qty: mat.make_quantity, due_date: mat.due_date, uofm: mat.uofm}
     end) |> Enum.sort_by(&(&1.qty), :asc)
-
-
     _bar_with_assignments =
       %{
       size: size,

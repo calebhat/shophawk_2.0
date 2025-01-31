@@ -255,7 +255,7 @@ defmodule ShophawkWeb.CoreComponents do
     <.flash
       id="client-error"
       kind={:error}
-      title="We can't find the internet"
+      title="ShopHawk has been shut down"
       phx-disconnected={show(".phx-client-error #client-error")}
       phx-connected={hide("#client-error")}
       hidden
