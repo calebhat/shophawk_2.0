@@ -133,7 +133,11 @@ defmodule Shophawk.MaterialCache do
         |> Map.put(:mat_reqs_count, mat_reqs_count)
       end)
 
-    merged_material_list = merge_materials(updated_material_list)
+    merged_material_list =
+      merge_materials(updated_material_list)
+      |> Enum.map(fn material ->
+        Map.put(material, :sizes, sort_mixed_list(material.sizes))
+      end)
 
 
     :ets.insert(:material_list, {:data, merged_material_list})
@@ -206,7 +210,6 @@ defmodule Shophawk.MaterialCache do
               acc
             end
           end)
-          |> Enum.sort_by(fn mat -> mat.size end)
 
         updated_material =
           Map.put(good_material, :sizes, sizes_to_merge)
@@ -232,7 +235,6 @@ defmodule Shophawk.MaterialCache do
               acc
             end
           end)
-          |> Enum.sort_by(fn mat -> mat.size end)
 
         updated_material =
           Map.put(good_material, :material, name_to_use)
@@ -368,31 +370,49 @@ defmodule Shophawk.MaterialCache do
               _ -> acc
             end
         end
-
       end)
       |> Enum.map(fn material ->
         Map.put(material, :sizes, sort_mixed_list(material.sizes))
       end)
       |> Enum.uniq_by(&(&1.material))
       |> Enum.sort_by(&(&1.material), :asc)
+#Material list is sorted correctly here.
     {material_list, jobboss_material_info}
   end
 
   def sort_mixed_list(sizes) do
-    Enum.sort_by(sizes, fn s ->
-      size = if String.starts_with?(s.size, "."), do: "0" <> s.size, else: s.size
-      case Float.parse(size) do #sorts by numbers first, then letters
-        {n, ""} -> {0, n}
-        {_n, remainder} -> {1, remainder}
-        _ -> {2, size}
-      end
-    end)
+    {floats, strings} =
+      Enum.reduce(sizes, {[], []}, fn s, {floats, strings} ->
+        size = if String.starts_with?(s.size, "."), do: "0" <> s.size, else: s.size
+        case Float.parse(size) do
+          {_f, ""} -> {floats ++ [s], strings}
+          {_, _s} -> {floats, strings ++ [s]}
+        end
+      end)
+
+    float_sizes =
+      Enum.sort_by(floats, fn f ->
+        size = if String.starts_with?(f.size, "."), do: "0" <> f.size, else: f.size
+        {float, _} = Float.parse(size)
+        float
+      end)
+
+    string_sizes =
+        Enum.sort_by(strings, fn s ->
+        size = if String.starts_with?(s.size, "."), do: "0" <> s.size, else: s.size
+        case Float.parse(size) do #sorts by numbers first, then letters
+          {n, _remainder} -> {1, n}
+          _ -> {2, s}
+        end
+      end)
+
+    float_sizes ++ string_sizes
   end
 
   def populate_single_material_size(s, material, mat_reqs, material_on_floor, matching_material_to_order, material_info) do
     #Delete material to order so it's always just one that reset in this function
     Enum.each(matching_material_to_order, fn mat ->
-      Material.delete_stocked_material(mat)
+      Material.delete_stocked_material(mat, true)
     end)
 
     size =

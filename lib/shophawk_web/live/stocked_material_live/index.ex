@@ -21,7 +21,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     case :ets.lookup(:material_list, :data) do
       [{:data, []}] ->
         {:ok, initial_material_list_creation(socket)}
-
       [{:data, material_list}] ->
         {:ok, assign_material_data(socket, material_list)}
     end

@@ -214,38 +214,41 @@ defmodule Shophawk.Material do
       {:error, %Ecto.Changeset{}}
 
   """
-  def delete_stocked_material(%StockedMaterial{} = stocked_material) do
+  def delete_stocked_material(%StockedMaterial{} = stocked_material, bypass_jobboss_save_check \\ false) do
+    case bypass_jobboss_save_check do
+      true ->
+        Repo.delete(stocked_material)
+      false ->
+        [{:data, material_list}] = :ets.lookup(:material_list, :data)
+        size_info = Enum.find_value(material_list, fn mat ->
+          Enum.find(mat.sizes, fn s ->
+            s.material_name == stocked_material.material
+          end)
+        end)
 
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
-    size_info = Enum.find_value(material_list, fn mat ->
-      Enum.find(mat.sizes, fn s ->
-        s.material_name == stocked_material.material
-      end)
-    end)
+        bars =
+          Shophawk.Material.list_material_not_used_by_material(stocked_material.material)
+          |> Enum.filter(fn b -> b.in_house == true end)
 
-    bars =
-      Shophawk.Material.list_material_not_used_by_material(stocked_material.material)
-      |> Enum.filter(fn b -> b.in_house == true end)
-
-    bars_without_current_bar_to_delete = Enum.reject(bars, fn b -> b.id == stocked_material.id end)
-    on_hand_qty =
-      Enum.reduce(bars_without_current_bar_to_delete, 0.0, fn bar, acc ->
-        case bar.bar_length do
-          nil -> acc
-          length -> length + acc
-        end
-      end)
-
-    if size_info != nil do
-      case Shophawk.Jobboss_db.update_material(size_info, on_hand_qty + 0.01) do
-        true ->
-          Repo.delete(stocked_material)
-          true
-        _ ->
+        bars_without_current_bar_to_delete = Enum.reject(bars, fn b -> b.id == stocked_material.id end)
+        on_hand_qty =
+          Enum.reduce(bars_without_current_bar_to_delete, 0.0, fn bar, acc ->
+            case bar.bar_length do
+              nil -> acc
+              length -> length + acc
+            end
+          end)
+        if size_info != nil do
+          case Shophawk.Jobboss_db.update_material(size_info, on_hand_qty + 0.01) do
+            true ->
+              Repo.delete(stocked_material)
+              true
+            _ ->
+              false
+          end
+        else
           false
-      end
-    else
-      false
+        end
     end
 
 
