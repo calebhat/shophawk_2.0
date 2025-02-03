@@ -233,7 +233,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def load_monthly_sales_chart_component(socket) do
     beginning_of_this_month = Date.beginning_of_month(Date.utc_today())
-    current_months_sales = generate_monthly_sales(beginning_of_this_month, Date.add(Date.utc_today, 1)) |> List.first()
+    current_months_sales =
+      case generate_monthly_sales(beginning_of_this_month, Date.add(Date.utc_today, 1)) |> List.first() do
+        nil -> %{amount: 0.0}
+        sales -> sales
+      end
+
     sales_table_data =
       Dashboard.list_monthly_sales
       |> Enum.map(fn op ->
