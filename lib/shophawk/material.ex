@@ -170,8 +170,13 @@ defmodule Shophawk.Material do
       end)
     on_hand_qty = if on_hand_qty == nil, do: 0.0, else: on_hand_qty
     on_hand_qty =
-      if Map.has_key?(attrs, :bar_length) do
-        if attrs.bar_length != nil, do: on_hand_qty + String.to_float(attrs.bar_length) + 0.01, else: on_hand_qty + 0.01
+      if Map.has_key?(attrs, "bar_length") do
+        bar_length =
+          case Float.parse(attrs["bar_length"]) do
+            {n, ""} -> n
+            _ -> nil
+          end
+        if attrs["bar_length"] != nil, do: on_hand_qty + bar_length + 0.01, else: on_hand_qty + 0.01
       else
         on_hand_qty
       end
