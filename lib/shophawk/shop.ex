@@ -277,12 +277,68 @@ defmodule Shophawk.Shop do
           |> Map.reject(fn {key, _value} -> key == :__meta__ end)
         end)
 
-      jobs_that_ship_today=
-        if Enum.empty?(jobs_that_ship_today) do
-          jobs_that_ship_today
-        else
-          [%{ships_today_header: true, date_row_identifer: -1, id: "ships_today_header"}] ++ jobs_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: "ships_today_footer"}]
+
+
+      jobs_ops_with_an_outside_op_and_starts_today_or_sooner =
+        case :ets.lookup(:runlist, :active_jobs) do
+          [{:active_jobs, all_runlists_ops}] ->
+            Enum.sort_by(all_runlists_ops, fn r -> r.job_operation end, :desc)
+          [] -> []
         end
+        |> Enum.filter(fn j -> j.inside_oper == false and j.status == "O" end)
+        |> Enum.reject(fn s -> s == nil end)
+        |> Enum.filter(fn op ->
+            case Date.compare(Date.utc_today, op.sched_start) do
+              :lt -> false
+              :eq -> true
+              :gt -> true
+            end
+          end)
+        |> Enum.map(fn j -> j.job end)
+
+      service_operations =
+        Enum.filter(runlists, fn j -> j.job in jobs_ops_with_an_outside_op_and_starts_today_or_sooner end)
+        |> Enum.filter(fn op ->
+          has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
+          if has_ship_op == true, do: true, else: false
+        end)
+        |> Enum.uniq()
+        |> Enum.map(fn op ->
+          op
+          |> Map.put(:ships_today, true)
+          |> Map.put(:dots, 3)
+          |> Map.put(:id, "op-#{op.job_operation}")
+          |> Map.reject(fn {key, _value} -> key == :__meta__ end)
+        end)
+        |> Enum.reject(fn s -> s == nil end)
+
+      jobs_and_services_that_ship_today = jobs_that_ship_today ++ service_operations
+      jobs_that_ship_today_and_service_ops =
+        if Enum.empty?(jobs_and_services_that_ship_today) do
+          jobs_and_services_that_ship_today
+        else
+          [%{ships_today_header: true, date_row_identifer: -1, id: "ships_today_header"}] ++ jobs_and_services_that_ship_today ++ [%{ships_today_footer: true, date_row_identifer: -1, id: "ships_today_footer"}]
+        end
+
+
+      complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
+        if Enum.empty?(jobs_and_services_that_ship_today) do
+          complete_runlist
+        else
+          complete_runlist =
+            Enum.map(complete_runlist, fn op ->
+              case Enum.find(jobs_that_ship_today_and_service_ops, fn ships_today -> op.id == ships_today.id end) do
+                nil -> op
+                _found_ships_today -> %{id: op.id, date_row_identifer: 0, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
+              end
+            end)
+            jobs_that_ship_today_and_service_ops ++ complete_runlist
+        end
+        |> Enum.map(fn op -> #add extra keys to each map if needed
+          Map.put_new(op, :runner, false)
+          |> Map.put_new(:status, "O")
+          |> Map.put_new(:date_row_identifer, 1)
+        end)
 
       complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
         if Enum.empty?(jobs_that_ship_today) do
