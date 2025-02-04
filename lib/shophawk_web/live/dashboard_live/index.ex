@@ -105,16 +105,16 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      |> load_checkbook_component() #5 seconds
-      |> load_open_invoices_component() #5 sec
-      |> load_travelors_released_componenet() #1 second
-      |> load_anticipated_revenue_component() #2 sec
-      |> load_monthly_sales_chart_component() #instant
-      |> load_hot_jobs()
-      |> load_time_off()
-      |> load_late_shipments()
-      |> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
-      |> load_top_vendors(socket.assigns.top_vendors_startdate, socket.assigns.top_vendors_enddate)
+      #|> load_checkbook_component() #5 seconds
+      #|> load_open_invoices_component() #5 sec
+      #|> load_travelors_released_componenet() #1 second
+      #|> load_anticipated_revenue_component() #2 sec
+      #|> load_monthly_sales_chart_component() #instant
+      #|> load_hot_jobs()
+      #|> load_time_off()
+      #|> load_late_shipments()
+      #|> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
+      #|> load_top_vendors(socket.assigns.top_vendors_startdate, socket.assigns.top_vendors_enddate)
     }
   end
 
@@ -666,9 +666,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def handle_event("test_click", _params, socket) do
-    #beginning_of_this_month = Date.utc_today() |> Date.add(-30) |> Date.beginning_of_month()
-    #end_of_month = Date.utc_today() |> Date.add(-30) |> Date.end_of_month()
-    #current_months_sales = generate_monthly_sales(beginning_of_this_month, end_of_month) |> List.first()
+    beginning_of_this_month = Date.utc_today() |> Date.add(-30) |> Date.beginning_of_month()
+    end_of_month = Date.utc_today() |> Date.add(-30) |> Date.end_of_month()
+    generate_monthly_sales(beginning_of_this_month, end_of_month) |> List.first() |> IO.inspect
 
 
     ######################Functions to load history into db for first load with new dashboard####################
@@ -690,7 +690,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   ############## Scheduled jobs to run via quantum ##########
   def save_last_months_sales() do
-    today = Date.utc_today()
+    today = Date.utc_today() |> Date.add(-2)
     beginning_of_last_month = today |> Date.beginning_of_month() |> Date.add(-1) |> Date.beginning_of_month()
     end_of_last_month = beginning_of_last_month |> Date.end_of_month()
 

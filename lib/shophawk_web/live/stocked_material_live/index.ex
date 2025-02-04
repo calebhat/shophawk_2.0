@@ -11,7 +11,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-
     if connected?(socket) do
       ShophawkWeb.Endpoint.subscribe(@topic)
     end
