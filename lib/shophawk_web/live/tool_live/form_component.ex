@@ -111,12 +111,11 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
         String.to_integer(tool_params["balance"]) - String.to_integer(tool_params["checkout_amount"])
       end
 
-    case String.to_integer(tool_params["minimum"]) >= new_balance and tool_params["status"] == "stocked" do
+    case new_balance <= String.to_integer(tool_params["minimum"]) do
       true ->
         Map.put(tool_params, "status", "needs_restock")
       false ->
-        IO.inspect("here")
-        IO.inspect(if tool_params["status"] == "needs_restock", do: Map.put(tool_params, "status", "stocked"), else: tool_params)
+        if tool_params["status"] == "needs_restock", do: Map.put(tool_params, "status", "stocked"), else: tool_params
     end
   end
 end
