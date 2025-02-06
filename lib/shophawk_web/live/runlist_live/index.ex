@@ -298,7 +298,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
     deliveries =
       Shophawk.Jobboss_db.load_deliveries([job])
       |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
-    updated_job_info = Map.put(job_info, :deliveries, deliveries)
+    updated_job_info =
+      Map.put(job_info, :deliveries, deliveries)
+      |> Map.put(:dots, List.first(job_ops).dots)
     socket
     |> assign(id: job)
     |> assign(page_title: "Job #{job}")

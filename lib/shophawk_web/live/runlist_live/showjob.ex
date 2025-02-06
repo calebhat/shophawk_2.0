@@ -22,13 +22,15 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
           <div class="text-lg row-span-2"><%= assigns.job_info.order_quantity %> </div>
           <div class="text-lg row-span-2"><%= assigns.job_info.customer %> </div>
         </div>
-        <div class="grid grid-cols-3 grid-rows-2">
+        <div class="grid grid-cols-4 grid-rows-2">
           <div class="underline text-base">Description</div>
           <div class="underline text-base">material</div>
           <div class="underline text-base">Customer PO </div>
+          <div class="underline text-base">Dots</div>
           <div class="text-lg"><%= assigns.job_info.description %> </div>
           <div class="text-lg"><%= assigns.job_info.material %> </div>
           <div class="text-lg"><%= (assigns.job_info.customer_po || "") <> ", line: " <> (assigns.job_info.customer_po_line || "") %> </div>
+          <div class="flex justify-center"><img src={ShophawkWeb.HotjobsComponent.display_dots(assigns.job_info.dots)} /></div>
 
         </div>
       </div>
