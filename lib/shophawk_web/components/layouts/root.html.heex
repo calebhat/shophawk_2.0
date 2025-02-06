@@ -53,10 +53,15 @@
                   </a>
                 <!-- Dropdown Menu -->
                 <div class="relative" style="z-index: 15">
-                  <div class="absolute hidden group-hover:block bg-cyan-800 rounded-lg shadow-lg py-2" style="left: 0;">
-                    <a href={~p"/dashboard/accounting"} class="block px-4 py-2 text-white hover:bg-cyan-700">
-                      Accounting
-                    </a>
+                  <div class="absolute hidden group-hover:block bg-cyan-800 rounded-lg shadow-lg" style="left: 0;">
+                    <div class="flex flex-col">
+                      <a href={~p"/dashboard/accounting"} class="block px-4 py-2 text-white hover:bg-cyan-700 hover:rounded-lg">
+                        Accounting
+                      </a>
+                      <a href={~p"/dashboard/employee_performance"} class="block px-4 py-2 text-white hover:bg-cyan-700 hover:rounded-lg">
+                        Employee Performance
+                      </a>
+                    </div>
                   </div>
                 </div>
               <% end %>

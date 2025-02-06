@@ -420,6 +420,15 @@ defmodule Shophawk.Jobboss_db do
     end
   end
 
+  def load_employees do
+    query =
+      from r in Jb_employees,
+      where: r.status == "Active",
+      order_by: [asc: r.employee]
+
+    Shophawk.Repo_jb.all(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> Map.drop([:status]) end)
+  end
+
   def employee_data do
     query =
       from r in Jb_employees,

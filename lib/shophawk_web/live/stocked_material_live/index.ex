@@ -93,13 +93,25 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       case sizes do
         [] -> socket
         sizes ->
-          size_info =  Enum.find(sizes, fn size -> size.size >= socket.assigns.selected_size end) || List.first(sizes)
+          size_info =  Enum.find(sizes, fn size ->
+            this_size =
+              case Float.parse(size.size) do
+                {this_size, _} -> this_size
+                _ -> 0.0
+              end
+            selected_size =
+              case Float.parse(socket.assigns.selected_size) do
+                {selected_size, _} -> selected_size
+                _ -> 1.0
+              end
+            this_size >= selected_size
+          end) || List.first(sizes)
           selected_size = size_info.size
           socket
           |> assign(:selected_size, selected_size)
           |> assign(:selected_sizes, sizes)
           |> assign(:selected_material, socket.assigns.selected_material)
-          assign(socket, :size_info, size_info)
+          |> assign(:size_info, size_info)
       end
   end
 

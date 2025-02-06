@@ -101,8 +101,6 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
 
-
-  #NOT WORKING YET
   defp set_status(tool_params) do
     new_balance =
       if tool_params["checkout_amount"] == nil do

@@ -127,6 +127,7 @@ defmodule ShophawkWeb.Router do
       live "/dashboard", DashboardLive.Index, :index
       live "/dashboard/accounting", DashboardLive.Accounting, :index
       live "/dashboard/office", DashboardLive.Office, :index
+      live "/dashboard/employee_performance", DashboardLive.EmployeePerformance, :index
 
     end
   end
