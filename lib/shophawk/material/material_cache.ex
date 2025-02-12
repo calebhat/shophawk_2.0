@@ -94,7 +94,9 @@ defmodule Shophawk.MaterialCache do
                     end
                   end) / 12
 
-                  material_year_history = Enum.filter(year_history, fn m -> m.material == found_info.material_name end) |> Enum.reduce(0.0, fn m, acc -> m.act_qty + acc end)
+                  material_year_history = Enum.filter(year_history, fn m ->
+                    m.material == found_info.material_name end) |> Enum.reduce(0.0, fn m, acc -> m.act_qty + acc
+                  end)
 
                   year_Purchases_history = Enum.filter(all_material_purchased_in_past_12_months, fn mat -> mat.material == found_info.material_name end)
                   mat_tuple_list = Enum.map(year_Purchases_history, fn bar -> {bar.original_bar_length, bar.purchase_price} end)

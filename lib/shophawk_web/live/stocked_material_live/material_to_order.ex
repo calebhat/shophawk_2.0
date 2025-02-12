@@ -286,9 +286,23 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
     past_years_usage_list =
       Enum.reduce(sorted_material_to_order, [], fn mat, acc ->
-        [_size, material] = String.split(mat.material, "X", parts: 2)
+        [_size, material] =
+          case String.split(mat.material, "X") do
+            [size_str, material_name] -> [size_str, material_name]
+            [size1, size2, material_name] ->
+                size_str = size1 <> "X" <> size2
+              [size_str, material_name]
+          end
           past_years_usage =
-            case Enum.find(material_list, fn m -> m.material == material end) do
+            case Enum.find(material_list, fn m ->
+              corrected_material =
+                cond do
+                  String.contains?(m.material, "Rectangle") -> String.replace(m.material, " Rectangle", "")
+                  String.contains?(m.material, "Tubing") ->String.replace(m.material, " Tubing", "")
+                  true -> m.material
+                end
+              corrected_material == material
+            end) do
               nil -> 0.0
               found ->
                 found_size = Enum.find(found.sizes, 0.0, fn m -> m.material_name == mat.material end)
