@@ -286,35 +286,21 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
 
     past_years_usage_list =
       Enum.reduce(sorted_material_to_order, [], fn mat, acc ->
-        [_size, material] =
-          case String.split(mat.material, "X") do
-            [size_str, material_name] -> [size_str, material_name]
-            [size1, size2, material_name] ->
-                size_str = size1 <> "X" <> size2
-              [size_str, material_name]
-          end
+
           past_years_usage =
-            case Enum.find(material_list, fn m ->
-              corrected_material =
-                cond do
-                  String.contains?(m.material, "Rectangle") -> String.replace(m.material, " Rectangle", "")
-                  String.contains?(m.material, "Tubing") ->String.replace(m.material, " Tubing", "")
-                  true -> m.material
-                end
-              corrected_material == material
+            case Enum.find_value(material_list, fn mat_category ->
+              Enum.find(mat_category.sizes, fn sizes ->
+                sizes.material_name == mat.material
+              end)
             end) do
               nil -> 0.0
-              found ->
-                found_size = Enum.find(found.sizes, 0.0, fn m -> m.material_name == mat.material end)
-                case found_size do
-                  +0.0 -> 0.0
-                  found_size ->
-                    case Map.has_key?(found_size, :past_years_usage) do
-                      false -> 0.0
-                      _ -> found_size.past_years_usage
-                    end
+              found_size ->
+                case Map.has_key?(found_size, :past_years_usage) do
+                  false -> 0.0
+                  _ -> found_size.past_years_usage
                 end
             end
+
           map = %{mat.material => past_years_usage}
           [map] ++ acc
       end)
