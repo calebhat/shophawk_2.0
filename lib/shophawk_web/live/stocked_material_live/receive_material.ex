@@ -171,8 +171,12 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       material_with_assignments
       |> Enum.map(fn material ->
         [size_str, material_name] =
-          material.material
-          |> String.split("X")
+          case String.split(material.material, "X") do
+            [size_str, material_name] -> [size_str, material_name]
+            [size1, size2, material_name] ->
+                size_str = size1 <> "X" <> size2
+              [size_str, material_name]
+          end
           |> Enum.map(&String.trim/1)
 
         size =

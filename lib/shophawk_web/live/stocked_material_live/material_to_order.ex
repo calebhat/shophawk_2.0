@@ -62,7 +62,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                 </div>
 
                 <div class="px-2 text-center">
-                  <.button type="button" phx-click="set_to_waiting_on_quote" phx-value-id={bar.data.id}>
+                  <.button type="button" phx-click="set_to_waiting_on_quote" phx-value-material={bar.data.material}>
                     ->
                   </.button>
                 </div>
@@ -106,9 +106,9 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                         rows={Enum.reverse(bar.data.job_assignments) |> Enum.filter(fn bar -> bar.length_to_use > 0.0 end)}
                         row_click={fn _row_data -> "show_job" end}
                         >
-                          <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                          <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
-                          <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
+                          <:col :let={bar_row} label="Job" width="w-20"><%= bar_row.job %></:col>
+                          <:col :let={bar_row} label="Length" width="w-16"><%= bar_row.length_to_use %>"</:col>
+                          <:col :let={bar_row} label="Parts" width="w-16"><%= bar_row.parts_from_bar %></:col>
                         </.fixed_widths_table_with_show_job>
                       </div>
                     </div>
@@ -121,6 +121,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                 <div class="mx-2">
                   <.input field={bar[:vendor]} type="text" phx-blur="autofill_vendor" phx-value-id={bar.data.id} />
                   <.input field={bar[:id]} type="hidden" />
+                  <.input field={bar[:material]} type="hidden" />
                 </div>
 
                 <div class="mx-2">
@@ -164,6 +165,27 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         />
         </.modal>
       </div>
+
+      <.modal :if={@live_action in [:jobboss_save_error]} id="runlist-jobboss-save-modal" show on_cancel={JS.patch(~p"/stockedmaterials/material_to_order")}>
+        <div class="text-xl text-black">
+          <div class="text-center">
+          This Material is not saving in Jobboss correctly.
+          <br>
+          To remedy this, do the following:
+          </div>
+          <br>
+          <ul>
+            <li>-Log into Jobboss</li>
+            <li>-Go to Material Adjustments Module</li>
+            <li>-Enter the material affected by this issue (copy the material title for this page at the Top Center of the screen)</li>
+            <li>-Enter "0.01" into the Quantity field</li>
+            <li>-select "Correction" for the reason</li>
+            <li>-Click "Apply</li>
+            <li>-Click "Save"</li>
+            <li>-Wait 2 minutes for ShopHawk notice the changes and try again.</li>
+          </ul>
+        </div>
+      </.modal>
 
     </div>
     """
@@ -237,28 +259,30 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     sorted_material_to_order =
       material_with_info
       |> Enum.map(fn material ->
-      [size_str, material_name] =
-        material.material
-        |> String.split("X")
-        |> Enum.map(&String.trim/1)
-
-    size =
-      case Float.parse(size_str) do
-        {size, ""} -> size
-        _ ->
-          case Integer.parse(size_str) do
-            {int_size, ""} -> int_size / 1
-            _ -> 0.0
+        [size_str, material_name] =
+          case String.split(material.material, "X") do
+            [size_str, material_name] -> [size_str, material_name]
+            [size1, size2, material_name] ->
+                size_str = size1 <> "X" <> size2
+              [size_str, material_name]
           end
-      end
+          |> Enum.map(&String.trim/1)
 
-    {size, material_name, material}
-    end)
+        size =
+          case Float.parse(size_str) do
+            {size, ""} -> size
+            _ ->
+              case Integer.parse(size_str) do
+                {int_size, ""} -> int_size / 1
+                _ -> 0.0
+              end
+          end
+        {size, material_name, material}
+      end)
     |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
     |> Enum.map(fn {_, _, material} -> material end)
 
     material_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
-
 
     past_years_usage_list =
       Enum.reduce(sorted_material_to_order, [], fn mat, acc ->
@@ -266,7 +290,16 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           past_years_usage =
             case Enum.find(material_list, fn m -> m.material == material end) do
               nil -> 0.0
-              found -> Enum.find(found.sizes, 0.0, fn m -> m.material_name == mat.material end).past_years_usage
+              found ->
+                found_size = Enum.find(found.sizes, 0.0, fn m -> m.material_name == mat.material end)
+                case found_size do
+                  +0.0 -> 0.0
+                  found_size ->
+                    case Map.has_key?(found_size, :past_years_usage) do
+                      false -> 0.0
+                      _ -> found_size.past_years_usage
+                    end
+                end
             end
           map = %{mat.material => past_years_usage}
           [map] ++ acc
@@ -300,8 +333,12 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       material_with_assignments
       |> Enum.map(fn material ->
       [size_str, material_name] =
-        material.material
-        |> String.split("X")
+        case String.split(material.material, "X") do
+          [size_str, material_name] -> [size_str, material_name]
+          [size1, size2, material_name] ->
+              size_str = size1 <> "X" <> size2
+            [size_str, material_name]
+        end
         |> Enum.map(&String.trim/1)
 
       size =
@@ -323,18 +360,20 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   @impl true
-  def handle_event("set_to_waiting_on_quote", %{"id" => id}, socket) do
-    bar_struct = Material.get_stocked_material!(id)
-    Material.update_stocked_material(bar_struct, %{being_quoted: true})
-
-    MaterialCache.update_single_material_size_in_cache(bar_struct.material)
-    {:noreply, update_material_forms(socket)}
+  def handle_event("set_to_waiting_on_quote", %{"material" => material}, socket) do
+    bar_struct = Material.get_material_to_order_by_name(material)
+    case Material.update_stocked_material(bar_struct, %{being_quoted: true}) do
+      {:jb_error, nil} -> {:noreply,  assign(socket, :live_action, :jobboss_save_error)}
+      _ ->
+        MaterialCache.update_single_material_size_in_cache(bar_struct.material)
+        {:noreply, update_material_forms(socket)}
+    end
   end
 
   def handle_event("set_all_to_waiting_on_quote", _params, socket) do
     bars = socket.assigns.bars_to_order_form
     Enum.each(bars, fn bar ->
-      bar_struct = Material.get_stocked_material!(bar.data.id)
+      bar_struct = Material.get_material_to_order_by_name(bar.data.material)
       Material.update_stocked_material(bar_struct, %{being_quoted: true})
     end)
 
@@ -355,13 +394,16 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def handle_event("save_bar_waiting_on_quote", params, socket) do
-    params = params["stocked_material"]
-    found_bar = Material.get_stocked_material!(params["id"])
+    params = params["stocked_material"] |> IO.inspect
+    found_bar = Material.get_material_waiting_on_quote_by_name(params["material"])
     updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
 
     case Material.update_stocked_material(found_bar, updated_params, :waiting_on_quote) do
       {:ok, _stocked_material} ->
         {:noreply, update_material_forms(socket)}
+
+      {:jb_error, nil} ->
+        {:noreply,  assign(socket, :live_action, :jobboss_save_error)}
 
       {:error, _changeset} ->
         bars = socket.assigns.bars_being_quoted_form

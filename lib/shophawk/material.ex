@@ -116,6 +116,9 @@ defmodule Shophawk.Material do
   """
   def get_stocked_material!(id), do: Repo.get!(StockedMaterial, id)
 
+  def get_material_to_order_by_name(material), do: Repo.get_by!(StockedMaterial, material: material, being_quoted: false, ordered: false, in_house: false, bar_used: false)
+  def get_material_waiting_on_quote_by_name(material), do: Repo.get_by!(StockedMaterial, material: material, being_quoted: true, ordered: false, in_house: false, bar_used: false)
+
 
   @doc """
   Creates a stocked_material.
@@ -187,7 +190,7 @@ defmodule Shophawk.Material do
             |> StockedMaterial.changeset(attrs)
             |> Repo.update()
         _ ->
-          {:error, nil}
+          {:jb_error, nil}
       end
     else
       {:error, nil}
