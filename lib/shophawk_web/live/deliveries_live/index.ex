@@ -6,10 +6,12 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
+      Phoenix.PubSub.subscribe(Shophawk.PubSub, "delivery_update")
       deliveries = load_active_deliveries()
-      :ets.insert(:delivery_list, {:data, deliveries})
+
       socket = if deliveries == [], do: assign(socket, :data_loaded?, false), else: assign(socket, :data_loaded?, true)
       {:ok, stream(socket, :deliveries, deliveries, reset: true)}
+
     else
       socket = assign(socket, :data_loaded?, true)
       {:ok, stream(socket, :deliveries, [], reset: true)}
@@ -20,9 +22,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   def load_active_deliveries() do
     active_routing_ops =
       case :ets.lookup(:runlist, :active_jobs) do
-        [{:active_jobs, runlists}] ->
-          Enum.reject(runlists, fn r -> r.customer == "EDG GEAR" end)
-          |> Enum.sort_by(fn r -> r.job_operation end, :desc)
+        [{:active_jobs, runlists}] -> Enum.sort_by(runlists, fn r -> r.job_operation end, :desc)
         [] -> []
       end
 
@@ -44,7 +44,10 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
       |> Enum.reject(fn s -> s == nil end)
 
 
-    unique_ops = Enum.uniq_by(active_routing_ops, fn r -> r.job end)
+    unique_ops =
+      #Enum.reject(active_routing_ops, fn r -> r.customer == "EDG GEAR" end)
+      Enum.sort_by(active_routing_ops, fn r -> r.sequence end, :desc)
+      |> Enum.uniq_by(fn r -> r.job end)
     job_numbers = Enum.map(unique_ops, fn r -> r.job end)
     jobs_with_current_location = Enum.map(unique_ops, fn j -> %{job: j.job, currentop: j.currentop, customer: j.customer} end)
     deliveries = Shophawk.Jobboss_db.load_deliveries(job_numbers)
@@ -66,6 +69,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         |> Map.put(:user_comment, "")
       end)
       |> Enum.reject(fn d -> d.comment == "PUT IN INVENTORY WHEN DONE" and d.currentop == "RED LINE" end)
+      |> Enum.reject(fn r -> r.customer == "EDG GEAR" end)
 
     deliveries =
       deliveries
@@ -109,9 +113,13 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         end
       end)
 
+    deliveries =
+      deliveries
+      |> add_date_rows()
+      |> add_vendor_rows()
+    :ets.insert(:delivery_list, {:data, deliveries})
+    Phoenix.PubSub.broadcast(Shophawk.PubSub, "delivery_update", {:delivery_update, deliveries})
     deliveries
-    |> add_date_rows()
-    |> add_vendor_rows()
   end
 
   def generate_unique_value(existing_values) do
@@ -217,7 +225,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
                     <% true -> %>
                   <% end %>
                 </td>
-                <td><%= if row.type == :normal, do: row.currentop %></td>
+                <td><%= if row.type == :normal, do: fill_in_current_op_if_nil(row.currentop) %></td>
                 <td>
                   <%= if row.type == :normal do %>
                     <input
@@ -274,6 +282,20 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
 
     </div>
     """
+  end
+
+  @impl true
+  def handle_info({:delivery_update, deliveries}, socket) do
+    {:noreply, stream(socket, :deliveries, deliveries, reset: true)}
+  end
+
+  def fill_in_current_op_if_nil(current) do
+    case current do
+      nil -> "✅"
+      "" -> "✅"
+      "A-SHIP" -> "✅"
+      _ -> current
+    end
   end
 
   def compact_row_color(map) do

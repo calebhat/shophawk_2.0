@@ -43,7 +43,11 @@ jobs =
     {"@daily", {ShophawkWeb.DashboardLive.Index, :save_last_months_sales, []}},
 
     #1am on monday of every week
-    {"@daily", {ShophawkWeb.DashboardLive.Index, :save_this_weeks_revenue, []}}
+    {"@daily", {ShophawkWeb.DashboardLive.Index, :save_this_weeks_revenue, []}},
+
+    #broadcast deliveries updates
+    {"*/10 * * * *", {ShophawkWeb.DeliveriesLive.Index, :load_active_deliveries, []}}
+
   ]
 
 jobs =
