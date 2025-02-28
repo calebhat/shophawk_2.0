@@ -173,10 +173,10 @@ defmodule ShophawkWeb.UserAuth do
   end
 
   def ensure_office_access(email) when email in ["office", "admin"], do: :ok
-  def ensure_office_access(_), do: {:error, "You don't have permission to access the dashboard."}
+  def ensure_office_access(_), do: {:error, "You don't have permission to access this page."}
 
   def ensure_admin_access(email) when email in ["admin"], do: :ok
-  def ensure_admin_access(_), do: {:error, "You don't have permission to access the admin dashboard page."}
+  def ensure_admin_access(_), do: {:error, "You don't have permission to access this page."}
 
   defp mount_current_user(socket, session) do
     Phoenix.Component.assign_new(socket, :current_user, fn ->

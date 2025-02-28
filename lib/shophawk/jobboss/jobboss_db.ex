@@ -929,6 +929,26 @@ defmodule Shophawk.Jobboss_db do
       end)
   end
 
+  def load_job_operation_time_by_employee(employee_initial, startdate, enddate) do
+    startdate = NaiveDateTime.new(startdate, ~T[00:00:00]) |> elem(1)
+    enddate = NaiveDateTime.new(enddate, ~T[00:00:00]) |> elem(1)
+    query =
+      from r in Jb_job_operation_time,
+      where: r.employee == ^employee_initial,
+      where: r.work_date <= ^enddate and r.work_date >= ^startdate
+      failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) end)
+  end
+
+  def load_job_operations(operation_numbers) do
+    query = from r in Jb_job_operation, where: r.job_operation in ^operation_numbers
+    failsafed_query(query)
+    |> Enum.map(fn op ->
+      Map.from_struct(op)
+      |> Map.drop([:__meta__])
+      |> rename_key(:note_text, :operation_note_text)
+    end)
+  end
+
   def load_single_material_requirements(material) do
     query =
       from r in Jb_material_req,
@@ -995,6 +1015,5 @@ defp handle_retry(query, retries, delay, _reason) do #For jobboss db queries
   :timer.sleep(delay)
   failsafed_query(query, retries - 1, delay)
 end
-
 
 end

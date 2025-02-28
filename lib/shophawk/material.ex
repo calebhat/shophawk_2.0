@@ -179,7 +179,7 @@ defmodule Shophawk.Material do
             {n, ""} -> n
             _ -> nil
           end
-        if attrs["bar_length"] != nil, do: on_hand_qty + bar_length + 0.01, else: on_hand_qty + 0.01
+        if attrs["bar_length"] != "", do: on_hand_qty + bar_length + 0.01, else: on_hand_qty + 0.01
       else
         on_hand_qty
       end

@@ -285,8 +285,9 @@ defmodule Shophawk.Shop do
             Enum.sort_by(all_runlists_ops, fn r -> r.job_operation end, :desc)
           [] -> []
         end
-        |> Enum.filter(fn j -> j.inside_oper == false and j.status == "O" end)
-        |> Enum.reject(fn s -> s == nil end)
+        |> Enum.filter(fn op -> op.inside_oper == false and op.status == "O" end)
+        |> Enum.reject(fn op -> op == nil end)
+        |> Enum.reject(fn op -> op.sched_start == nil end)
         |> Enum.filter(fn op ->
             case Date.compare(Date.utc_today, op.sched_start) do
               :lt -> false
