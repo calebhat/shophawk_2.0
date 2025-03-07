@@ -39,7 +39,6 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
   @impl true
   def update(%{stocked_material: stocked_material} = assigns, socket) do
     changeset = Material.change_stocked_material(stocked_material)
-    #IO.inspect(changeset)
     {:ok,
      socket
      |> assign(assigns)
@@ -62,8 +61,6 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
   end
 
   def handle_event("autofill_vendor", params, socket) do
-    IO.inspect(params)
-    IO.inspect(socket.assigns.stocked_material)
     updated_params = ShophawkWeb.StockedMaterialLive.MaterialToOrder.autofill_vendor(params)
 
     changeset =

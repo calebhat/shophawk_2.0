@@ -44,7 +44,6 @@ defmodule ShophawkWeb.StockedMaterialLive.DetailedFormComponent do
   @impl true
   def update(%{stocked_material: stocked_material} = assigns, socket) do
     changeset = Material.change_stocked_material(stocked_material)
-    #IO.inspect(changeset)
     {:ok,
      socket
      |> assign(assigns)

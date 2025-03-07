@@ -195,11 +195,9 @@ defmodule ShophawkWeb.RunlistLive.Index do
         Shophawk.RunlistCache.update_key_value(String.to_integer(job_operation), :material_waiting, true)
         Shop.create_runlist(%{job_operation: job_operation, material_waiting: true})
       op ->
-        #IO.inspect(op)
         [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
         job_number = Enum.find(runlists, fn o -> o.job_operation == op.job_operation end).job
         job_ops = Enum.filter(runlists, fn o -> o.job == job_number end)
-        IO.inspect(Enum.count(job_ops))
         Enum.each(job_ops, fn o ->
           Shophawk.RunlistCache.update_key_value(o.job_operation, :material_waiting, !op.material_waiting)
           case Shop.get_runlist_by_job_operation(o.job_operation) do

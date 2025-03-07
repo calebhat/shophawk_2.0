@@ -432,7 +432,23 @@ defmodule Shophawk.MaterialCache do
 
     jobs_to_assign =
       Enum.map(mat_reqs, fn job ->
-        %{job: job.job, length: Float.round((job.part_length), 2), make_qty: job.make_quantity, cutoff: job.cutoff, mat: material, size: size}
+
+        #find first saw operation, subtract any qty complete
+        [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+        first_saw_operation =
+          Enum.filter(runlists, fn r ->
+            r.job == job.job
+          end)
+          |> Enum.sort_by(&(&1.sequence))
+          |> Enum.find(&(&1.wc_vendor) == "A-SAW")
+
+        make_qty =
+          case first_saw_operation do
+            nil -> job.make_quantity
+            _ -> job.make_quantity - first_saw_operation.act_run_qty
+          end
+
+        %{job: job.job, length: Float.round((job.part_length), 2), make_qty: make_qty, cutoff: job.cutoff, mat: material, size: size}
       end)
       |> Enum.sort_by(&(&1.make_qty), :desc)
 

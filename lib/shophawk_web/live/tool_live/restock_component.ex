@@ -126,7 +126,6 @@ defmodule ShophawkWeb.ToolLive.RestockComponent do
   end
 
   def handle_event("in_cart", %{"id" => id}, socket) do
-    IO.inspect(Inventory.get_tool!(id))
     Inventory.update_tool(Inventory.get_tool!(id), %{status: "in_cart"})
     send_update(self(), ShophawkWeb.ToolLive.RestockComponent, id: "restock")
     {:noreply, socket}

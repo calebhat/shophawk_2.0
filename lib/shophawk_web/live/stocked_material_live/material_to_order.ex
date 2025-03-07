@@ -394,7 +394,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def handle_event("save_bar_waiting_on_quote", params, socket) do
-    params = params["stocked_material"] |> IO.inspect
+    params = params["stocked_material"]
     found_bar = Material.get_material_waiting_on_quote_by_name(params["material"])
     updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
 

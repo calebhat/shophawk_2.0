@@ -17,9 +17,7 @@ defmodule ShophawkWeb.FileSenderController do
   end
 
   def serve_pdf(conn, %{"filepath" => filepath}) do
-    IO.inspect(filepath, label: "File path")
     full_path = "//" <> Path.join(filepath)
-    IO.inspect(full_path, label: "Full path")
 
     if File.exists?(full_path) do
       conn

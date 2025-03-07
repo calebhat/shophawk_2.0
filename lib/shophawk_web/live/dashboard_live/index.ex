@@ -668,7 +668,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_event("test_click", _params, socket) do
     beginning_of_this_month = Date.utc_today() |> Date.add(-30) |> Date.beginning_of_month()
     end_of_month = Date.utc_today() |> Date.add(-30) |> Date.end_of_month()
-    generate_monthly_sales(beginning_of_this_month, end_of_month) |> List.first() |> IO.inspect
+    generate_monthly_sales(beginning_of_this_month, end_of_month) |> List.first()
 
 
     ######################Functions to load history into db for first load with new dashboard####################
