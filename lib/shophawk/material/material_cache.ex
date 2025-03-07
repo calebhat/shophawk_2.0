@@ -434,7 +434,11 @@ defmodule Shophawk.MaterialCache do
       Enum.map(mat_reqs, fn job ->
 
         #find first saw operation, subtract any qty complete
-        [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+        runlists =
+          case :ets.lookup(:runlist, :active_jobs) do
+            [{:active_jobs, runlists}] -> runlists
+            [] -> []
+          end
         first_saw_operation =
           Enum.filter(runlists, fn r ->
             r.job == job.job

@@ -211,8 +211,6 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       Material.list_material_needed_to_order
       |> ignore_material_to_order()
 
-
-
     list_of_sizes =
       Enum.reduce(material_list, [], fn mat, acc ->
         [mat.sizes | acc]
@@ -512,6 +510,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
           Map.has_key?(params, "vendor") -> params["vendor"]
           true -> ""
         end
+        |> String.downcase()
 
       updated_value =
         case Enum.find(vendor_list, fn {key, _value} -> key == value end) do

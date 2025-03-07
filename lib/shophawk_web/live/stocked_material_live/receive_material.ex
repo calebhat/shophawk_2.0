@@ -23,7 +23,6 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
               <thead class="text-lg underline">
                 <tr>
                   <th class="px-2">Material</th>
-                  <th class="px-2">Needed</th>
                   <th class="px-2">
                     <div class="flex items-center justify-between ml-6">
                       <div class="">length</div>
@@ -59,10 +58,6 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                                 </.fixed_widths_table_with_show_job>
                               </div>
                             </div>
-                        </td>
-
-                        <td class="">
-                          <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
                         </td>
 
                         <td class="px-2 text-center">
@@ -164,7 +159,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
           Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
         Map.put(mat, :job_assignments, found_assignments)
         |> Map.put(:bar_length_placeholder, mat.bar_length)
-        |> Map.put(:bar_length, nil)
+        #|> Map.put(:bar_length, nil)
       end)
 
     sorted_material_to_order =

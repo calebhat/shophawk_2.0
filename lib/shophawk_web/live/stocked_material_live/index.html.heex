@@ -11,7 +11,7 @@
           phx-value-group-index={index}
         >
           <span class="font-semibold"><%= group.name %></span>
-          <% jobs_to_saw = Enum.sum(Enum.map(group.materials, & &1.mat_reqs_count)) %>
+          <% jobs_to_saw = if group.materials != nil, do: Enum.sum(Enum.map(group.materials, & &1.mat_reqs_count)), else: 0 %>
           <%= if jobs_to_saw > 0 do %>
           <span class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1">
             <%= jobs_to_saw %>
