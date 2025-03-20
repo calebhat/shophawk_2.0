@@ -85,7 +85,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
             <div>Vendor</div>
             <div>Length</div>
             <div>Price (lb or ft)</div>
-            <div>On Order</div>
+            <div></div>
+            <div></div>
           </div>
           <div :for={bar <- @bars_being_quoted_form}>
             <.form
@@ -131,10 +132,17 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                 <div class="mx-2">
                   <.input field={bar[:purchase_price]} type="number" step=".01" placeholder={"Per #{bar.data.cost_uofm}"} />
                 </div>
-                <div class="px-2 text-center">
+                <div class="px-2 text-center flex items-center">
                   <.button type="submit">
                       Save
                   </.button>
+                  <.link
+                    class="mx-2 hover:text-red-500"
+                    phx-click={JS.push("delete", value: %{id: bar.data.id}) |> hide("##{bar.data.id}")}
+                    data-confirm="Are you sure?"
+                  >
+                    Delete
+                  </.link>
                 </div>
               </div>
             </.form>
@@ -432,6 +440,12 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   def handle_event("autofill_vendor", params, socket) do
     params = autofill_vendor(params)
     {:noreply, validate_bar_waiting_on_quote(params, socket)}
+  end
+
+  def handle_event("delete", %{"id" => id}, socket) do
+    stocked_material = Material.get_stocked_material!(id)
+    Material.delete_stocked_material(stocked_material)
+    {:noreply, update_material_forms(socket)}
   end
 
   ###### Showjob and attachments downloads ########

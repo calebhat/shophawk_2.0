@@ -847,8 +847,8 @@ defmodule ShophawkWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto  px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] mt-4 sm:w-full table-fixed">
+    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
+      <table class="w-[40rem] mt-1 sm:w-full table-fixed">
         <thead class="text-lg leading-6 text-white text-center">
           <tr>
             <th :for={col <- @col} class={["p-0 pr-6 pb-4 font-normal", col[:width]]}><%= col[:label] %></th>

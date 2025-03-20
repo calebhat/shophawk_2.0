@@ -76,7 +76,7 @@
             <div class="pl-2"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
           </.link>
           <.link patch={~p"/stockedmaterials/history"}>
-            <div class="pl-2"><.button class="">History</.button></div>
+            <div class="pl-2"><.button class="">All History</.button></div>
           </.link>
         <% end %>
       </div>
@@ -97,8 +97,8 @@
                 <.link patch={~p"/stockedmaterials/receive_material"}>
                   <div class="pl-2 flex-1"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
                 </.link>
-                <.link patch={~p"/stockedmaterials/history"}>
-                  <div class="pl-2"><.button class="">History</.button></div>
+                <.link patch={~p"/stockedmaterials/history?#{[material: @size_info.material_name]}"}>
+                  <div class="pl-2"><.button class=""><%= @size_info.material_name %> History</.button></div>
                 </.link>
               </div>
             </div>
@@ -123,6 +123,11 @@
             <div class="bg-cyan-800 rounded-lg p-2 mx-2 mb-2 text-lg">
               <ul>
                 <li>On Hand: <%= @size_info.on_hand_qty %>'</li>
+                <%= case @size_info.cost_uofm do %>
+                <% "lb" -> %><li>Purchase $/lb: <%= @size_info.purchase_price %></li>                
+                <% "ft" -> %><li>Purchase $/ft: <%= @size_info.purchase_price %></li>
+                <% _ -> %><li>Purchase $/lb: <%= @size_info.purchase_price %></li>
+                <% end %>  
                 <li>Sell $/Inch: <%= @size_info.cost_per_inch %></li>
                 <%= case @size_info.cost_uofm do %>
                 <% "lb" -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>                

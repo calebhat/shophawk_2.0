@@ -35,7 +35,7 @@ defmodule Shophawk.MaterialCache do
   def create_material_cache() do
     #Create bare bones list for material cache and save to cache
     {material_list, jobboss_material_info} = create_barebones_material_list()
-    :ets.insert(:material_list, {:data, material_list})
+    #:ets.insert(:material_list, {:data, material_list})
 
     #load all data needed
     mat_reqs = Jobboss_db.load_material_requirements()

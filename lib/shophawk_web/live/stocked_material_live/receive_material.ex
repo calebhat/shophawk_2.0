@@ -31,7 +31,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                     </div>
                   </th>
                   <th class="px-2">Add Bar</th>
-                  <th class="px-2">Remove Extra</th>
+                  <th class="px-2">Delete</th>
                 </tr>
               </thead>
               <div :for={vendor <- @bars_on_order_form}>
@@ -90,8 +90,16 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                         <td class="">
                           <%= if bar.data.extra_bar_for_receiving == true do %>
                             <.delete_button type="button" phx-click="delete_bar" phx-value-id={bar.data.id}>
-                              Remove Bar
+                              Remove Extra Bar
                             </.delete_button>
+                          <% else %>
+                          <.link
+                            class="mx-2 hover:text-red-500"
+                            phx-click={JS.push("delete_bar", value: %{id: bar.data.id}) |> hide("##{bar.data.id}")}
+                            data-confirm="Are you sure?"
+                          >
+                            Delete
+                          </.link>
                           <% end %>
                         </td>
                       </tr>
