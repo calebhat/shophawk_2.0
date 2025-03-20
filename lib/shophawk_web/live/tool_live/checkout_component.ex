@@ -50,7 +50,14 @@ defmodule ShophawkWeb.ToolLive.CheckoutComponent do
         </div>
 
         <:actions>
+        <div class="flex justify-between items-center">
+        <div>
           <.button phx-disable-with="Saving...">Checkout</.button>
+        </div>
+        <div>
+            <.link patch={~p"/tools/#{@tool.id}/edit"} class="hover:bg-lime-700 hover:text-white py-1.5 px-3 rounded-lg">Edit</.link>
+        </div>
+        </div>
         </:actions>
       </.simple_form>
     </div>

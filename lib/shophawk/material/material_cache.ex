@@ -456,6 +456,8 @@ defmodule Shophawk.MaterialCache do
       end)
       |> Enum.sort_by(&(&1.make_qty), :desc)
 
+
+    #DON'T DELETE MATERIAL TO ORDER AT THE TOP OF THE FUNCTION, SEND THE VALUES HERE AND UPDATE IF NEEDED?
     {assigned_material_info, need_to_order_amt} = assign_jobs_to_material(jobs_to_assign, material_on_floor, material)
 
     #remove any empty job_assignments

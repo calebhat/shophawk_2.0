@@ -33,7 +33,14 @@ defmodule ShophawkWeb.ToolLive.CheckinComponent do
           <.input field={@form[:status]} type="text" label="status" readonly />
         </div>
         <:actions>
-          <.button phx-disable-with="Saving...">Check In</.button>
+        <div class="flex justify-between items-center">
+        <div>
+          <.button phx-disable-with="Saving...">Checkin</.button>
+        </div>
+        <div>
+            <.link patch={~p"/tools/#{@tool.id}/edit"} class="hover:bg-lime-700 hover:text-white py-1.5 px-3 rounded-lg">Edit</.link>
+        </div>
+        </div>
         </:actions>
       </.simple_form>
     </div>
