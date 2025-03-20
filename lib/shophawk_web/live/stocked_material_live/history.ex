@@ -28,7 +28,11 @@ defmodule ShophawkWeb.StockedMaterialLive.History do
         <:col :let={{_id, stocked_material}} label="Vendor"><%= stocked_material.vendor %></:col>
         <:col :let={{_id, stocked_material}} label="Price"><%= Number.Currency.number_to_currency(stocked_material.purchase_price) %></:col>
         <:col :let={{_id, stocked_material}} label="Status"><%= stocked_material.status %></:col>
-        <:col :let={{_id, stocked_material}} label="TimeStamp" width="w-48"><%= Timex.format!(stocked_material.updated_at, "{YYYY}-{0M}-{0D} {h12}:{m} {AM}") %></:col>
+        <:col :let={{_id, stocked_material}} label="TimeStamp" width="w-48">
+        <% {:ok, utc_timestamp} = DateTime.from_naive(stocked_material.updated_at, "Etc/UTC") %>
+        <% {:ok, chicago_timestamp} = DateTime.shift_zone(utc_timestamp, "America/Chicago") %>
+        <%= Timex.format!(chicago_timestamp, "{YYYY}-{0M}-{0D} {h12}:{m} {AM}") %>
+        </:col>
         <:action :let={{_id, stocked_material}}>
           <div class="sr-only">
             <.link navigate={~p"/stockedmaterials/#{stocked_material}"}>Show</.link>
