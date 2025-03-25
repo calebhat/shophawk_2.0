@@ -281,8 +281,7 @@ defmodule Shophawk.Shop do
 
       jobs_ops_with_an_outside_op_and_starts_today_or_sooner =
         case :ets.lookup(:runlist, :active_jobs) do
-          [{:active_jobs, all_runlists_ops}] ->
-            Enum.sort_by(all_runlists_ops, fn r -> r.job_operation end, :desc)
+          [{:active_jobs, all_runlists_ops}] -> Enum.sort_by(all_runlists_ops, fn r -> r.sequence end, :desc)
           [] -> []
         end
         |> Enum.filter(fn op -> op.inside_oper == false and op.status == "O" end)
@@ -295,10 +294,14 @@ defmodule Shophawk.Shop do
               :gt -> true
             end
           end)
-        |> Enum.map(fn j -> j.job end)
+        |> Enum.map(fn j -> {j.job, j.sequence} end)
 
-      service_operations =
-        Enum.filter(runlists, fn j -> j.job in jobs_ops_with_an_outside_op_and_starts_today_or_sooner end)
+      service_operations = #rows that have a outside vendor due to ship today or sooner in loaded runlist.
+        Enum.filter(runlists, fn j -> #makes sure the op is before the vendor operation or else ops after the vendor op show up as needing to ship today.
+          Enum.any?(jobs_ops_with_an_outside_op_and_starts_today_or_sooner, fn {job, sequence} ->
+            j.job == job and j.sequence < sequence
+          end)
+        end)
         |> Enum.filter(fn op ->
           has_ship_op = Enum.reduce_while(load_job_operations(op.job), false, fn op, _acc -> if op.wc_vendor == "A-SHIP", do: {:halt, true}, else: {:cont, false} end)
           if has_ship_op == true, do: true, else: false
