@@ -212,9 +212,52 @@ defmodule Shophawk.Material do
   end
 
   def update_stocked_material(%StockedMaterial{} = stocked_material, attrs, :receive) do
-      stocked_material
-      |> StockedMaterial.changeset_material_receiving(attrs)
-      |> Repo.update()
+
+    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    size_info = Enum.find_value(material_list, fn mat ->
+      Enum.find(mat.sizes, fn s ->
+        s.material_name == stocked_material.material
+      end)
+    end)
+
+    bars =
+      Shophawk.Material.list_material_not_used_by_material(stocked_material.material)
+      |> Enum.filter(fn b -> b.in_house == true end)
+
+    bars_without_current_bar_to_update = Enum.reject(bars, fn b -> b.id == stocked_material.id end)
+    on_hand_qty =
+      Enum.reduce(bars_without_current_bar_to_update, 0.0, fn bar, acc ->
+        case bar.bar_length do
+          nil -> acc
+          length -> length + acc
+        end
+      end)
+    on_hand_qty = if on_hand_qty == nil, do: 0.0, else: on_hand_qty
+    on_hand_qty =
+      if Map.has_key?(attrs, "bar_length") do
+        bar_length =
+          case Float.parse(attrs["bar_length"]) do
+            {n, ""} -> n
+            _ -> nil
+          end
+        if attrs["bar_length"] != "", do: on_hand_qty + bar_length + 0.01, else: on_hand_qty + 0.01
+      else
+        on_hand_qty
+      end
+    if size_info != nil do
+      case Shophawk.Jobboss_db.update_material(size_info, on_hand_qty) do
+        true ->
+            stocked_material
+            |> StockedMaterial.changeset_material_receiving(attrs)
+            |> Repo.update()
+        _ ->
+          {:jb_error, nil}
+      end
+    else
+      {:error, nil}
+    end
+
+
   end
 
 

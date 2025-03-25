@@ -163,7 +163,7 @@ defmodule Shophawk.MaterialCache do
     |> merge_material("4140HT G&P", "4140HT G&P", ["4140HT G&P", "4140HT G AND P", "4140HT G & P"])
     |> merge_material("4150HT", "4150HT", ["4150HT", "4150 HT"])
     |> merge_material("416", "416", ["416", "416SS"])
-    |> merge_material("416HT", "416HT", ["416HT", "416SSHT", " 416 HT", "416SSHT (C.F.)"])
+    |> merge_material("416HT", "416HT", ["416HT", "416SSHT", " 416 HT", " 416 HT ", "416SSHT (C.F.)"])
     |> merge_material("4340", "4340", ["4340", "4340."])
     |> merge_material("440SS", "440SS", ["440SS", "440C", "440"])
     |> merge_material("630BRNZ", "630BRNZ", ["630BRNZ", "6300BRNZ", "630 NI/AL BRNZ"])

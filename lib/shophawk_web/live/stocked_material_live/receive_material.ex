@@ -69,7 +69,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                           >
                             <div class="flex items-center justify-between">
                               <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                              <div class=" pb-2 px-2 w-28">
+                              <div class=" pb-2 px-2 w-48">
                                 <.input field={bar[:bar_length]}
                                 type="number"
                                 placeholder={if Map.has_key?(bar.data, :bar_length_placeholder), do: bar.data.bar_length_placeholder}
@@ -232,7 +232,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
         length -> Map.put(updated_params, "original_bar_length", length)
       end
 
-    case Material.update_stocked_material(found_bar, updated_params) do
+    case Material.update_stocked_material(found_bar, updated_params, :receive) do
       {:ok, _stocked_material} ->
         Shophawk.MaterialCache.update_single_material_size_in_cache(found_bar.material)
         {:noreply, update_material_forms(socket)}
