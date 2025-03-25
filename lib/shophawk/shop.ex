@@ -344,25 +344,6 @@ defmodule Shophawk.Shop do
           |> Map.put_new(:date_row_identifer, 1)
         end)
 
-      complete_runlist = #adds shipping today if needed and removes ops furthur down list if found
-        if Enum.empty?(jobs_that_ship_today) do
-          complete_runlist
-        else
-          complete_runlist =
-            Enum.map(complete_runlist, fn op ->
-              case Enum.find(jobs_that_ship_today, fn ships_today -> op.id == ships_today.id end) do
-                nil -> op
-                _found_ships_today -> %{id: op.id, date_row_identifer: 0, job: op.job, dots: 3, sched_start: op.sched_start, order_quantity: op.order_quantity, est_total_hrs: op.est_total_hrs, runner: op.runner, status: op.status, shipping_today: true}
-              end
-            end)
-          jobs_that_ship_today ++ complete_runlist
-        end
-        |> Enum.map(fn op -> #add extra keys to each map if needed
-          Map.put_new(op, :runner, false)
-          |> Map.put_new(:status, "O")
-          |> Map.put_new(:date_row_identifer, 1)
-        end)
-
       {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
     end
   end
