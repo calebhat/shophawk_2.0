@@ -225,7 +225,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
   def handle_event("receive_bar", params, socket) do
     params = params["stocked_material"]
     found_bar = Material.get_stocked_material!(params["id"])
-    updated_params = Map.put(params, "ordered", false) |> Map.put("in_house", true)
+    updated_params = Map.put(params, "ordered", false) |> Map.put("in_house", true) |> Map.put("bar_used", false)
     updated_params =
       case updated_params["bar_length"] do
         nil -> updated_params
@@ -265,7 +265,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       Enum.each(vendor, fn bar ->
         case bar.source.valid? do
           true ->
-            updated_params = Map.put(bar.params, "ordered", false) |> Map.put("in_house", true)
+            updated_params = Map.put(bar.params, "ordered", false) |> Map.put("in_house", true) |> Map.put("bar_used", false)
             updated_params =
               case updated_params["bar_length"] do
                 nil -> updated_params
