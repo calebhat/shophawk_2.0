@@ -3,6 +3,8 @@
 defmodule ShophawkWeb.DeliveriesLive.Index do
   use ShophawkWeb, :live_view
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -266,6 +268,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
             job_info={@job_info}
             title={@page_title}
             action={@live_action}
+            current_user={@current_user}
         />
       </.modal>
 

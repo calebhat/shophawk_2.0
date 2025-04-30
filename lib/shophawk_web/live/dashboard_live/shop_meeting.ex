@@ -7,6 +7,8 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
   alias ShophawkWeb.HotjobsFullScreenComponent
   alias ShophawkWeb.LateShipmentsComponent
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -71,6 +73,7 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
           job_info={@job_info}
           title={@page_title}
           action={@live_action}
+          current_user={@current_user}
       />
       </.modal>
 

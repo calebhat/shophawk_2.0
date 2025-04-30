@@ -5,6 +5,8 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   alias Shophawk.MaterialCache
   #import ShophawkWeb.StockedMaterialLive.Index
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -160,6 +162,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
             job_info={@job_info}
             title={@page_title}
             action={@live_action}
+            current_user={@current_user}
         />
         </.modal>
 

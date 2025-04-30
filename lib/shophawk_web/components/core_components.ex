@@ -1024,8 +1024,16 @@ defmodule ShophawkWeb.CoreComponents do
                 <% end %>
               </td>
               <td class="relative">
-                <div style="white-space: pre-line;" class="hidden group-hover:grid fixed bottom-0 right-0 z-50 mb-4 mr-8 p-2 text-white bg-cyan-800 shadow-lg rounded-lg">
-                  <%= if row.operation_note_text != nil, do: String.trim(row.operation_note_text) %>
+                <div class="hidden group-hover:grid fixed bottom-0 right-0 z-50 mb-4 mr-8 p-2 text-white text-md bg-cyan-800 shadow-lg rounded-lg">
+                  <%= if row.full_employee_log != [] do %>
+                    <%= for row <- row.full_employee_log do %>
+                      <%= row %>
+                      <br>
+                    <% end %>
+                  <% end %>
+                  <div style="white-space: pre-line;" >
+                    <%= if row.operation_note_text != nil, do: String.trim(row.operation_note_text) %>
+                  </div>
                 </div>
               </td>
           </tr>

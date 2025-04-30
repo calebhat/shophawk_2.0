@@ -11,6 +11,8 @@ defmodule ShophawkWeb.DashboardLive.Office do
   alias ShophawkWeb.WeektwoTimeoffComponent
   alias ShophawkWeb.LateShipmentsComponent
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -83,6 +85,7 @@ defmodule ShophawkWeb.DashboardLive.Office do
           job_info={@job_info}
           title={@page_title}
           action={@live_action}
+          current_user={@current_user}
       />
       </.modal>
 

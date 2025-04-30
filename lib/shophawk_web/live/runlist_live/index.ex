@@ -5,6 +5,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
   alias Shophawk.Shop.Department
   alias Shophawk.Shop.Assignment
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   def mount(_params, _session, socket) do
     if connected?(socket) do
       department_loads = get_runlist_loads()
@@ -294,7 +296,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def showjob(socket, job) do
     {job_ops, job_info} = Shop.list_job(job)
     deliveries =
-      Shophawk.Jobboss_db.load_deliveries([job])
+      Shophawk.Jobboss_db.load_all_deliveries([job])
       |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
     updated_job_info =
       Map.put(job_info, :deliveries, deliveries)

@@ -9,6 +9,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @topic "materials:updates"
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do

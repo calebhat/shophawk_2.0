@@ -115,7 +115,7 @@
   <% end  %>
 </div>
 
-<%= if @show_runlist_table == true do %>  
+<%= if @show_runlist_table == true do %>  <!-- department runlist table -->
   <.runlist_table
     id="runlists"
     updated={@updated}
@@ -227,6 +227,7 @@
     job_info={@job_info}
     title={@page_title}
     action={@live_action}
+    current_user={@current_user}
   />
 </.modal>
 

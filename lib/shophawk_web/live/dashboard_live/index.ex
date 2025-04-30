@@ -657,6 +657,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:noreply, assign(socket, live_action: :show_job)}
   end
 
+  ###
+
   def handle_event("reload_top_10_dates", %{"end_date" => enddate, "start_date" => startdate}, socket) do
     {:noreply, load_yearly_sales_chart(socket, Date.from_iso8601!(startdate), Date.from_iso8601!(enddate))}
   end
