@@ -52,27 +52,41 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
                 </div>
               </.form>
             </div>
-            <%= if @operations != [] do %>
-            <div class="text-white text-bold text-lg mx-6">
-              Average Job Efficiency: <%= @total_efficiency %>%
-            </div>
-            <div class="text-white text-bold text-lg mx-6">
-              Average hours logged per day: <%= @average_hours_logged_per_day %>
-            </div>
 
-            <br>
-            <div class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2 ml-6 mr-2 pr-4 max-h-[45rem] overflow-y-auto">
-              <%= for op <- @operations do %>
-                <div
-                  class={["flex justify-between items-center rounded p-1 hover:cursor-pointer",
-                          (set_operation_color(op.efficiency_percentage))]}
-                          phx-click="show_job" phx-value-job={op.job}
-                  phx-value-employee={op.employee}
-                >
-                  <%= op.job %>-<%= op.job_operation %>-<%= op.efficiency_percentage %>%
+            <%= cond do %>
+              <% @operations != [] -> %>
+                <br>
+                <div class="flex justify-around text-white text-bold text-lg mx-6 border-b-8 border-white rounded-sm">
+                  <div>Average Job Efficiency: <%= @total_efficiency %>%</div>
+                  <div>Average hours logged per day: <%= @average_hours_logged_per_day %></div>
                 </div>
-              <% end %>
-            </div>
+
+                <br>
+                <div class="ml-6 mr-2 pr-4 max-h-[42rem] overflow-y-auto">
+                  <%= for {wc_vendor, wc_vendor_efficiency, operations} <- @operations do %>
+                    <br>
+                    <div class="text-white text-xl underline m-2">
+                      <%= wc_vendor %> - <%= wc_vendor_efficiency %>%
+                    </div>
+                    <div class="grid grid-cols-10 gap-2">
+                      <%= for op <- operations do %>
+                        <div
+                          class={["flex justify-center items-center rounded p-1 hover:cursor-pointer",
+                                  (set_operation_color(op.efficiency_percentage))]}
+                                  phx-click="show_job" phx-value-job={op.job}
+                          phx-value-employee={op.employee}
+                        >
+                          <%= op.job %>-<%= op.efficiency_percentage %>%
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              <% @selected_emp_initial != "" and @operations == [] -> %>
+                <div class="text-xl text-white flex justify-center">
+                  No operations logged
+                </div>
+              <% true -> %>
             <% end %>
 
 
@@ -255,15 +269,11 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
       |> Enum.reject(fn a -> a.est_total_hrs <= 0.001 end)
       |> Enum.reject(fn a -> a.act_run_labor_hrs <= 0.01 end)
       |> Enum.sort_by(&(&1.efficiency_percentage))
-    total_efficiency =
-      case Enum.count(merged_entries) do
-        0 -> "N/A"
-        _ -> Enum.reduce(merged_entries, 0, fn m, acc -> m.efficiency_percentage + acc end) / Enum.count(merged_entries) |> Float.round(2)
-      end
+    total_efficiency = calc_job_efficiency(merged_entries)
 
 
     #IO.inspect(List.first(merged_entries))
-    #Example of ending map
+    #Example of merged_entries map
     #%{
     #  employee: "BS",
     #  job_operation: 803094,
@@ -277,10 +287,25 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
     #  last_updated: ~N[2025-01-02 11:25:43],
     #  efficiency_percentage: 1.3
     #}
+
+    grouped_by_wc_vendor =
+      Enum.group_by(merged_entries, &(&1.wc_vendor))
+      |> Enum.map(fn {wc_vendor, op_list} ->
+        {wc_vendor, calc_job_efficiency(op_list), op_list}
+      end)
+      |> Enum.sort_by(fn {key, _, _map} -> key end)
+
     socket
-    |> assign(:operations, merged_entries)
+    |> assign(:operations, grouped_by_wc_vendor)
     |> assign(:total_efficiency, total_efficiency)
     |> assign(:average_hours_logged_per_day, average_hours_logged_per_day)
+  end
+
+  def calc_job_efficiency(entries) do
+    case Enum.count(entries) do
+      0 -> "N/A"
+      _ -> Enum.reduce(entries, 0, fn m, acc -> m.efficiency_percentage + acc end) / Enum.count(entries) |> Float.round()
+    end
   end
 
   def calc_average_hours_logged_per_day(entries) do
