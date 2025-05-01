@@ -52,11 +52,15 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
                 </div>
               </.form>
             </div>
-
-            Total Efficiency: <%= @total_efficiency %>
-            <br>
-
             <%= if @operations != [] do %>
+            <div class="text-white text-bold text-lg mx-6">
+              Average Job Efficiency: <%= @total_efficiency %>%
+            </div>
+            <div class="text-white text-bold text-lg mx-6">
+              Average hours logged per day: <%= @average_hours_logged_per_day %>
+            </div>
+
+            <br>
             <div class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2 ml-6 mr-2 pr-4 max-h-[45rem] overflow-y-auto">
               <%= for op <- @operations do %>
                 <div
@@ -128,6 +132,7 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
 
     |> assign(:operations, [])
     |> assign(:total_efficiency, 0.0)
+    |> assign(:average_hours_logged_per_day, 0.0)
   end
 
   @impl true
@@ -194,7 +199,11 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
 
   def load_performance_for_dates(socket, employee_initial, startdate, enddate) do
     employee_entries = Shophawk.Jobboss_db.load_job_operation_time_by_employee(employee_initial, startdate, enddate)
-
+    average_hours_logged_per_day =
+      case employee_entries do
+        [] -> 0.0
+        _ -> calc_average_hours_logged_per_day(employee_entries)
+      end
 
     #Filter out job operations with more than one employee logging time to make performance % accurate.
     job_operations_without_other_employee_time_entered =
@@ -217,15 +226,15 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
           nil -> acc ++ [e]
           found ->
             updated_map =
-              Map.put(found, :act_run_labor_hrs, found.act_run_labor_hrs + e.act_run_labor_hrs)
-              |> Map.put(:act_run_qty, found.act_run_qty + e.act_run_qty)
-              |> Map.put(:act_scrap_qty, found.act_scrap_qty + e.act_scrap_qty)
+              Map.put(found, :act_run_labor_hrs, Float.round((found.act_run_labor_hrs + e.act_run_labor_hrs), 2))
+              |> Map.put(:act_run_qty, Float.round((found.act_run_qty + e.act_run_qty), 2))
+              |> Map.put(:act_scrap_qty, Float.round((found.act_scrap_qty + e.act_scrap_qty), 2))
             updated_acc = Enum.reject(acc, fn e -> e.job_operation == found.job_operation end)
             updated_acc ++ [updated_map]
             #Enum.map(acc, fn a -> if found.job_operation == a.job_operation, do: found, else: a end)
         end
       end)
-      |> Enum.reject(fn a -> a.act_run_labor_hrs <= 0.0 end)
+      |> Enum.reject(fn a -> a.act_run_labor_hrs <= 0.001 end)
 
     operation_numbers = Enum.map(aggregated_entries, fn e -> e.job_operation end) |> Enum.uniq()
     job_operations = Shophawk.Jobboss_db.load_job_operations(operation_numbers)
@@ -243,6 +252,8 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
             |> Map.put(:efficiency_percentage, total_efficiency)
         end
       end)
+      |> Enum.reject(fn a -> a.est_total_hrs <= 0.001 end)
+      |> Enum.reject(fn a -> a.act_run_labor_hrs <= 0.01 end)
       |> Enum.sort_by(&(&1.efficiency_percentage))
     total_efficiency =
       case Enum.count(merged_entries) do
@@ -269,6 +280,18 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
     socket
     |> assign(:operations, merged_entries)
     |> assign(:total_efficiency, total_efficiency)
+    |> assign(:average_hours_logged_per_day, average_hours_logged_per_day)
+  end
+
+  def calc_average_hours_logged_per_day(entries) do
+    grouped_entries_by_date = Enum.group_by(entries, &{&1.work_date})
+    total_hours_logged =
+      Enum.map(grouped_entries_by_date, fn {_date, op_list} ->
+        Enum.reduce(op_list, 0.0, fn op, acc -> op.act_run_labor_hrs + acc end)
+      end)
+      |> Enum.sum()
+
+    Float.round((total_hours_logged / Enum.count(grouped_entries_by_date)), 2)
   end
 
   def set_operation_color(performance) do
@@ -288,8 +311,8 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
       performance > 140.0 and performance <= 150.0 -> "bg-green-400"
       performance > 150.0 and performance <= 160.0 -> "bg-green-500"
       performance > 160.0 and performance <= 170.0 -> "bg-green-600"
-      performance > 170.0 and performance <= 180.0 -> "bg-green-700"
-      performance > 180.0 -> "bg-green-800"
+      performance > 170.0 and performance <= 180.0 -> "bg-green-600"
+      performance > 180.0 -> "bg-green-600"
       true -> "bg-white"
     end
   end
