@@ -3,7 +3,7 @@
     <.button>Back to Slideshow</.button>
   </.link>
 </div>
-<div class="mx-auto w-fit bg-cyan-700 p-4 rounded-lg text-white">
+<div class="mx-auto w-fit bg-cyan-800 p-4 rounded-lg text-white">
 
 <.header>
   Listing Timeoff
@@ -16,9 +16,9 @@
 <div>
   <form phx-change="search">
     <div class="flex space-x-2">
-      <div class="flex-grow mx-0.5"><.input type="search" name="search_term" value={@search_term || ""} placeholder="Search" /></div>
-      <div class="flex-grow mx-0.5"><.input type="date" name="start_date" value={@start_date || ""} /></div>
-      <div class="flex-grow mx-0.5"><.input type="date" name="end_date" value={@end_date || ""}/></div>
+      <div class="flex-grow mx-0.5 pt-3"><.input type="search" name="search_term" value={@search_term || ""} placeholder="Search" /></div>
+      <div class="flex-grow mx-0.5 pt-3"><.input type="date" name="start_date" value={@start_date || ""} /></div>
+      <div class="flex-grow mx-0.5 pt-3"><.input type="date" name="end_date" value={@end_date || ""}/></div>
       <div class="flex-none self-center pt-3" phx-click="clear_search"><.info_button>Clear Search</.info_button></div>
     </div>
   </form>

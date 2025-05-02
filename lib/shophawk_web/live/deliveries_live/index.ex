@@ -7,6 +7,9 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    socket =
+      assign(socket, :search_value, "")
+      |> assign(:page_title, "Deliveries")
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Shophawk.PubSub, "delivery_update")
       deliveries = load_active_deliveries()
@@ -192,7 +195,21 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
           </div>
         </div>
       <% else %>
-        <div class="w-10/12 bg-cyan-900 px-10 rounded-lg flex">
+        <div class="w-10/12 bg-cyan-900 px-10 rounded-lg">
+        <div class="grid grid-cols-5 p-2">
+          <div class="col-span-2"></div>
+          <div>
+            <form id={"search-form"} phx-submit="show_job" key={@search_value}>
+              <.input
+                type="text"
+                name="job"
+                value={@search_value}
+                placeholder="Job Search..."
+              />
+            </form>
+          </div>
+        </div>
+        <div class="flex">
           <table id="stockedmaterials" class="text-center w-full">
             <thead class="text-white text-base">
               <tr>
@@ -257,6 +274,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
               </tr>
             </tbody>
           </table>
+        </div>
         </div>
       <% end %>
 
@@ -341,7 +359,12 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
     {:noreply, stream_insert(socket, :deliveries, updated_delivery)}
   end
 
-  def handle_event("show_job", %{"job" => job}, socket), do: {:noreply, ShophawkWeb.RunlistLive.Index.showjob(socket, job)}
+  def handle_event("show_job", %{"job" => job}, socket) do
+    {:noreply,
+    socket
+    |> assign(:search_value, nil)
+    |> ShophawkWeb.RunlistLive.Index.showjob(job)}
+  end
 
 
   def handle_event("attachments", _, socket) do
@@ -366,7 +389,9 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   end
 
   def handle_event("close_job_attachments", _params, socket) do
-    {:noreply, assign(socket, live_action: :show_job)}
+    {:noreply,
+    socket
+    |> assign(live_action: :show_job)}
   end
 
   def handle_event("prevent_row_click", _, socket) do

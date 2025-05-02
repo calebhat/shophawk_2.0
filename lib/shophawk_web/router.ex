@@ -20,61 +20,65 @@ defmodule ShophawkWeb.Router do
   scope "/", ShophawkWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-    get "/download/:file_path", DownloadController, :download
+    live_session :default do
+      get "/", PageController, :home
+      get "/download/:file_path", DownloadController, :download
 
-    live "/deliveries", DeliveriesLive.Index, :index
-    live "/information", InformationLive.Index, :index
+      live "/search", SearchLive
 
-    live "/tools", ToolLive.Index, :index
-    live "/tools/new", ToolLive.Index, :new
-    live "/tools/:id/edit", ToolLive.Index, :edit
-    live "/tools/:id/checkout", ToolLive.Index, :checkout
-    live "/tools/:id/checkin", ToolLive.Index, :checkin
-    live "/tools/restock", ToolLive.Index, :restock
-    live "/tools/:id", ToolLive.Show, :show
-    live "/tools/:id/show/edit", ToolLive.Show, :edit
+      live "/deliveries", DeliveriesLive.Index, :index
+      live "/information", InformationLive.Index, :index
 
-    live "/runlists/:id/job", RunlistLive.ShowJob, :showjob
-    live "/runlists/new_department", RunlistLive.Index, :new_department
-    live "/runlists/:id/edit_department", RunlistLive.Index, :edit_department
-    live "/runlists/:id/new_assignment", RunlistLive.Index, :new_assignment
-    live "/runlists/:id/assignments", RunlistLive.Index, :assignments
-    live "/runlists", RunlistLive.Index, :index
-    live "/runlists/:id", RunlistLive.Show, :show
-    live "/runlists/:id/show/edit", RunlistLive.Show, :edit
-    live "/runlists/importall", RunlistLive.Importall, :importall
+      live "/tools", ToolLive.Index, :index
+      live "/tools/new", ToolLive.Index, :new
+      live "/tools/:id/edit", ToolLive.Index, :edit
+      live "/tools/:id/checkout", ToolLive.Index, :checkout
+      live "/tools/:id/checkin", ToolLive.Index, :checkin
+      live "/tools/restock", ToolLive.Index, :restock
+      live "/tools/:id", ToolLive.Show, :show
+      live "/tools/:id/show/edit", ToolLive.Show, :edit
 
-    live "/departments", DepartmentLive.Index, :index
-    live "/departments/new", DepartmentLive.Index, :new_department
-    live "/departments/:id/edit", DepartmentLive.Index, :edit_department
-    live "/departments/:id", DepartmentLive.Show, :show
-    live "/departments/:id/show/edit", DepartmentLive.Show, :edit
+      live "/runlists/:id/job", RunlistLive.ShowJob, :showjob
+      live "/runlists/new_department", RunlistLive.Index, :new_department
+      live "/runlists/:id/edit_department", RunlistLive.Index, :edit_department
+      live "/runlists/:id/new_assignment", RunlistLive.Index, :new_assignment
+      live "/runlists/:id/assignments", RunlistLive.Index, :assignments
+      live "/runlists", RunlistLive.Index, :index
+      live "/runlists/:id", RunlistLive.Show, :show
+      live "/runlists/:id/show/edit", RunlistLive.Show, :edit
+      live "/runlists/importall", RunlistLive.Importall, :importall
 
-    live "/slideshow", SlideshowLive.Index, :index
-    live "/slideshow/new", SlideshowLive.Index, :new
-    live "/slideshow/:id/edit", SlideshowLive.Index, :edit
-    live "/run_slideshow/:id", SlideshowLive.Index, :run_slideshow
-    live "/slideshow/:id", SlideshowLive.Show, :show
-    live "/slideshow/:id/show/edit", SlideshowLive.Show, :edit
+      live "/departments", DepartmentLive.Index, :index
+      live "/departments/new", DepartmentLive.Index, :new_department
+      live "/departments/:id/edit", DepartmentLive.Index, :edit_department
+      live "/departments/:id", DepartmentLive.Show, :show
+      live "/departments/:id/show/edit", DepartmentLive.Show, :edit
 
-    live "/timeoff", TimeoffLive.Index, :index
-    live "/timeoff/new", TimeoffLive.Index, :new
-    live "/timeoff/:id/edit", TimeoffLive.Index, :edit
-    live "/timeoff/:id", TimeoffLive.Show, :show
-    live "/timeoff/:id/show/edit", TimeoffLive.Show, :edit
+      live "/slideshow", SlideshowLive.Index, :index
+      live "/slideshow/new", SlideshowLive.Index, :new
+      live "/slideshow/:id/edit", SlideshowLive.Index, :edit
+      live "/run_slideshow/:id", SlideshowLive.Index, :run_slideshow
+      live "/slideshow/:id", SlideshowLive.Show, :show
+      live "/slideshow/:id/show/edit", SlideshowLive.Show, :edit
 
-    live "/dashboard/shop_meeting", DashboardLive.ShopMeeting, :index
+      live "/timeoff", TimeoffLive.Index, :index
+      live "/timeoff/new", TimeoffLive.Index, :new
+      live "/timeoff/:id/edit", TimeoffLive.Index, :edit
+      live "/timeoff/:id", TimeoffLive.Show, :show
+      live "/timeoff/:id/show/edit", TimeoffLive.Show, :edit
 
-    live "/stockedmaterials", StockedMaterialLive.Index, :index
-    live "/stockedmaterials/new", StockedMaterialLive.Index, :new
-    live "/stockedmaterials/history", StockedMaterialLive.History, :history
-    live "/stockedmaterials/material_to_order", StockedMaterialLive.MaterialToOrder
-    live "/stockedmaterials/receive_material", StockedMaterialLive.ReceiveMaterial
-    live "/stockedmaterials/:id/edit", StockedMaterialLive.Index, :edit
-    live "/stockedmaterials/:id/detailededit", StockedMaterialLive.Index, :detailededit
-    live "/stockedmaterials/:id", StockedMaterialLive.Show, :show
-    live "/stockedmaterials/:id/show/edit", StockedMaterialLive.Show, :edit
+      live "/dashboard/shop_meeting", DashboardLive.ShopMeeting, :index
+
+      live "/stockedmaterials", StockedMaterialLive.Index, :index
+      live "/stockedmaterials/new", StockedMaterialLive.Index, :new
+      live "/stockedmaterials/history", StockedMaterialLive.History, :history
+      live "/stockedmaterials/material_to_order", StockedMaterialLive.MaterialToOrder
+      live "/stockedmaterials/receive_material", StockedMaterialLive.ReceiveMaterial
+      live "/stockedmaterials/:id/edit", StockedMaterialLive.Index, :edit
+      live "/stockedmaterials/:id/detailededit", StockedMaterialLive.Index, :detailededit
+      live "/stockedmaterials/:id", StockedMaterialLive.Show, :show
+      live "/stockedmaterials/:id/show/edit", StockedMaterialLive.Show, :edit
+    end
 
   end
 
