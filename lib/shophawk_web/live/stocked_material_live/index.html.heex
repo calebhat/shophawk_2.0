@@ -97,7 +97,7 @@
                 <.link patch={~p"/stockedmaterials/receive_material"}>
                   <div class="pl-2 flex-1"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
                 </.link>
-                <.link patch={~p"/stockedmaterials/history?#{[material: @size_info.material_name]}"}>
+                <.link patch={~p"/stockedmaterials/history?#{[material: @size_info.material_name, material_name: @selected_material, size: @size_info.size]}"}>
                   <div class="pl-2"><.button class=""><%= @size_info.material_name %> History</.button></div>
                 </.link>
               </div>
@@ -454,7 +454,8 @@
     title={@page_title}
     action={@live_action}
     stocked_material={@stocked_material}    
-    material={if @size_info == nil, do: "", else: @size_info.material_name}
+    material={if @material_name == nil, do: "", else: @size_info.material_name}
+    size={if @size_info == nil, do: "", else: @size_info.size}
     patch={~p"/stockedmaterials"}
   />
 </.modal>

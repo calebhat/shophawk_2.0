@@ -48,6 +48,7 @@ defmodule Shophawk.Material.StockedMaterial do
             },
           :invalid | %{optional(:__struct__) => none(), optional(atom() | binary()) => any()}
         ) :: Ecto.Changeset.t()
+
   def material_waiting_on_quote_changeset(stocked_material, attrs) do
     stocked_material
     |> cast(attrs, [:material, :bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving, :location])
@@ -59,9 +60,32 @@ defmodule Shophawk.Material.StockedMaterial do
   def changeset_material_receiving(stocked_material, attrs) do
     stocked_material
     |> cast(attrs, [:material, :bar_length, :original_bar_length, :slug_length, :number_of_slugs, :purchase_date, :purchase_price, :vendor, :being_quoted, :ordered, :in_house, :bar_used, :remaining_length_not_assigned, :extra_bar_for_receiving, :location])
-    |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :bar_length, :original_bar_length])
+    |> validate_required([:material, :being_quoted, :ordered, :in_house, :bar_used, :purchase_price, :vendor])
     |> validate_number(:bar_length, greater_than_or_equal_to: 0, message: "Must be positive")
+    |> validate_at_least_one_length(:bar_length, :original_bar_length)
     |> round_floats()
+  end
+
+  # Custom validation to ensure at least one of bar_length or original_bar_length is non-empty
+  defp validate_at_least_one_length(changeset, field1, field2) do
+    bar_length = get_field(changeset, field1)
+    original_bar_length = get_field(changeset, field2)
+
+    cond do
+      is_nil(bar_length) and is_nil(original_bar_length) ->
+        # Both are nil (or empty after casting)
+        add_error(changeset, :bar_length, "Enter Bar Length")
+        |> add_error(:original_bar_length, "Enter Bar Length")
+
+      bar_length == 0.0 and original_bar_length == 0.0 ->
+        # Both are zero (possibly from empty strings cast to floats)
+        add_error(changeset, :bar_length, "Enter Bar Length")
+        |> add_error(:original_bar_length, "Enter Bar Length")
+
+      true ->
+        # At least one is non-nil and non-zero
+        changeset
+    end
   end
 
   # Custom function to round float fields to 2 decimal places

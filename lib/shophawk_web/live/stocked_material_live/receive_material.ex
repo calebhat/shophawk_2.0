@@ -79,6 +79,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                                 value={if Map.has_key?(bar.source.changes, :bar_length), do: bar.source.changes.bar_length, else: nil} />
                               </div>
                               <div class="mr-2 pb-2"><.input field={bar[:location]} type="text" placeholder="Location"/></div>
+                              <div class="mr-2 pb-2 hidden"><.input field={bar[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()}/></div>
                               <div class=""><.button type="submit" phx-disable-with="Saving...">Receive</.button></div>
                             </div>
                           </.form>

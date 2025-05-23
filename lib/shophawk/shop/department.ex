@@ -21,6 +21,7 @@ defmodule Shophawk.Shop.Department do
     department
     |> cast(attrs, [:department, :capacity, :machine_count, :show_jobs_started])
     |> validate_required([:department, :capacity, :machine_count])
+    |> unique_constraint(:department, message: "A department with this name already exists")
 
   end
 end

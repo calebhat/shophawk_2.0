@@ -30,7 +30,7 @@ defmodule ShophawkWeb.StockedMaterialLive.DetailedFormComponent do
       <.input field={@form[:being_quoted]} type="checkbox" label="Being Quoted?" />
       <.input field={@form[:ordered]} type="checkbox" label="Ordered?" />
       <.input field={@form[:in_house]} type="checkbox" label="In House?" />
-      <.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" value="true" />
+      <.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" />
       <.input field={@form[:location]} type="text" label="Location" />
 
         <:actions>

@@ -119,7 +119,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
-    IO.inspect(params)
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
@@ -153,10 +152,13 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   def handle_info({ShophawkWeb.StockedMaterialLive.FormComponent, {:saved, _stocked_material}}, socket) do
-    {:noreply, socket}
+    {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
+
+    #{:noreply, socket}
   end
-  def handle_info({ShophawkWeb.StockedMaterialLive.DetailedFormComponent, {:saved, _stocked_material}}, socket) do
-    {:noreply, socket}
+  def handle_info({ShophawkWeb.StockedMaterialLive.DetailedFormComponent, {:saved, _stocked_material, _assigns}}, socket) do
+    #IO.inspect(assigns)
+    {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
   end
 
   @impl true

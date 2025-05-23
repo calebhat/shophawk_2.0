@@ -21,12 +21,11 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
       >
         <.input field={@form[:material]} type="text" label="Material" value={@material} disabled="true" />
         <div class="hidden"><.input field={@form[:material]} type="text" label="Material" value={@material} /></div>
-        <.input field={@form[:original_bar_length]} type="number" label="Bar Length" />
+        <.input field={@form[:bar_length]} type="number" label="Bar Length" />
         <.input field={@form[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()} />
         <.input field={@form[:purchase_price]} type="number" label="Purchase Price" />
         <.input field={@form[:vendor]} type="text" label="Vendor" phx-debounce="2000"/>
-        <.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" value="true" disabled="true" />
-        <div class="hidden"><.input field={@form[:bar_used]} type="checkbox" label="Bar Used?" value="true" /></div>
+        <.input field={@form[:location]} type="text" label="Location" />
 
         <:actions>
           <.button phx-disable-with="Saving...">Save Stocked material</.button>
@@ -88,10 +87,9 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
 
   defp save_stocked_material(socket, :new, stocked_material_params) do
     updated_stocked_material_params =
-      case stocked_material_params["bar_length"] do
-        nil -> stocked_material_params
-        length -> Map.put(stocked_material_params, "original_bar_length", length)
-      end
+      Map.put(stocked_material_params, "original_bar_length", stocked_material_params["bar_length"])
+      |> Map.put("in_house", true)
+
     case Material.create_stocked_material(updated_stocked_material_params) do
       {:ok, stocked_material} ->
         notify_parent({:saved, stocked_material})

@@ -83,6 +83,11 @@ defmodule ShophawkWeb.StockedMaterialLive.History do
           end)
       end
 
+    socket =
+      socket
+      |> assign(:material_name, params["material_name"])
+      |> assign(:size, params["size"])
+
     {:ok, stream(socket, :stockedmaterials, history, reset: true)}
   end
 
