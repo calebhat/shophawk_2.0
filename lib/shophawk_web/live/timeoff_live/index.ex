@@ -4,6 +4,8 @@ defmodule ShophawkWeb.TimeoffLive.Index do
   alias Shophawk.Shopinfo
   alias Shophawk.Shopinfo.Timeoff
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def mount(_params, _session, socket) do
     today = DateTime.utc_now() |> DateTime.to_date()

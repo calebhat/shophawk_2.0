@@ -1,118 +1,117 @@
-<div>
-    <!-- <div class="grid justify-contents-end"><.button phx-click="test_click">CLICK ME</.button></div> -->
+<.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+<div class="px-4 py-4 sm:px-6 lg:px-8">
+    <div>
+        <div class="grid grid-cols-2 place-content-center text-stone-100">
+            
+            <!-- Checkbook Balance/tx's -->
+            <.live_component module={CheckbookComponent} id="checkbook-1" 
+            current_balance={@current_balance} 
+            checkbook_entries={@checkbook_entries}
+            height={%{border: "h-[43vh]", frame: "h-[70%] 2xl:h-[87%]"}}
+            />
 
-    <div class="grid grid-cols-2 place-content-center text-stone-100">
-        
-        <!-- Checkbook Balance/tx's -->
-        <.live_component module={CheckbookComponent} id="checkbook-1" 
-        current_balance={@current_balance} 
-        checkbook_entries={@checkbook_entries}
-        height={%{border: "h-[43vh]", frame: "h-[70%] 2xl:h-[87%]"}}
-        />
+            <!-- open invoices -->
+            <.live_component module={InvoicesComponent} id="invoices-1" 
+            open_invoices={@open_invoices} 
+            selected_range={@selected_range}
+            open_invoice_values={@open_invoice_values}
+            height={%{border: "h-[43vh", frame: "h-[70%] 2xl:h-[75%]", content: "h-[18vh] 2xl:h-[23vh]"}}
+            />
 
-        <!-- open invoices -->
-        <.live_component module={InvoicesComponent} id="invoices-1" 
-        open_invoices={@open_invoices} 
-        selected_range={@selected_range}
-        open_invoice_values={@open_invoice_values}
-        height={%{border: "h-[43vh", frame: "h-[70%] 2xl:h-[75%]", content: "h-[18vh] 2xl:h-[23vh]"}}
-        />
+            <!-- Travelor Count -->
+            <.live_component module={TravelorcountComponent} id="travelor_count-1"
+            travelor_count={@travelor_count}
+            travelor_totals={@travelor_totals}
+            />
 
-        <!-- Travelor Count -->
-        <.live_component module={TravelorcountComponent} id="travelor_count-1"
-        travelor_count={@travelor_count}
-        travelor_totals={@travelor_totals}
-        />
+            <!-- Hot Jobs -->
+            <.live_component module={HotjobsComponent} id="hot_jobs-1"
+            hot_jobs={@hot_jobs}
+            height={%{border: "h-[43vh]", frame: "h-[87%]", style: "font-size: .75vw"}}
+            header_font_size="text-2xl"
+            />
+            
+            <!-- Hot Jobs -->
+            <.live_component module={WeekoneTimeoffComponent} id="weekonetimeoff-1"
+            weekly_dates={@weekly_dates}
+            week1_timeoff={@week1_timeoff}
+            />
 
-        <!-- Hot Jobs -->
-        <.live_component module={HotjobsComponent} id="hot_jobs-1"
-        hot_jobs={@hot_jobs}
-        height={%{border: "h-[43vh]", frame: "h-[87%]", style: "font-size: .75vw"}}
-        header_font_size="text-2xl"
-        />
-        
-        <!-- Hot Jobs -->
-        <.live_component module={WeekoneTimeoffComponent} id="weekonetimeoff-1"
-        weekly_dates={@weekly_dates}
-        week1_timeoff={@week1_timeoff}
-        />
+            <!-- Hot Jobs -->
+            <.live_component module={WeektwoTimeoffComponent} id="weektwotimeoff-1"
+            weekly_dates={@weekly_dates}
+            week2_timeoff={@week2_timeoff}
+            />
+        </div> <!-- end of grid -->
 
-        <!-- Hot Jobs -->
-        <.live_component module={WeektwoTimeoffComponent} id="weektwotimeoff-1"
-        weekly_dates={@weekly_dates}
-        week2_timeoff={@week2_timeoff}
-        />
-    </div> <!-- end of grid -->
+        <div class="grid grid-cols-1 place-content-center text-stone-100">
+            <.live_component module={LateShipmentsComponent} id="late_shipments-1"
+            late_deliveries={@late_deliveries}
+            late_delivery_count={@late_delivery_count}
+            late_deliveries_loaded={@late_deliveries_loaded}
+            height={%{border: "h-[43vh]", frame: "h-[81%] 2xl:h-[87%]", style: "font-size: 1vw"}}
+            header_font_size="text-2xl"
+            />
 
-    <div class="grid grid-cols-1 place-content-center text-stone-100">
-        <.live_component module={LateShipmentsComponent} id="late_shipments-1"
-        late_deliveries={@late_deliveries}
-        late_delivery_count={@late_delivery_count}
-        late_deliveries_loaded={@late_deliveries_loaded}
-        height={%{border: "h-[43vh]", frame: "h-[81%] 2xl:h-[87%]", style: "font-size: 1vw"}}
-        header_font_size="text-2xl"
-        />
+            <.live_component module={RevenueComponent} id="revenue-2"
+            six_weeks_revenue_amount={@six_weeks_revenue_amount}
+            total_revenue={@total_revenue}
+            active_jobs={@active_jobs}
+            revenue_chart_data={@revenue_chart_data}
+            percentage_diff={@percentage_diff}
+            header_font_size="text-2xl"
+            height={%{frame: "h-[87%] 2xl:h-[89%]"}}
+            />
+            
+            <.live_component module={MonthlySalesChartComponent} id="monthly_sales"
+            sales_chart_data={@sales_chart_data}
+            this_months_sales={@this_months_sales}
+            this_years_sales={@this_years_sales}
+            projected_yearly_sales={@projected_yearly_sales}
+            show_monthly_sales_table={@show_monthly_sales_table}
+            sales_table_data={@sales_table_data}
+            monthly_average={@monthly_average}        
+            header_font_size="text-2xl"
+            height={%{frame: "h-[77%] 2xl:h-[82%]"}}
+            />
 
-        <.live_component module={RevenueComponent} id="revenue-2"
-        six_weeks_revenue_amount={@six_weeks_revenue_amount}
-        total_revenue={@total_revenue}
-        active_jobs={@active_jobs}
-        revenue_chart_data={@revenue_chart_data}
-        percentage_diff={@percentage_diff}
-        header_font_size="text-2xl"
-        height={%{frame: "h-[87%] 2xl:h-[89%]"}}
-        />
-          
-        <.live_component module={MonthlySalesChartComponent} id="monthly_sales"
-        sales_chart_data={@sales_chart_data}
-        this_months_sales={@this_months_sales}
-        this_years_sales={@this_years_sales}
-        projected_yearly_sales={@projected_yearly_sales}
-        show_monthly_sales_table={@show_monthly_sales_table}
-        sales_table_data={@sales_table_data}
-        monthly_average={@monthly_average}        
-        header_font_size="text-2xl"
-        height={%{frame: "h-[77%] 2xl:h-[82%]"}}
-        />
+            <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
+            top_10_startdate={@top_10_startdate}
+            top_10_enddate={@top_10_enddate}
+            yearly_sales_data={@yearly_sales_data}
+            complete_yearly_sales_data={@complete_yearly_sales_data}
+            total_sales={@total_sales}        
+            />
 
-        <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
-        top_10_startdate={@top_10_startdate}
-        top_10_enddate={@top_10_enddate}
-        yearly_sales_data={@yearly_sales_data}
-        complete_yearly_sales_data={@complete_yearly_sales_data}
-        total_sales={@total_sales}        
-        />
+            <.live_component module={TopVendorsComponent} id="top_ten_vendors_1"
+            top_vendors={@top_vendors}        
+            empty_vendor_list={@empty_vendor_list}
+            top_vendors_startdate={@top_vendors_startdate}
+            top_vendors_enddate={@top_vendors_enddate}
+            />
+        </div>
 
-        <.live_component module={TopVendorsComponent} id="top_ten_vendors_1"
-        top_vendors={@top_vendors}        
-        empty_vendor_list={@empty_vendor_list}
-        top_vendors_startdate={@top_vendors_startdate}
-        top_vendors_enddate={@top_vendors_enddate}
+        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard?reload=#{false}")}>
+        <.live_component
+            module={ShophawkWeb.RunlistLive.ShowJob}
+            id={@id || :show_job}
+            job_ops={@job_ops}
+            job_info={@job_info}
+            title={@page_title}
+            action={@live_action}
+            current_user={@current_user}
         />
+        </.modal>
+
+        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
+        <.live_component
+            module={ShophawkWeb.RunlistLive.JobAttachments}
+            id={@id || :job_attachments}
+            attachments={@attachments}
+            title={@page_title}
+            action={@live_action}
+        />
+        </.modal>    
+
     </div>
-
-    <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard?reload=#{false}")}>
-    <.live_component
-        module={ShophawkWeb.RunlistLive.ShowJob}
-        id={@id || :show_job}
-        job_ops={@job_ops}
-        job_info={@job_info}
-        title={@page_title}
-        action={@live_action}
-        current_user={@current_user}
-    />
-    </.modal>
-
-    <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
-    <.live_component
-        module={ShophawkWeb.RunlistLive.JobAttachments}
-        id={@id || :job_attachments}
-        attachments={@attachments}
-        title={@page_title}
-        action={@live_action}
-    />
-    </.modal>
-
-    
-
 </div>

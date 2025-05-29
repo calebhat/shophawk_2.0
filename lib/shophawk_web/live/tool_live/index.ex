@@ -4,6 +4,8 @@ defmodule ShophawkWeb.ToolLive.Index do
   alias Shophawk.Inventory
   alias Shophawk.Inventory.Tool
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def mount(_params, _session, socket) do
     socket =

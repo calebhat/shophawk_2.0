@@ -1,4 +1,6 @@
 
+<.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+<div class="px-4 py-4 sm:px-6 lg:px-8">
   <div class="grid grid-cols-12">
     <div class="col-span-4"> <!-- workcenter, department select, refresh button -->
       <%= cond do %>  
@@ -95,216 +97,217 @@
   </div>
 
 
-<div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}> 
-  <br>
-  <div :if={@show_department_loads}>
-    <%= if List.first(@department_loads).department_id == 0 do %>
-      <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in"> 
-        <div class="pt-2 pb-2 px-2 text-center text-3xl border-b-2 border-black" >
-          <div class="grid grid-cols-1 gap-3" >
-            <div class="bg-stone-200 p-1 rounded-md border-2 border-black">Shophawk is Restarting. Please Refresh the page in 1 minute </div>
-          </div>    
-        </div>  
-      </div>
-    <% else %>
-      <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
-        <%= for department <- @department_loads do %>      
-          <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
-            <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
-              <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
-              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
-              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
-              <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
-              <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
+  <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}> 
+    <br>
+    <div :if={@show_department_loads}>
+      <%= if List.first(@department_loads).department_id == 0 do %>
+        <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in"> 
+          <div class="pt-2 pb-2 px-2 text-center text-3xl border-b-2 border-black" >
+            <div class="grid grid-cols-1 gap-3" >
+              <div class="bg-stone-200 p-1 rounded-md border-2 border-black">Shophawk is Restarting. Please Refresh the page in 1 minute </div>
             </div>    
           </div>  
-        <% end %>
-      </div>
-    <% end %>
-  </div>
-</div>
-<div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
-  <%= if @streams.runlists.inserts == [] do %>
-    <%= if @department_id != nil or @workcenter_id != nil do %> 
-    <%= if @show_department_loads == false do  %>
-    <br>
-    <div class="bg-stone-800 text-white rounded-lg text-center text-2xl py-6">
-      Nothing Scheduled
-    </div>
-    <% end %>
-    <% end  %>
-  <% end  %>
-</div>
-
-<%= if @show_runlist_table == true do %>  <!-- department runlist table -->
-  <.runlist_table
-    id="runlists"
-    updated={@updated}
-    rows={@streams.runlists}
-    assignments={@assignments}
-    started_assignment_list={@started_assignment_list}
-    weekly_load={@weekly_load}
-    dots={@dots}
-    jobs_that_ship_today={assigns.jobs_that_ship_today}
-    row_click={fn {_id, _runlist} -> "show_job" end}
-  >
-    <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
-    <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.make_quantity %></:col>
-    <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-16 text-center" cellstyle="text-center"><%= runlist.est_total_hrs %></:col>
-    <:col :let={{_id, runlist}} label="Material" headerstyle="w-32 2xl:w-44" cellstyle=""><%= runlist.material %></:col>
-    <:col :let={{_id, runlist}} label="Part number" headerstyle="2xl:w-fit" cellstyle=""><%= runlist.part_number %></:col>
-    <:col :let={{_id, runlist}} label="Description" headerstyle="2xl:w-fit" cellstyle="text-sm"><%= runlist.description %></:col>
-    <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24 text-center" cellstyle="text-center"><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
-    <:col :let={{_id, runlist}} label="Customer" headerstyle="2xl:w-40" cellstyle="font-xs"><%= runlist.customer %></:col>
-    <:col :let={{_id, runlist}} label="Assignment" headerstyle="w-32 2xl:w-60 text-center" cellstyle="text-center"><%= runlist.assignment %></:col>
-    <:col :let={{_id, runlist}} label="Material waiting" headerstyle="w-14 text-sm" cellstyle="text-center"><%= runlist.material_waiting %></:col> 
-    <:col :let={{_id, runlist}} label="Current Location" headerstyle="2xl:w-24 text-base text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
-    <:col :let={{_id, runlist}} label="Workcenter" headerstyle="2xl:w-52 text-lg" cellstyle=""><%= runlist.wc_vendor %></:col>
-  </.runlist_table>
-<% end %>
-
-<%= if @show_workcenter_table == true do %>  
-  <.runlist_table_workcenter_only
-    id="runlists"
-    updated={@updated}
-    rows={@streams.runlists}
-    assignments={@assignments}
-    started_assignment_list={@started_assignment_list}
-    weekly_load={@weekly_load}
-    dots={@dots}
-    row_click={fn {_id, _runlist} -> "show_job" end}
-  >
-    <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
-    <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.order_quantity %></:col>
-    <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-16 text-center" cellstyle="text-center"><%= runlist.est_total_hrs %></:col>
-    <:col :let={{_id, runlist}} label="Material" headerstyle="w-32 2xl:w-44" cellstyle=""><%= runlist.material %></:col>
-    <:col :let={{_id, runlist}} label="Part number" headerstyle="2xl:w-fit" cellstyle=""><%= runlist.part_number %></:col>
-    <:col :let={{_id, runlist}} label="Description" headerstyle="2xl:w-fit" cellstyle="text-sm"><%= runlist.description %></:col>
-    <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24 text-center" cellstyle="text-center"><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
-    <:col :let={{_id, runlist}} label="Customer" headerstyle="2xl:w-40" cellstyle="font-xs"><%= runlist.customer %></:col>
-    <:col :let={{_id, runlist}} label="Assignment" headerstyle="w-32 2xl:w-60 text-center" cellstyle="text-center"><%= runlist.assignment %></:col>
-    <:col :let={{_id, runlist}} label="Material waiting" headerstyle="w-14 text-sm" cellstyle="text-center"><%= runlist.material_waiting %></:col> 
-    <:col :let={{_id, runlist}} label="Current Location" headerstyle="2xl:w-24 text-base text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
-    <:col :let={{_id, runlist}} label="Workcenter" headerstyle="2xl:w-52 text-lg" cellstyle=""><%= runlist.wc_vendor %></:col>
-  </.runlist_table_workcenter_only>
-<% end %>
-
-<.modal :if={@live_action in [:new, :edit]} id="runlist-modal" show on_cancel={JS.patch(~p"/runlists")}>
-  <.live_component
-    module={ShophawkWeb.RunlistLive.FormComponent}
-    id={@runlist.id || :new}
-    title={@page_title}
-    action={@live_action}
-    runlist={@runlist}
-    patch={~p"/runlists"}
-  />
-</.modal>
-
-<.modal :if={@live_action in [:new_department, :edit_department]} id="department-modal" show on_cancel={JS.patch(~p"/runlists")}>
-  <.live_component
-    module={ShophawkWeb.RunlistLive.DepartmentForm}
-    id={@department.id || :new}
-    title={@page_title}
-    action={@live_action}    
-    department_id={@department_id}
-    department_name={@department_name}
-    department={@department}
-    patch={~p"/runlists"}
-  />
-</.modal>
-
-<.modal :if={@live_action in [:new_assignment, :edit_assignment]} id="assignment-modal" show on_cancel={JS.patch(~p"/runlists")}>
-  <.live_component
-    module={ShophawkWeb.RunlistLive.AssignmentForm}
-    id={@assignment.id || :new}
-    title={@page_title}
-    action={@live_action}
-    assignment={@assignment}
-    department_id={@department_id}
-    department_name={@department_name}
-    department={@department}
-    patch={~p"/runlists/#{@department_id}/assignments"}
-  />
-</.modal>
-
-<.modal :if={@live_action in [:assignments]} id="assignments-modal" show on_cancel={JS.patch(~p"/runlists")}>
-  <.live_component
-    module={ShophawkWeb.RunlistLive.ViewAssignments}
-    id={@department_id || :assignments}
-    title={@page_title}
-    action={@live_action}
-    assignments={@saved_assignments}
-    department_id={@department_id}
-    department_name={@department_name}
-    patch={~p"/runlists"}
-  />
-</.modal>
-
-<.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/runlists")}>
-  <.live_component
-    module={ShophawkWeb.RunlistLive.ShowJob}
-    id={@id || :show_job}
-    job_ops={@job_ops}
-    job_info={@job_info}
-    title={@page_title}
-    action={@live_action}
-    current_user={@current_user}
-  />
-</.modal>
-
-<.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/runlists")}>
-  <div class="w-[1600px]">
-  <.live_component
-    module={ShophawkWeb.RunlistLive.JobAttachments}
-    id={@id || :job_attachments}
-    attachments={@attachments}
-    title={@page_title}
-    action={@live_action}
-  />
-  </div>
-</.modal>
-
-<.modal :if={@live_action in [:color_key]} id="color-key-modal" show on_cancel={JS.patch(~p"/runlists")}>
-  <div class="text-4xl text-center text-stone-950">Color Key</div>
-  <div class="text-sm text-center text-stone-950">(Hover for more info)</div>
-  <br>
-  <div class="">
-  <div class="grid grid-cols-3">
-      <div class="color-key-box bg-rose-200 text-stone-950">Behind Schedule</div>
-      <div class="color-key-box bg-sky-200 text-stone-950">Starts Today</div>
-      <div class="color-key-box bg-cyan-800 text-stone-200">Starts After Today</div>
-  </div>
-  <div class="grid grid-cols-3">
-    <div class="tooltip-container">
-      <div class="color-key-box bg-cyan-500 text-stone-950">1 Dot</div>
-      <div class="tooltip mt-14">Jobs to pay extra attention too. <br>(Tight schedule, remakes)</div>
-    </div>
-    <div class="tooltip-container">
-      <div class="color-key-box bg-amber-500 text-stone-950">2 Dot</div>
-      <div class="tooltip mt-14">Standard Rush Orders <br>-Run these the next time your machine is open or within a few hours.</div>
-    </div>
-    <div class="tooltip-container">
-      <div class="color-key-box bg-red-600 text-stone-950">3 Dot</div>
-      <div class="tooltip mt-14">Extra Hot. <br>Drop everything and run this operation <br>(Emergency breakdowns)</div>
-    </div>
-  </div>
-  <div class="grid grid-cols-3">
-      <div class="tooltip-container">
-        <div class="color-key-box  bg-cyan-900 text-stone-200">A "Runner"</div>
-        <div class="tooltip">-A job that's total hours exceeds the daily capacity for the department. These rows are duplicate rows that are spread out over the future days until all hours are accounted for.
-        <br>-These rows auto sort toward the bottom of each days list.
-        <br> changing one of these rows will update all matching rows elsewhere
-        <br><br>example: 
-        <br>~An operation has 18 hours of estimated hours.
-        <br>~The daily capacity per machine is set to 8 hours
-        <br>~18 hours / 8 Hour per day = 2.25 days (Round up, so this will show up for 3 days total)
-        <br>~The job will show up as normal on the first day, then show up as this darker duplicate day for 2 following days. 
         </div>
+      <% else %>
+        <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
+          <%= for department <- @department_loads do %>      
+            <div class="pt-2 pb-2 px-2 text-center border-b-2 border-black" >
+              <div class="grid grid-cols-5 gap-3 cursor-pointer" phx-click="select_department" phx-value-selection={department.department}>
+                <div class="bg-stone-200 p-1 rounded-md border-2 border-black"> <%= department.department %> </div>
+                <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekone)]}> Load for coming week: <%= department.weekone %>% </div>
+                <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weektwo)]}> Week Two Load: <%= department.weektwo %>% </div>
+                <div class={ ["p-1 rounded-md border-2 border-black ", calculate_color(department.weekthree)]}> Week Three Load: <%= department.weekthree %>% </div>
+                <div class={ ["p-1 rounded-md border-2 border-black", calculate_color(department.weekfour)]}> Week Four Load: <%= department.weekfour %>% </div>
+              </div>    
+            </div>  
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}>
+    <%= if @streams.runlists.inserts == [] do %>
+      <%= if @department_id != nil or @workcenter_id != nil do %> 
+      <%= if @show_department_loads == false do  %>
+      <br>
+      <div class="bg-stone-800 text-white rounded-lg text-center text-2xl py-6">
+        Nothing Scheduled
+      </div>
+      <% end %>
+      <% end  %>
+    <% end  %>
+  </div>
+
+  <%= if @show_runlist_table == true do %>  <!-- department runlist table -->
+    <.runlist_table
+      id="runlists"
+      updated={@updated}
+      rows={@streams.runlists}
+      assignments={@assignments}
+      started_assignment_list={@started_assignment_list}
+      weekly_load={@weekly_load}
+      dots={@dots}
+      jobs_that_ship_today={assigns.jobs_that_ship_today}
+      row_click={fn {_id, _runlist} -> "show_job" end}
+    >
+      <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
+      <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.make_quantity %></:col>
+      <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-16 text-center" cellstyle="text-center"><%= runlist.est_total_hrs %></:col>
+      <:col :let={{_id, runlist}} label="Material" headerstyle="w-32 2xl:w-44" cellstyle=""><%= runlist.material %></:col>
+      <:col :let={{_id, runlist}} label="Part number" headerstyle="2xl:w-fit" cellstyle=""><%= runlist.part_number %></:col>
+      <:col :let={{_id, runlist}} label="Description" headerstyle="2xl:w-fit" cellstyle="text-sm"><%= runlist.description %></:col>
+      <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24 text-center" cellstyle="text-center"><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
+      <:col :let={{_id, runlist}} label="Customer" headerstyle="2xl:w-40" cellstyle="font-xs"><%= runlist.customer %></:col>
+      <:col :let={{_id, runlist}} label="Assignment" headerstyle="w-32 2xl:w-60 text-center" cellstyle="text-center"><%= runlist.assignment %></:col>
+      <:col :let={{_id, runlist}} label="Material waiting" headerstyle="w-14 text-sm" cellstyle="text-center"><%= runlist.material_waiting %></:col> 
+      <:col :let={{_id, runlist}} label="Current Location" headerstyle="2xl:w-24 text-base text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
+      <:col :let={{_id, runlist}} label="Workcenter" headerstyle="2xl:w-52 text-lg" cellstyle=""><%= runlist.wc_vendor %></:col>
+    </.runlist_table>
+  <% end %>
+
+  <%= if @show_workcenter_table == true do %>  
+    <.runlist_table_workcenter_only
+      id="runlists"
+      updated={@updated}
+      rows={@streams.runlists}
+      assignments={@assignments}
+      started_assignment_list={@started_assignment_list}
+      weekly_load={@weekly_load}
+      dots={@dots}
+      row_click={fn {_id, _runlist} -> "show_job" end}
+    >
+      <:col :let={{_id, runlist}} label="Job" headerstyle="w-24 text-center" cellstyle="text-center"><%= runlist.job %></:col>
+      <:col :let={{_id, runlist}} label="Qty" headerstyle="w-14" cellstyle=""><%= runlist.order_quantity %></:col>
+      <:col :let={{_id, runlist}} label="Hrs" headerstyle="w-16 text-center" cellstyle="text-center"><%= runlist.est_total_hrs %></:col>
+      <:col :let={{_id, runlist}} label="Material" headerstyle="w-32 2xl:w-44" cellstyle=""><%= runlist.material %></:col>
+      <:col :let={{_id, runlist}} label="Part number" headerstyle="2xl:w-fit" cellstyle=""><%= runlist.part_number %></:col>
+      <:col :let={{_id, runlist}} label="Description" headerstyle="2xl:w-fit" cellstyle="text-sm"><%= runlist.description %></:col>
+      <:col :let={{_id, runlist}} label="Ship Date" headerstyle="w-24 text-center" cellstyle="text-center"><%= Calendar.strftime(runlist.job_sched_end, "%m-%d-%y") %></:col>
+      <:col :let={{_id, runlist}} label="Customer" headerstyle="2xl:w-40" cellstyle="font-xs"><%= runlist.customer %></:col>
+      <:col :let={{_id, runlist}} label="Assignment" headerstyle="w-32 2xl:w-60 text-center" cellstyle="text-center"><%= runlist.assignment %></:col>
+      <:col :let={{_id, runlist}} label="Material waiting" headerstyle="w-14 text-sm" cellstyle="text-center"><%= runlist.material_waiting %></:col> 
+      <:col :let={{_id, runlist}} label="Current Location" headerstyle="2xl:w-24 text-base text-center" cellstyle="text-center"><%= runlist.currentop %></:col>
+      <:col :let={{_id, runlist}} label="Workcenter" headerstyle="2xl:w-52 text-lg" cellstyle=""><%= runlist.wc_vendor %></:col>
+    </.runlist_table_workcenter_only>
+  <% end %>
+
+  <.modal :if={@live_action in [:new, :edit]} id="runlist-modal" show on_cancel={JS.patch(~p"/runlists")}>
+    <.live_component
+      module={ShophawkWeb.RunlistLive.FormComponent}
+      id={@runlist.id || :new}
+      title={@page_title}
+      action={@live_action}
+      runlist={@runlist}
+      patch={~p"/runlists"}
+    />
+  </.modal>
+
+  <.modal :if={@live_action in [:new_department, :edit_department]} id="department-modal" show on_cancel={JS.patch(~p"/runlists")}>
+    <.live_component
+      module={ShophawkWeb.RunlistLive.DepartmentForm}
+      id={@department.id || :new}
+      title={@page_title}
+      action={@live_action}    
+      department_id={@department_id}
+      department_name={@department_name}
+      department={@department}
+      patch={~p"/runlists"}
+    />
+  </.modal>
+
+  <.modal :if={@live_action in [:new_assignment, :edit_assignment]} id="assignment-modal" show on_cancel={JS.patch(~p"/runlists")}>
+    <.live_component
+      module={ShophawkWeb.RunlistLive.AssignmentForm}
+      id={@assignment.id || :new}
+      title={@page_title}
+      action={@live_action}
+      assignment={@assignment}
+      department_id={@department_id}
+      department_name={@department_name}
+      department={@department}
+      patch={~p"/runlists/#{@department_id}/assignments"}
+    />
+  </.modal>
+
+  <.modal :if={@live_action in [:assignments]} id="assignments-modal" show on_cancel={JS.patch(~p"/runlists")}>
+    <.live_component
+      module={ShophawkWeb.RunlistLive.ViewAssignments}
+      id={@department_id || :assignments}
+      title={@page_title}
+      action={@live_action}
+      assignments={@saved_assignments}
+      department_id={@department_id}
+      department_name={@department_name}
+      patch={~p"/runlists"}
+    />
+  </.modal>
+
+  <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/runlists")}>
+    <.live_component
+      module={ShophawkWeb.RunlistLive.ShowJob}
+      id={@id || :show_job}
+      job_ops={@job_ops}
+      job_info={@job_info}
+      title={@page_title}
+      action={@live_action}
+      current_user={@current_user}
+    />
+  </.modal>
+
+  <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/runlists")}>
+    <div class="w-[1600px]">
+    <.live_component
+      module={ShophawkWeb.RunlistLive.JobAttachments}
+      id={@id || :job_attachments}
+      attachments={@attachments}
+      title={@page_title}
+      action={@live_action}
+    />
+    </div>
+  </.modal>
+
+  <.modal :if={@live_action in [:color_key]} id="color-key-modal" show on_cancel={JS.patch(~p"/runlists")}>
+    <div class="text-4xl text-center text-stone-950">Color Key</div>
+    <div class="text-sm text-center text-stone-950">(Hover for more info)</div>
+    <br>
+    <div class="">
+    <div class="grid grid-cols-3">
+        <div class="color-key-box bg-rose-200 text-stone-950">Behind Schedule</div>
+        <div class="color-key-box bg-sky-200 text-stone-950">Starts Today</div>
+        <div class="color-key-box bg-cyan-800 text-stone-200">Starts After Today</div>
+    </div>
+    <div class="grid grid-cols-3">
+      <div class="tooltip-container">
+        <div class="color-key-box bg-cyan-500 text-stone-950">1 Dot</div>
+        <div class="tooltip mt-14">Jobs to pay extra attention too. <br>(Tight schedule, remakes)</div>
       </div>
       <div class="tooltip-container">
-        <div class="color-key-box bg-emerald-500 text-stone-950">Job is Started</div>
-        <div class="tooltip">-These rows autofill the "Assignment" with the initials of whoever last logged into the operation. <br>-These rows auto sort toward the bottom of each days list. </div>
+        <div class="color-key-box bg-amber-500 text-stone-950">2 Dot</div>
+        <div class="tooltip mt-14">Standard Rush Orders <br>-Run these the next time your machine is open or within a few hours.</div>
       </div>
-  </div>
-  </div>
-</.modal>
+      <div class="tooltip-container">
+        <div class="color-key-box bg-red-600 text-stone-950">3 Dot</div>
+        <div class="tooltip mt-14">Extra Hot. <br>Drop everything and run this operation <br>(Emergency breakdowns)</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-3">
+        <div class="tooltip-container">
+          <div class="color-key-box  bg-cyan-900 text-stone-200">A "Runner"</div>
+          <div class="tooltip">-A job that's total hours exceeds the daily capacity for the department. These rows are duplicate rows that are spread out over the future days until all hours are accounted for.
+          <br>-These rows auto sort toward the bottom of each days list.
+          <br> changing one of these rows will update all matching rows elsewhere
+          <br><br>example: 
+          <br>~An operation has 18 hours of estimated hours.
+          <br>~The daily capacity per machine is set to 8 hours
+          <br>~18 hours / 8 Hour per day = 2.25 days (Round up, so this will show up for 3 days total)
+          <br>~The job will show up as normal on the first day, then show up as this darker duplicate day for 2 following days. 
+          </div>
+        </div>
+        <div class="tooltip-container">
+          <div class="color-key-box bg-emerald-500 text-stone-950">Job is Started</div>
+          <div class="tooltip">-These rows autofill the "Assignment" with the initials of whoever last logged into the operation. <br>-These rows auto sort toward the bottom of each days list. </div>
+        </div>
+    </div>
+    </div>
+  </.modal>
+</div>

@@ -4,6 +4,8 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   alias Shophawk.Shopinfo
   alias Shophawk.Shopinfo.Slideshow
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def mount(_params, _session, socket) do
     socket = assign(socket, :next_slide, nil)

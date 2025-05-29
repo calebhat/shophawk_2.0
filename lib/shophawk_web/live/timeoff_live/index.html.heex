@@ -1,57 +1,60 @@
-<div class="flex justify-end">
-  <.link patch={~p"/slideshow"}>
-    <.button>Back to Slideshow</.button>
-  </.link>
-</div>
-<div class="mx-auto w-fit bg-cyan-800 p-4 rounded-lg text-white">
-
-<.header>
-  Listing Timeoff
-  <:actions>
-    <.link patch={~p"/timeoff/new"}>
-      <.button>New Timeoff</.button>
+<.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+<div class="px-4 py-4 sm:px-6 lg:px-8">
+  <div class="flex justify-end">
+    <.link patch={~p"/slideshow"}>
+      <.button>Back to Slideshow</.button>
     </.link>
-  </:actions>
-</.header>
-<div>
-  <form phx-change="search">
-    <div class="flex space-x-2">
-      <div class="flex-grow mx-0.5 pt-3"><.input type="search" name="search_term" value={@search_term || ""} placeholder="Search" /></div>
-      <div class="flex-grow mx-0.5 pt-3"><.input type="date" name="start_date" value={@start_date || ""} /></div>
-      <div class="flex-grow mx-0.5 pt-3"><.input type="date" name="end_date" value={@end_date || ""}/></div>
-      <div class="flex-none self-center pt-3" phx-click="clear_search"><.info_button>Clear Search</.info_button></div>
-    </div>
-  </form>
-</div>
+  </div>
+  <div class="mx-auto w-fit bg-cyan-800 p-4 rounded-lg text-white">
 
-<.table
-  id="timeoff"
-  rows={@streams.timeoff_collection}
->
-  <:col :let={{_id, timeoff}} label="Employee"><%= timeoff.employee %></:col>
-  <:col :let={{_id, timeoff}} label="Start"><%= Calendar.strftime(timeoff.startdate, "%m-%d-%y %I:%M %p") %></:col>
-  <:col :let={{_id, timeoff}} label="End"><%= Calendar.strftime(timeoff.enddate, "%m-%d-%y %I:%M %p") %></:col>
-  <:action :let={{_id, timeoff}}>
-    <.link patch={~p"/timeoff/#{timeoff}/edit"}>Edit</.link>
-  </:action>
-  <:action :let={{id, timeoff}}>
-    <.link
-      phx-click={JS.push("delete", value: %{id: timeoff.id}) |> hide("##{id}")}
-      data-confirm="Are you sure?"
-    >
-      Delete
-    </.link>
-  </:action>
-</.table>
-</div>
+  <.header>
+    Listing Timeoff
+    <:actions>
+      <.link patch={~p"/timeoff/new"}>
+        <.button>New Timeoff</.button>
+      </.link>
+    </:actions>
+  </.header>
+  <div>
+    <form phx-change="search">
+      <div class="flex space-x-2">
+        <div class="flex-grow mx-0.5 pt-3"><.input type="search" name="search_term" value={@search_term || ""} placeholder="Search" /></div>
+        <div class="flex-grow mx-0.5 pt-3"><.input type="date" name="start_date" value={@start_date || ""} /></div>
+        <div class="flex-grow mx-0.5 pt-3"><.input type="date" name="end_date" value={@end_date || ""}/></div>
+        <div class="flex-none self-center pt-3" phx-click="clear_search"><.info_button>Clear Search</.info_button></div>
+      </div>
+    </form>
+  </div>
 
-<.modal :if={@live_action in [:new, :edit]} id="timeoff-modal" show on_cancel={JS.patch(~p"/timeoff")}>
-  <.live_component
-    module={ShophawkWeb.TimeoffLive.FormComponent}
-    id={@timeoff.id || :new}
-    title={@page_title}
-    action={@live_action}
-    timeoff={@timeoff}
-    patch={~p"/timeoff"}
-  />
-</.modal>
+  <.table
+    id="timeoff"
+    rows={@streams.timeoff_collection}
+  >
+    <:col :let={{_id, timeoff}} label="Employee"><%= timeoff.employee %></:col>
+    <:col :let={{_id, timeoff}} label="Start"><%= Calendar.strftime(timeoff.startdate, "%m-%d-%y %I:%M %p") %></:col>
+    <:col :let={{_id, timeoff}} label="End"><%= Calendar.strftime(timeoff.enddate, "%m-%d-%y %I:%M %p") %></:col>
+    <:action :let={{_id, timeoff}}>
+      <.link patch={~p"/timeoff/#{timeoff}/edit"}>Edit</.link>
+    </:action>
+    <:action :let={{id, timeoff}}>
+      <.link
+        phx-click={JS.push("delete", value: %{id: timeoff.id}) |> hide("##{id}")}
+        data-confirm="Are you sure?"
+      >
+        Delete
+      </.link>
+    </:action>
+  </.table>
+  </div>
+
+  <.modal :if={@live_action in [:new, :edit]} id="timeoff-modal" show on_cancel={JS.patch(~p"/timeoff")}>
+    <.live_component
+      module={ShophawkWeb.TimeoffLive.FormComponent}
+      id={@timeoff.id || :new}
+      title={@page_title}
+      action={@live_action}
+      timeoff={@timeoff}
+      patch={~p"/timeoff"}
+    />
+  </.modal>
+</div>

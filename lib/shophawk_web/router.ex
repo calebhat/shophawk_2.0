@@ -21,8 +21,10 @@ defmodule ShophawkWeb.Router do
     pipe_through :browser
 
     live_session :default do
-      get "/", PageController, :home
+      #get "/", PageController, :home  #Replaced by RootLive for liveview navbar usage
       get "/download/:file_path", DownloadController, :download
+
+      live "/", RootLive, :index
 
       live "/search", SearchLive
 

@@ -8,115 +8,118 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
   @impl true
   def render(assigns) do
     ~H"""
-      <div class="relative"  style="z-index: 8">
+      <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+      <div class="px-4 py-4 sm:px-6 lg:px-8">
+        <div class="relative"  style="z-index: 8">
 
-        <!-- material column -->
-        <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-4 right-auto w-[13.5rem] pb-2 pt-2 px-2 overflow-y-auto"
-        style="scrollbar-width: none; -ms-overfloow-style: none;">
-          <!-- <div><.button class="" phx-click="test">Reload material</.button></div> -->
-          <%= for employee <- @employees do %>
-            <div
-              class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer w-[12rem]",
-              (if employee.employee == @selected_emp_initial, do: "bg-cyan-500 ml-2", else: "bg-stone-200")
-              ]}
-              phx-click="load_employee_operation_history"
-              phx-value-employee={employee.employee}
-            >
-            <%= employee.first_name %> <%= employee.last_name %>
-            </div>
-          <% end %>
-
-        </div>
-        <!--
-        <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-[12.6rem] right-auto w-[2rem] pb-2 pt-2 overflow-y-auto">
-
-
-
-        </div>
-        -->
-        <!-- Primary Center block -->
-        <div class="bg-cyan-900 fixed rounded-t inset-0 ml-[17rem] top-[5.71rem] right-[2vw] left-[2vw]">
-          <div>
-
-            <div class="">
-              <.form for={%{}} as={:dates} phx-submit="reload_dates">
-                <div class="flex justify-center text-white">
-                  <div class="text-xl self-center mx-4">Start:</div>
-                  <.input type="date" name="start_date" value={@performance_startdate} />
-                  <div class="text-xl self-center mx-4">End:</div>
-                  <.input type="date" name="end_date" value={@performance_enddate} />
-                  <div class="hidden">
-                  <.input type="text" name="employee_initial" value={@selected_emp_initial}  />
-                  </div>
-                  <.button class="mx-4 mt-2" type="submit">Reload</.button>
-                </div>
-              </.form>
-            </div>
-
-            <%= cond do %>
-              <% @operations != [] -> %>
-                <br>
-                <div class="flex justify-around text-white text-bold text-lg mx-6 border-b-8 border-white rounded-sm">
-                  <div>Average Job Efficiency: <%= @total_efficiency %>%</div>
-                  <div>Average hours logged per day: <%= @average_hours_logged_per_day %></div>
-                </div>
-
-                <br>
-                <div class="ml-6 mr-2 pr-4 max-h-[42rem] overflow-y-auto">
-                  <%= for {wc_vendor, wc_vendor_efficiency, operations} <- @operations do %>
-                    <br>
-                    <div class="text-white text-xl underline m-2">
-                      <%= wc_vendor %> - <%= wc_vendor_efficiency %>%
-                    </div>
-                    <div class="grid grid-cols-10 gap-2">
-                      <%= for op <- operations do %>
-                        <div
-                          class={["flex justify-center items-center rounded p-1 hover:cursor-pointer",
-                                  (set_operation_color(op.efficiency_percentage))]}
-                                  phx-click="show_job" phx-value-job={op.job}
-                          phx-value-employee={op.employee}
-                        >
-                          <%= op.job %>-<%= op.efficiency_percentage %>%
-                        </div>
-                      <% end %>
-                    </div>
-                  <% end %>
-                </div>
-              <% @selected_emp_initial != "" and @operations == [] -> %>
-                <div class="text-xl text-white flex justify-center">
-                  No operations logged
-                </div>
-              <% true -> %>
+          <!-- material column -->
+          <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-4 right-auto w-[13.5rem] pb-2 pt-2 px-2 overflow-y-auto"
+          style="scrollbar-width: none; -ms-overfloow-style: none;">
+            <!-- <div><.button class="" phx-click="test">Reload material</.button></div> -->
+            <%= for employee <- @employees do %>
+              <div
+                class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer w-[12rem]",
+                (if employee.employee == @selected_emp_initial, do: "bg-cyan-500 ml-2", else: "bg-stone-200")
+                ]}
+                phx-click="load_employee_operation_history"
+                phx-value-employee={employee.employee}
+              >
+              <%= employee.first_name %> <%= employee.last_name %>
+              </div>
             <% end %>
 
+          </div>
+          <!--
+          <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-[12.6rem] right-auto w-[2rem] pb-2 pt-2 overflow-y-auto">
 
 
-            <div id="loading-content" class="loader" style={if !@loading, do: "display: none;"}>Loading...</div>
+
+          </div>
+          -->
+          <!-- Primary Center block -->
+          <div class="bg-cyan-900 fixed rounded-t inset-0 ml-[17rem] top-[5.71rem] right-[2vw] left-[2vw]">
+            <div>
+
+              <div class="">
+                <.form for={%{}} as={:dates} phx-submit="reload_dates">
+                  <div class="flex justify-center text-white">
+                    <div class="text-xl self-center mx-4">Start:</div>
+                    <.input type="date" name="start_date" value={@performance_startdate} />
+                    <div class="text-xl self-center mx-4">End:</div>
+                    <.input type="date" name="end_date" value={@performance_enddate} />
+                    <div class="hidden">
+                    <.input type="text" name="employee_initial" value={@selected_emp_initial}  />
+                    </div>
+                    <.button class="mx-4 mt-2" type="submit">Reload</.button>
+                  </div>
+                </.form>
+              </div>
+
+              <%= cond do %>
+                <% @operations != [] -> %>
+                  <br>
+                  <div class="flex justify-around text-white text-bold text-lg mx-6 border-b-8 border-white rounded-sm">
+                    <div>Average Job Efficiency: <%= @total_efficiency %>%</div>
+                    <div>Average hours logged per day: <%= @average_hours_logged_per_day %></div>
+                  </div>
+
+                  <br>
+                  <div class="ml-6 mr-2 pr-4 max-h-[42rem] overflow-y-auto">
+                    <%= for {wc_vendor, wc_vendor_efficiency, operations} <- @operations do %>
+                      <br>
+                      <div class="text-white text-xl underline m-2">
+                        <%= wc_vendor %> - <%= wc_vendor_efficiency %>%
+                      </div>
+                      <div class="grid grid-cols-10 gap-2">
+                        <%= for op <- operations do %>
+                          <div
+                            class={["flex justify-center items-center rounded p-1 hover:cursor-pointer",
+                                    (set_operation_color(op.efficiency_percentage))]}
+                                    phx-click="show_job" phx-value-job={op.job}
+                            phx-value-employee={op.employee}
+                          >
+                            <%= op.job %>-<%= op.efficiency_percentage %>%
+                          </div>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% @selected_emp_initial != "" and @operations == [] -> %>
+                  <div class="text-xl text-white flex justify-center">
+                    No operations logged
+                  </div>
+                <% true -> %>
+              <% end %>
+
+
+
+              <div id="loading-content" class="loader" style={if !@loading, do: "display: none;"}>Loading...</div>
+            </div>
+
           </div>
 
-        </div>
+          <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard/employee_performance")}>
+            <.live_component
+                module={ShophawkWeb.RunlistLive.ShowJob}
+                id={@id || :show_job}
+                job_ops={@job_ops}
+                job_info={@job_info}
+                title={@page_title}
+                action={@live_action}
+                current_user={@current_user}
+            />
+          </.modal>
 
-        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard/employee_performance")}>
+          <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
           <.live_component
-              module={ShophawkWeb.RunlistLive.ShowJob}
-              id={@id || :show_job}
-              job_ops={@job_ops}
-              job_info={@job_info}
+              module={ShophawkWeb.RunlistLive.JobAttachments}
+              id={@id || :job_attachments}
+              attachments={@attachments}
               title={@page_title}
               action={@live_action}
-              current_user={@current_user}
           />
-        </.modal>
-
-        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
-        <.live_component
-            module={ShophawkWeb.RunlistLive.JobAttachments}
-            id={@id || :job_attachments}
-            attachments={@attachments}
-            title={@page_title}
-            action={@live_action}
-        />
-        </.modal>
+          </.modal>
+        </div>
       </div>
     """
   end

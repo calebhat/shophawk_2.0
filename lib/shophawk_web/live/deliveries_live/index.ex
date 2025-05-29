@@ -2,6 +2,7 @@
 
 defmodule ShophawkWeb.DeliveriesLive.Index do
   use ShophawkWeb, :live_view
+  #import ShophawkWeb.Components.Navbar # Add this line
 
   on_mount {ShophawkWeb.UserAuth, :mount_current_user}
 
@@ -185,122 +186,128 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex justify-center">
-      <%= if @data_loaded? == false do %>
-        <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
-          <div class="pt-2 pb-2 px-2 text-center text-3xl border-b-2 border-black" >
-            <div class="grid grid-cols-1 gap-3" >
-              <div class="bg-stone-200 p-1 rounded-md border-2 border-black">Shophawk is Restarting. Please Refresh the page in 1 minute </div>
+
+    <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+    <div class="px-4 py-4 sm:px-6 lg:px-8">
+
+      <div class="flex justify-center">
+        <%= if @data_loaded? == false do %>
+          <div class="bg-cyan-800 pt-4 rounded-t-lg fade-in">
+            <div class="pt-2 pb-2 px-2 text-center text-3xl border-b-2 border-black" >
+              <div class="grid grid-cols-1 gap-3" >
+                <div class="bg-stone-200 p-1 rounded-md border-2 border-black">Shophawk is Restarting. Please Refresh the page in 1 minute </div>
+              </div>
             </div>
           </div>
-        </div>
-      <% else %>
-        <div class="w-10/12 bg-cyan-900 px-10 rounded-lg">
-        <div class="grid grid-cols-5 p-2">
-          <div class="col-span-2"></div>
-          <div>
-            <form id={"search-form"} phx-submit="show_job" key={@search_value}>
-              <.input
-                type="text"
-                name="job"
-                value={@search_value}
-                placeholder="Job Search..."
-              />
-            </form>
+        <% else %>
+          <div class="w-10/12 bg-cyan-900 px-10 rounded-lg">
+          <div class="grid grid-cols-5 p-2">
+            <div class="col-span-2"></div>
+            <div>
+              <form id={"search-form"} phx-submit="show_job" key={@search_value}>
+                <.input
+                  type="text"
+                  name="job"
+                  value={@search_value}
+                  placeholder="Job Search..."
+                />
+              </form>
+            </div>
           </div>
-        </div>
-        <div class="flex">
-          <table id="stockedmaterials" class="text-center w-full">
-            <thead class="text-white text-base">
-              <tr>
-                <th class="p-2">Job</th>
-                <th>Promised Date</th>
-                <th>Qty</th>
-                <th>Comment</th>
-                <th>Current Operation</th>
-                <th>Packaged?</th>
-                <th>User Comment</th>
-              </tr>
-            </thead>
-            <tbody phx-update="stream" id="deliveries">
-              <tr :for={{id, row} <- @streams.deliveries}
-                  id={id}
-                  phx-click={if row.type == :normal, do: JS.push("show_job", value: %{job: row.job}), else: nil}
-                  class={[compact_row_color(row), "text-lg", underline(row)]}
-              >
-                <td>
-                  <%= case row.type do %>
-                    <% :normal -> %> <%= row.job %>
-                    <% :vendor -> %>
-                    <% :date_separator -> %> <%= Calendar.strftime(row.promised_date, "%A") %>
-                  <% end %>
-                </td>
-                <td><%= if row.type == :date_separator, do: row.promised_date %><%= if row.type == :normal, do: row.customer %></td>
-                <td><%= if row.type == :normal, do: row.promised_quantity %></td>
-                <td>
-                  <%= cond do %>
-                    <% row.type == :normal && row.wc_vendor != nil -> %> <%= row.wc_vendor %>
-                    <% row.type == :normal -> %> <%= row.comment %>
-                    <% row.type == :vendor -> %> <%= "Vendor Shipments" %>
-                    <% true -> %>
-                  <% end %>
-                </td>
-                <td><%= if row.type == :normal, do: fill_in_current_op_if_nil(row.currentop) %></td>
-                <td>
-                  <%= if row.type == :normal do %>
-                    <input
-                      class="h-6 w-6 rounded text-gray-800 focus:ring-0"
-                      type="checkbox"
-                      phx-click="toggle_checkbox"
-                      phx-value-delivery={row.delivery}
-                      checked={row.packaged}
-                    />
-                  <% end %>
-                </td>
-                <td>
-                  <%= if row.type == :normal do %>
-                    <input
-                      phx-click="prevent_row_click"
-                      type="text"
-                      phx-change="save_comment"
-                      phx-hook="StandAloneInputboxChange"
-                      id={"#{row.delivery}"}
-                      phx-value-user_comment={row.user_comment}
-                      value={row.user_comment}
-                      class="text-black block w-full rounded-lg text-zinc-900 focus:ring-0 text-lg"
-                    />
-                  <% end %>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        </div>
-      <% end %>
+          <div class="flex">
+            <table id="stockedmaterials" class="text-center w-full">
+              <thead class="text-white text-base">
+                <tr>
+                  <th class="p-2">Job</th>
+                  <th>Promised Date</th>
+                  <th>Qty</th>
+                  <th>Comment</th>
+                  <th>Current Operation</th>
+                  <th>Packaged?</th>
+                  <th>User Comment</th>
+                </tr>
+              </thead>
+              <tbody phx-update="stream" id="deliveries">
+                <tr :for={{id, row} <- @streams.deliveries}
+                    id={id}
+                    phx-click={if row.type == :normal, do: JS.push("show_job", value: %{job: row.job}), else: nil}
+                    class={[compact_row_color(row), "text-lg", underline(row)]}
+                >
+                  <td>
+                    <%= case row.type do %>
+                      <% :normal -> %> <%= row.job %>
+                      <% :vendor -> %>
+                      <% :date_separator -> %> <%= Calendar.strftime(row.promised_date, "%A") %>
+                    <% end %>
+                  </td>
+                  <td><%= if row.type == :date_separator, do: row.promised_date %><%= if row.type == :normal, do: row.customer %></td>
+                  <td><%= if row.type == :normal, do: row.promised_quantity %></td>
+                  <td>
+                    <%= cond do %>
+                      <% row.type == :normal && row.wc_vendor != nil -> %> <%= row.wc_vendor %>
+                      <% row.type == :normal -> %> <%= row.comment %>
+                      <% row.type == :vendor -> %> <%= "Vendor Shipments" %>
+                      <% true -> %>
+                    <% end %>
+                  </td>
+                  <td><%= if row.type == :normal, do: fill_in_current_op_if_nil(row.currentop) %></td>
+                  <td>
+                    <%= if row.type == :normal do %>
+                      <input
+                        class="h-6 w-6 rounded text-gray-800 focus:ring-0"
+                        type="checkbox"
+                        phx-click="toggle_checkbox"
+                        phx-value-delivery={row.delivery}
+                        checked={row.packaged}
+                      />
+                    <% end %>
+                  </td>
+                  <td>
+                    <%= if row.type == :normal do %>
+                      <input
+                        phx-click="prevent_row_click"
+                        type="text"
+                        phx-change="save_comment"
+                        phx-hook="StandAloneInputboxChange"
+                        id={"#{row.delivery}"}
+                        phx-value-user_comment={row.user_comment}
+                        value={row.user_comment}
+                        class="text-black block w-full rounded-lg text-zinc-900 focus:ring-0 text-lg"
+                      />
+                    <% end %>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          </div>
+        <% end %>
 
-      <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/deliveries")}>
-        <.live_component
-            module={ShophawkWeb.RunlistLive.ShowJob}
-            id={@id || :show_job}
-            job_ops={@job_ops}
-            job_info={@job_info}
+        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/deliveries")}>
+          <.live_component
+              module={ShophawkWeb.RunlistLive.ShowJob}
+              id={@id || :show_job}
+              job_ops={@job_ops}
+              job_info={@job_info}
+              title={@page_title}
+              action={@live_action}
+              current_user={@current_user}
+          />
+        </.modal>
+
+        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/deliveries")}>
+          <div class="w-[1600px]">
+          <.live_component
+            module={ShophawkWeb.RunlistLive.JobAttachments}
+            id={@id || :job_attachments}
+            attachments={@attachments}
             title={@page_title}
             action={@live_action}
-            current_user={@current_user}
-        />
-      </.modal>
+          />
+          </div>
+        </.modal>
 
-      <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/deliveries")}>
-        <div class="w-[1600px]">
-        <.live_component
-          module={ShophawkWeb.RunlistLive.JobAttachments}
-          id={@id || :job_attachments}
-          attachments={@attachments}
-          title={@page_title}
-          action={@live_action}
-        />
-        </div>
-      </.modal>
+      </div>
 
     </div>
     """

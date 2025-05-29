@@ -9,7 +9,8 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
   @impl true
   def render(assigns) do
     ~H"""
-      <div>
+      <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+      <div class="px-4 py-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 place-content-center text-stone-100">
 
             <!-- Checkbook Balance/tx's -->
