@@ -1,5 +1,7 @@
 defmodule ShophawkWeb.ToolLive.Index do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
 
   alias Shophawk.Inventory
   alias Shophawk.Inventory.Tool

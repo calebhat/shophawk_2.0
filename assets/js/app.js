@@ -32,6 +32,14 @@ let AutofocusHook = {
       document.activeElement.blur();
       this.el.focus();
     }, 1); // Small delay to ensure element is ready
+    this.handleEvent("trigger_autofocus", ({ target_id }) => {
+      if (target_id === this.el.id) {
+        setTimeout(() => {
+          document.activeElement.blur();
+          this.el.focus();
+        }, 1); // Focus only if this element's ID matches
+      }
+    });
   }
 };
 
@@ -45,11 +53,20 @@ let StandAloneInputboxChange = {
   }
 }
 
+let ResetForm = { //trigger with push_event(socket, "reset_form", %{})
+  mounted() {
+    this.handleEvent("reset_form", () => {
+      this.el.reset(); // Resets the form to its initial state
+    });
+  }
+}
+
 // Register hooks with LiveSocket
 let Hooks = {
   ...ChartHooks,
   AutofocusHook,
-  StandAloneInputboxChange
+  StandAloneInputboxChange,
+  ResetForm
 }; // Merge hooks
 
 

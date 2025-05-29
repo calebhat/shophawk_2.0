@@ -1,7 +1,8 @@
-# In the file: lib/your_app_web/live/new_live_view.ex
-
 defmodule ShophawkWeb.DeliveriesLive.Index do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
+
   #import ShophawkWeb.Components.Navbar # Add this line
 
   on_mount {ShophawkWeb.UserAuth, :mount_current_user}
@@ -187,7 +188,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   def render(assigns) do
     ~H"""
 
-    <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+    <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user}/>
     <div class="px-4 py-4 sm:px-6 lg:px-8">
 
       <div class="flex justify-center">
@@ -201,7 +202,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
           </div>
         <% else %>
           <div class="w-10/12 bg-cyan-900 px-10 rounded-lg">
-          <div class="grid grid-cols-5 p-2">
+          <!-- <div class="grid grid-cols-5 p-2">
             <div class="col-span-2"></div>
             <div>
               <form id={"search-form"} phx-submit="show_job" key={@search_value}>
@@ -213,7 +214,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
                 />
               </form>
             </div>
-          </div>
+          </div> -->
           <div class="flex">
             <table id="stockedmaterials" class="text-center w-full">
               <thead class="text-white text-base">
@@ -318,10 +319,6 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
     {:noreply, stream(socket, :deliveries, deliveries, reset: true)}
   end
 
-  def handle_info(:clear_flash, socket) do
-    {:noreply, clear_flash(socket)}
-  end
-
   def fill_in_current_op_if_nil(current) do
     case current do
       nil -> "✅"
@@ -368,41 +365,6 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   def handle_event("toggle_checkbox", %{"delivery" => delivery}, socket) do
     updated_delivery = update_user_inputs(delivery)
     {:noreply, stream_insert(socket, :deliveries, updated_delivery)}
-  end
-
-  def handle_event("show_job", %{"job" => job}, socket) do
-    {:noreply,
-    socket
-    |> assign(:search_value, nil)
-    |> ShophawkWeb.RunlistLive.Index.showjob(job)}
-  end
-
-
-  def handle_event("attachments", _, socket) do
-    job = socket.assigns.id
-    attachments = Shophawk.Jobboss_db.export_attachments(job)
-    socket =
-      socket
-      |> assign(id: job)
-      |> assign(attachments: attachments)
-      |> assign(page_title: "Job #{job} attachments")
-      |> assign(:live_action, :job_attachments)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("download", %{"file-path" => file_path}, socket) do
-    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
-  end
-
-  def handle_event("download", _params, socket) do
-    {:noreply, socket |> assign(:not_found, "File not found")}
-  end
-
-  def handle_event("close_job_attachments", _params, socket) do
-    {:noreply,
-    socket
-    |> assign(live_action: :show_job)}
   end
 
   def handle_event("prevent_row_click", _, socket) do

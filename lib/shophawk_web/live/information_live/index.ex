@@ -1,5 +1,7 @@
 defmodule ShophawkWeb.InformationLive.Index do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
 
   on_mount {ShophawkWeb.UserAuth, :mount_current_user}
 
@@ -157,14 +159,14 @@ defmodule ShophawkWeb.InformationLive.Index do
             <a class="hover:text-stone-900" href="https://accounts.principal.com" target="_blank">Principal Retirement Login</a>
           </div>
           <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2 underline hover:text-stone-900">
-            <div phx-click="download" phx-value-file-path="\\gearserver\General Share folder\shophawk_downloads\Employee_Handbook_EG_2024.pdf">
+            <div phx-click="download_file" phx-value-file-path="S:\General Share folder\shophawk_downloads\Employee_Handbook_EG_2024.pdf">
               <a class="" href="" target="" >
                 Download Employee Handbook
               </a>
             </div>
           </div>
           <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2 underline hover:text-stone-900">
-            <div phx-click="download" phx-value-file-path="\\gearserver\General Share folder\shophawk_downloads\esop_summary_2024.pdf">
+            <div phx-click="download_file" phx-value-file-path="S:\General Share folder\shophawk_downloads\esop_summary_2024.pdf">
               <a class="" href="" target="" >
                 Download ESOP Information
               </a>
@@ -174,6 +176,30 @@ defmodule ShophawkWeb.InformationLive.Index do
         <div></div>
 
       </div>
+
+      <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/information")}>
+          <.live_component
+              module={ShophawkWeb.RunlistLive.ShowJob}
+              id={@id || :show_job}
+              job_ops={@job_ops}
+              job_info={@job_info}
+              title={@page_title}
+              action={@live_action}
+              current_user={@current_user}
+          />
+        </.modal>
+
+        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/information")}>
+          <div class="w-[1600px]">
+          <.live_component
+            module={ShophawkWeb.RunlistLive.JobAttachments}
+            id={@id || :job_attachments}
+            attachments={@attachments}
+            title={@page_title}
+            action={@live_action}
+          />
+          </div>
+        </.modal>
     </div>
     """
   end
@@ -194,7 +220,7 @@ defmodule ShophawkWeb.InformationLive.Index do
   end
 
   @impl true
-  def handle_event("download", %{"file-path" => file_path}, socket) do
+  def handle_event("download_file", %{"file-path" => file_path}, socket) do
     #URL leads to router where I have a JS listener setup to push a file download from the path
     {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
   end

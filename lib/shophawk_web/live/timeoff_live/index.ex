@@ -1,5 +1,7 @@
 defmodule ShophawkWeb.TimeoffLive.Index do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
 
   alias Shophawk.Shopinfo
   alias Shophawk.Shopinfo.Timeoff

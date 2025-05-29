@@ -1,6 +1,8 @@
 # lib/shophawk_web/live/dashboard_live/office.ex
 defmodule ShophawkWeb.DashboardLive.Accounting do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
   alias ShophawkWeb.UserAuth
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
   alias ShophawkWeb.CheckbookComponent
@@ -9,26 +11,52 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
   @impl true
   def render(assigns) do
     ~H"""
-      <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
-      <div class="px-4 py-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 place-content-center text-stone-100">
+      <div>
+        <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
+        <div class="px-4 py-4 sm:px-6 lg:px-8">
+          <div class="grid grid-cols-2 place-content-center text-stone-100">
 
-            <!-- Checkbook Balance/tx's -->
-            <.live_component module={CheckbookComponent} id="checkbook-1"
-            current_balance={@current_balance}
-            checkbook_entries={@checkbook_entries}
-            height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[94%]"}}
-            />
+              <!-- Checkbook Balance/tx's -->
+              <.live_component module={CheckbookComponent} id="checkbook-1"
+              current_balance={@current_balance}
+              checkbook_entries={@checkbook_entries}
+              height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[94%]"}}
+              />
 
 
-            <!-- open invoices -->
-            <.live_component module={InvoicesComponent} id="invoices-1"
-            open_invoices={@open_invoices}
-            selected_range={@selected_range}
-            open_invoice_values={@open_invoice_values}
-            height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[88%]", content: "h-[60%] 2xl:h-[68vh]"}}
-            />
+              <!-- open invoices -->
+              <.live_component module={InvoicesComponent} id="invoices-1"
+              open_invoices={@open_invoices}
+              selected_range={@selected_range}
+              open_invoice_values={@open_invoice_values}
+              height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[88%]", content: "h-[60%] 2xl:h-[68vh]"}}
+              />
+          </div>
         </div>
+
+        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard/accounting")}>
+          <.live_component
+              module={ShophawkWeb.RunlistLive.ShowJob}
+              id={@id || :show_job}
+              job_ops={@job_ops}
+              job_info={@job_info}
+              title={@page_title}
+              action={@live_action}
+              current_user={@current_user}
+          />
+        </.modal>
+
+        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/dashboard/accounting")}>
+          <div class="w-[1600px]">
+          <.live_component
+            module={ShophawkWeb.RunlistLive.JobAttachments}
+            id={@id || :job_attachments}
+            attachments={@attachments}
+            title={@page_title}
+            action={@live_action}
+          />
+          </div>
+        </.modal>
       </div>
     """
   end
@@ -83,6 +111,11 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
         end
       end)
     {:noreply, assign(socket, :open_invoices, ranged_open_invoices) |> assign(:selected_range, range)}
+  end
+
+  @impl true
+  def handle_params(_params, _url, socket) do
+    {:noreply, socket}
   end
 
 end

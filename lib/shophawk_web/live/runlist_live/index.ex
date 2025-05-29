@@ -1,5 +1,7 @@
 defmodule ShophawkWeb.RunlistLive.Index do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
 
   alias Shophawk.Shop
   alias Shophawk.Shop.Department
@@ -124,14 +126,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, assign(socket, :updated, update_number)}
   end
 
-  def handle_info({:load_attachments, job}, socket) do
-    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
-    {:noreply, socket}
-  end
-
-  def handle_info(:clear_flash, socket) do
-    {:noreply, clear_flash(socket)}
-  end
 
   #TESTING PURPOSES
   def handle_info({:refresh_department, socket}, _sock) do
@@ -242,12 +236,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("show_job", %{"job" => job}, socket) do
-    Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
-    socket = showjob(socket, job)
-    {:noreply, socket |> assign(:search_value, "")}
-  end
-
   def handle_event("test", _, socket) do
     Shophawk.Jobboss_db.merge_jobboss_job_info(["135480"])
     #Shophawk.Jobboss_db.update_workcenters
@@ -283,52 +271,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
     end)
     update_number = socket.assigns.updated + 1
     {:noreply, assign(socket, :updated, update_number) |> assign(department_loads: nil)}
-  end
-
-  def handle_event("attachments", _, socket) do
-    job = socket.assigns.id
-    [{:data, attachments}] = :ets.lookup(:job_attachments, :data)
-    socket =
-      socket
-      |> assign(id: job)
-      |> assign(attachments: attachments)
-      |> assign(page_title: "Job #{job} attachments")
-      |> assign(:live_action, :job_attachments)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("download", %{"file-path" => file_path}, socket) do
-    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
-  end
-
-  def handle_event("download", _params, socket) do
-    {:noreply, socket |> assign(:not_found, "File not found")}
-  end
-
-  def handle_event("close_job_attachments", _params, socket) do
-    {:noreply, assign(socket, live_action: :show_job)}
-  end
-
-  def showjob(socket, job) do
-    case Shop.list_job(job) do
-      {:error, :error} ->
-        Process.send_after(self(), :clear_flash, 3000)
-        socket |> put_flash(:error, "Job Not Found")
-      {job_ops, job_info} ->
-        deliveries =
-          Shophawk.Jobboss_db.load_all_deliveries([job])
-          |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
-        updated_job_info =
-          Map.put(job_info, :deliveries, deliveries)
-          |> Map.put(:dots, List.first(job_ops).dots)
-        socket
-        |> assign(id: job)
-        |> assign(page_title: "Job #{job}")
-        |> assign(:live_action, :show_job)
-        |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
-        |> assign(:job_info, updated_job_info)
-    end
   end
 
   defp finalize_department_stream(socket, department_id) do

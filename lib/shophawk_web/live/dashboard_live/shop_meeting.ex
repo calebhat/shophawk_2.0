@@ -1,6 +1,8 @@
 # lib/shophawk_web/live/dashboard_live/office.ex
 defmodule ShophawkWeb.DashboardLive.ShopMeeting do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
   alias ShophawkWeb.RevenueComponent
   alias ShophawkWeb.MonthlySalesChartComponent
@@ -147,11 +149,6 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
     }
   end
 
-  def handle_info({:load_attachments, job}, socket) do
-    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
-    {:noreply, socket}
-  end
-
   def handle_info({ref, result}, socket) do #load chart data once complete
     if socket.assigns.task.ref == ref do
       # Update the socket with the result of the task and stop loading
@@ -180,39 +177,6 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
   @impl true
   def handle_event("monthly_sales_toggle", _, socket) do
     {:noreply, assign(socket, :show_monthly_sales_table, !socket.assigns.show_monthly_sales_table)}
-  end
-
-  ###### Showjob and attachments downloads ########
-  def handle_event("show_job", %{"job" => job}, socket) do
-    #Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
-    socket = ShophawkWeb.RunlistLive.Index.showjob(socket, job)
-    {:noreply, socket}
-  end
-
-  def handle_event("attachments", _, socket) do
-    job = socket.assigns.id
-    #[{:data, attachments}] = :ets.lookup(:job_attachments, :data)
-    attachments = Shophawk.Jobboss_db.export_attachments(job)
-    socket =
-      socket
-      |> assign(id: job)
-      |> assign(attachments: attachments)
-      |> assign(page_title: "Job #{job} attachments")
-      |> assign(:live_action, :job_attachments)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("download", %{"file-path" => file_path}, socket) do
-    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
-  end
-
-  def handle_event("download", _params, socket) do
-    {:noreply, socket |> assign(:not_found, "File not found")}
-  end
-
-  def handle_event("close_job_attachments", _params, socket) do
-    {:noreply, assign(socket, live_action: :show_job)}
   end
 
 end

@@ -1,9 +1,10 @@
 defmodule ShophawkWeb.StockedMaterialLive.Index do
   use ShophawkWeb, :live_view
+  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.FlashRemover
 
   alias Shophawk.Material
   alias Shophawk.Material.StockedMaterial
-  alias Shophawk.Jobboss_db
   alias Shophawk.MaterialCache
   #import Number.Currency
 
@@ -333,31 +334,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     end
   end
 
-  ###### Showjob and attachments downloads ########
-  def handle_event("show_job", %{"job" => job}, socket), do: {:noreply, ShophawkWeb.RunlistLive.Index.showjob(socket, job)}
-
-  def handle_event("attachments", _, socket) do
-    job = socket.assigns.id
-    #[{:data, attachments}] = :ets.lookup(:job_attachments, :data)
-    attachments = Jobboss_db.export_attachments(job)
-    socket =
-      socket
-      |> assign(id: job)
-      |> assign(attachments: attachments)
-      |> assign(page_title: "Job #{job} attachments")
-      |> assign(:live_action, :job_attachments)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("download", %{"file-path" => file_path}, socket) do
-    {:noreply, push_event(socket, "trigger_file_download", %{"url" => "/download/#{URI.encode(file_path)}"})}
-  end
-
-  def handle_event("download", _params, socket), do: {:noreply, socket |> assign(:not_found, "File not found")}
-
-  def handle_event("close_job_attachments", _params, socket), do: {:noreply, assign(socket, live_action: :show_job)}
-
   def handle_event("toggle_group", %{"group-index" => index}, socket) do
     index = String.to_integer(index)
 
@@ -390,13 +366,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       end
 
     {:noreply, assign(socket, :collapsed_groups, updated_collapsed)}
-  end
-
-  def handle_event("test", _params, socket) do
-
-    MaterialCache.create_material_cache
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
-    {:noreply, socket |> assign(:material_list, material_list)}
   end
 
   ##### other functions #####
