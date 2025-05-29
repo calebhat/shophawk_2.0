@@ -1,78 +1,99 @@
-<.header>
-  <form>
-    <div class="flex flex-none gap-4">       
-      <%= cond do %>  
-      <% @department_id != nil -> %>    
-        <form>
-          <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
-          <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@name}/>
-          <.link phx-click="refresh_department">  
-            <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
-               <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
-                <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
-                <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
-                </g>
-              </svg>
-            </button>
-          </.link>
-        </form>
-      <% @workcenter_id != nil -> %>
-        <form>
-          <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" department_name={@name}/> 
-          <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />
-          <.link phx-click="refresh_workcenter">        
-            <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
-               <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
-                <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
-                <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
-                </g>
-              </svg>
-            </button>
-          </.link>
-        </form>
-      <% true -> %>
-        <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
-        <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />    
-        <.link phx-click="select_department" phx-value-selection="Select Department"> 
-          <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
-              <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
-              <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
-                <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
-              </g>
-            </svg>
-          </button>      
-        </.link>  
-      <% end %>    
-    </div> 
-  </form>  
-  <:actions>    
-    <%= if @department_id do %>     
-      <.link patch={~p"/runlists/#{@department_id}/assignments"}>
-        <.info_button>Assignments</.info_button>
-      </.link>   
-      <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
-        <.info_button>Edit Department</.info_button>
-      </.link>
-      <.info_button phx-click="color_key">Color Key</.info_button>
-    <% else %>
-      <.link patch={~p"/runlists/new_department"}>
-        <.button>New Department</.button>
-      </.link>
-    <% end %>
-    <%= if @workcenter_id do %>
-      <.info_button phx-click="color_key">Color Key</.info_button>
-    <% end %>
 
-    <!-- Testing purposes  
-    <.button phx-click="time_based_import" class="ml-2">time_based_import</.button>
-    
-    <.button phx-click="importall" class="ml-2">Import All</.button>
-        
-    <.button phx-click="test" class="ml-2">test</.button>    
--->
-    
-  </:actions>    
-</.header>
+  <div class="grid grid-cols-12">
+    <div class="col-span-4"> <!-- workcenter, department select, refresh button -->
+      <%= cond do %>  
+        <% @department_id != nil -> %>        
+          <form>
+            <div class="flex gap-4 w-fit">
+              <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
+              <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" department_name={@name}/>
+              <.link phx-click="refresh_department">  
+                <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
+                  <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
+                    <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
+                    <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
+                    </g>
+                  </svg>
+                </button>
+              </.link>
+            </div>
+          </form>
+        <% @workcenter_id != nil -> %>
+          <form>
+            <div class="flex gap-4 w-fit">
+              <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" department_name={@name}/> 
+              <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />
+              <.link phx-click="refresh_workcenter">        
+                <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
+                  <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
+                    <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
+                    <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
+                    </g>
+                  </svg>
+                </button>
+              </.link>
+            </div>
+          </form>
+        <% true -> %>            
+          <form>
+            <div class="flex gap-4 w-fit">
+              <.input phx-change="select_workcenter" name="choice" type="runlist_department_select" options={@workcenters} value="" /> 
+              <.input phx-change="select_department" name="selection" type="runlist_department_select" options={@departments} value="" />    
+              <.link phx-click="select_department" phx-value-selection="Select Department"> 
+                <button class="mt-2 rounded-lg bg-cyan-800 hover:bg-cyan-700" >
+                    <svg class={[(if rem(@updated, 2) == 1, do: "spin-icon", else: "")]} width="40.000000pt" height="40.000000pt" viewBox="0 0 300.000000 302.000000" preserveAspectRatio="xMidYMid meet">
+                    <g fill="#000000" stroke="none" transform="translate(0.000000,302.000000) scale(0.100000,-0.100000)">
+                      <path d={File.read!(Path.join([File.cwd!(), "priv/static/images/gear.svg"])) }/>
+                    </g>
+                  </svg>
+                </button>      
+              </.link>  
+            </div>       
+          </form>
+      <% end %>
+    </div>
+    <div class="col-span-4"> <!-- Job Search -->
+      <div class="pl-4 mt-4">
+      <form id={"search-form"} phx-submit="show_job" key={@search_value}>
+        <.input
+          type="text"
+          name="job"
+          value={@search_value}
+          placeholder="Search Job Number..."
+        />
+      </form>
+      </div>
+    </div>
+    <div class="col-span-4 place-items-end mt-4"> <!-- right side buttons -->
+      <div>
+      <%= if @department_id do %>     
+        <.link patch={~p"/runlists/#{@department_id}/assignments"}>
+          <.info_button>Assignments</.info_button>
+        </.link>   
+        <.link patch={~p"/runlists/#{@department_id}/edit_department"}>
+          <.info_button>Edit Department</.info_button>
+        </.link>
+        <.info_button phx-click="color_key">Color Key</.info_button>
+      <% else %>
+        <.link patch={~p"/runlists/new_department"}>
+          <.button>New Department</.button>
+        </.link>
+      <% end %>
+      <%= if @workcenter_id do %>
+        <.info_button phx-click="color_key">Color Key</.info_button>
+      <% end %>
+      </div>
+
+      <!-- Testing purposes  
+      <.button phx-click="time_based_import" class="ml-2">time_based_import</.button>
+      
+      <.button phx-click="importall" class="ml-2">Import All</.button>
+          
+      <.button phx-click="test" class="ml-2">test</.button>    
+      -->    
+    </div>    
+  </div>
+
 
 <div class={(if rem(@updated, 2) == 1, do: "fade-out", else: "fade-in")}> 
   <br>

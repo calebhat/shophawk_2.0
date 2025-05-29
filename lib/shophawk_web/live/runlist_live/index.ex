@@ -11,10 +11,23 @@ defmodule ShophawkWeb.RunlistLive.Index do
     if connected?(socket) do
       department_loads = get_runlist_loads()
       socket = if Enum.any?(department_loads, fn list -> list != [] end), do: assign(socket, show_department_loads: true), else: assign(socket, show_department_loads: false)
-      {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, [], reset: true) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, department_loads) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(updated: 0)}
+      {:ok, set_default_assigns(socket) |> assign(:department_loads, department_loads) }
     else
-     {:ok, socket |> assign(department_id: nil) |> assign(workcenter_id: nil) |> stream(:runlists, [], reset: true) |> assign(:department, %{}) |> assign(:department_name, "") |> assign(:department_loads, nil) |> assign(show_runlist_table: false) |> assign(show_workcenter_table: false) |> assign(show_department_loads: false)|> assign(updated: 0)}
+     {:ok, set_default_assigns(socket) |> assign(:department_loads, nil) |> assign(show_department_loads: false)}
     end
+  end
+
+  def set_default_assigns(socket) do
+    socket
+    |> assign(department_id: nil)
+    |> assign(workcenter_id: nil)
+    |> stream(:runlists, [], reset: true)
+    |> assign(:department, %{})
+    |> assign(:department_name, "")
+    |> assign(show_runlist_table: false)
+    |> assign(show_workcenter_table: false)
+    |> assign(updated: 0)
+    |> assign(:search_value, "")
   end
 
   def handle_params(params, _url, socket) do
@@ -114,6 +127,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_info({:load_attachments, job}, socket) do
     :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
     {:noreply, socket}
+  end
+
+  def handle_info(:clear_flash, socket) do
+    {:noreply, clear_flash(socket)}
   end
 
   #TESTING PURPOSES
@@ -228,7 +245,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_event("show_job", %{"job" => job}, socket) do
     Process.send(self(), {:load_attachments, job}, [:noconnect]) #loads attachement and saves them now for faster UX
     socket = showjob(socket, job)
-    {:noreply, socket}
+    {:noreply, socket |> assign(:search_value, "")}
   end
 
   def handle_event("test", _, socket) do
@@ -294,19 +311,24 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def showjob(socket, job) do
-    {job_ops, job_info} = Shop.list_job(job)
-    deliveries =
-      Shophawk.Jobboss_db.load_all_deliveries([job])
-      |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
-    updated_job_info =
-      Map.put(job_info, :deliveries, deliveries)
-      |> Map.put(:dots, List.first(job_ops).dots)
-    socket
-    |> assign(id: job)
-    |> assign(page_title: "Job #{job}")
-    |> assign(:live_action, :show_job)
-    |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
-    |> assign(:job_info, updated_job_info)
+    case Shop.list_job(job) do
+      {:error, :error} ->
+        Process.send_after(self(), :clear_flash, 3000)
+        socket |> put_flash(:error, "Job Not Found")
+      {job_ops, job_info} ->
+        deliveries =
+          Shophawk.Jobboss_db.load_all_deliveries([job])
+          |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
+        updated_job_info =
+          Map.put(job_info, :deliveries, deliveries)
+          |> Map.put(:dots, List.first(job_ops).dots)
+        socket
+        |> assign(id: job)
+        |> assign(page_title: "Job #{job}")
+        |> assign(:live_action, :show_job)
+        |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
+        |> assign(:job_info, updated_job_info)
+    end
   end
 
   defp finalize_department_stream(socket, department_id) do

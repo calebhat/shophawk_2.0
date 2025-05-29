@@ -311,6 +311,10 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
     {:noreply, stream(socket, :deliveries, deliveries, reset: true)}
   end
 
+  def handle_info(:clear_flash, socket) do
+    {:noreply, clear_flash(socket)}
+  end
+
   def fill_in_current_op_if_nil(current) do
     case current do
       nil -> "✅"
