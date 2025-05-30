@@ -10,6 +10,7 @@ defmodule ShophawkWeb.ToolLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    Process.send_after(self(), :clear_flash, 1500)
     socket =
       socket
       |> assign(results: [])

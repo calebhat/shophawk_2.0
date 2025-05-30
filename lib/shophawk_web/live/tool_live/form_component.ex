@@ -68,6 +68,7 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
     case Inventory.update_tool(socket.assigns.tool, tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
+        Process.send_after(self(), :clear_flash, 1000)
 
         {:noreply,
          socket
@@ -84,6 +85,7 @@ defmodule ShophawkWeb.ToolLive.FormComponent do
     case Inventory.create_tool(tool_params) do
       {:ok, tool} ->
         notify_parent({:saved, tool})
+        Process.send_after(self(), :clear_flash, 1000)
 
         {:noreply,
          socket
