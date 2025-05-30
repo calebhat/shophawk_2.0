@@ -5,6 +5,7 @@ defmodule ShophawkWeb.UserResetPasswordLive do
 
   def render(assigns) do
     ~H"""
+    <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
     <div class="mx-auto max-w-sm">
       <.header class="text-center">Reset Password</.header>
 

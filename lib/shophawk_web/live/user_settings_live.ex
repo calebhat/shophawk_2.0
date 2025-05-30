@@ -5,6 +5,7 @@ defmodule ShophawkWeb.UserSettingsLive do
 
   def render(assigns) do
     ~H"""
+    <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
     <div class="bg-white m-4 p-4 rounded-lg">
     <.header class="text-center">
       Account Settings

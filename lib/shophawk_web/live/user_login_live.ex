@@ -3,6 +3,7 @@ defmodule ShophawkWeb.UserLoginLive do
 
   def render(assigns) do
     ~H"""
+    <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
     <div class="mx-auto max-w-sm bg-white p-8 rounded-lg">
       <.header class="text-center">
         Sign in to account
