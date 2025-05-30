@@ -5,11 +5,13 @@ defmodule ShophawkWeb.StockedMaterialLive.History do
   alias Shophawk.Material
   #alias Shophawk.MaterialCache
 
+  on_mount {ShophawkWeb.UserAuth, :mount_current_user}
+
   @impl true
   def render(assigns) do
     ~H"""
-
-    <div class="flex justify-center">
+    <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user}/>
+    <div class="flex justify-center pt-6">
 
 
 

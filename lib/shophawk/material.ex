@@ -141,17 +141,9 @@ defmodule Shophawk.Material do
 
   """
   def create_stocked_material(attrs \\ %{}) do
-
-    #BELOW LIINE CAUSING ISSUES
-    #update_or_create_material(%{material: Map.get(attrs, :material)}, attrs, :new)
-
-
     %StockedMaterial{}
     |> StockedMaterial.changeset(attrs)
     |> Repo.insert()
-    #%StockedMaterial{}
-    #|> StockedMaterial.changeset(attrs)
-    #|> Repo.insert()
   end
 
   @doc """

@@ -815,10 +815,7 @@ defmodule Shophawk.Jobboss_db do
         |> where([r], r.location_id == ^location_id)
         |> where([r], r.material == ^material)
         |> update([r], set: [on_hand_qty: ^on_hand_qty])
-
       Shophawk.Repo_jb.update_all(query, [])
-
-
 
       rounded_purchase_price = Float.round(purchase_price, 2)
       rounded_sell_price = Float.round(sell_price, 2)
