@@ -30,8 +30,8 @@ ChartHooks.Revenue_Chart = {
             foreColor: '#ffffff' // This sets the base text color for the chart
         },
         series: [
-            { name: 'Total Revenue - 12 Week moving average', data: chartData.total_moving_avg },
-            { name: '6-Week Revenue - 4 Week moving Average', data: chartData.six_week_moving_avg },
+            { name: 'Total Revenue - 24 Week moving average', data: chartData.total_moving_avg },
+            { name: '6-Week Revenue - 12 Week moving Average', data: chartData.six_week_moving_avg },
             { name: 'Total Revenue', data: chartData.total_revenue },
             { name: '6-Week Revenue', data: chartData.six_week_revenue }            
         ],

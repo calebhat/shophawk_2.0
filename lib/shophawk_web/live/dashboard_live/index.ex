@@ -210,8 +210,8 @@ defmodule ShophawkWeb.DashboardLive.Index do
             six_week_revenue: updated_six_week
           }
 
-        six_weeks_moving_avg_6_weeks = %{six_week_moving_avg: calculate_moving_average(chart_data_with_this_weeks_revenue.six_week_revenue, 4)}
-        total_moving_avg_20_weeks = %{total_moving_avg: calculate_moving_average(chart_data_with_this_weeks_revenue.total_revenue, 12)}
+        six_weeks_moving_avg_6_weeks = %{six_week_moving_avg: calculate_moving_average(chart_data_with_this_weeks_revenue.six_week_revenue, 12)}
+        total_moving_avg_20_weeks = %{total_moving_avg: calculate_moving_average(chart_data_with_this_weeks_revenue.total_revenue, 24)}
         chart_data_with_moving_averages =
           Map.merge(chart_data_with_this_weeks_revenue, total_moving_avg_20_weeks)
           |> Map.merge(six_weeks_moving_avg_6_weeks)
