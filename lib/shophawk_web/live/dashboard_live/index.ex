@@ -191,25 +191,70 @@ defmodule ShophawkWeb.DashboardLive.Index do
             six_week_revenue: Enum.map(data, fn %{week: week, six_week_revenue: revenue} -> [week |> Date.to_iso8601(), revenue] end)
           }
 
+
         {six_weeks_revenue_amount, total_revenue, active_jobs} = calc_current_revenue()
+
+        #Add current anticipated rev to chart
+        current_six_week_rev = [Date.to_iso8601(Date.utc_today), Float.round(six_weeks_revenue_amount, 2)]
+        current_total_rev = [Date.to_iso8601(Date.utc_today), Float.round(total_revenue, 2)]
+
+        six_week_data = Map.get(chart_data, :six_week_revenue)
+        total_week_data = Map.get(chart_data, :total_revenue)
+
+        updated_six_week = [current_six_week_rev] ++ six_week_data
+        updated_total = [current_total_rev] ++ total_week_data
+
+        chart_data_with_this_weeks_revenue =
+          %{
+            total_revenue: updated_total,
+            six_week_revenue: updated_six_week
+          }
+
+        six_weeks_moving_avg_6_weeks = %{six_week_moving_avg: calculate_moving_average(chart_data_with_this_weeks_revenue.six_week_revenue, 4)}
+        total_moving_avg_20_weeks = %{total_moving_avg: calculate_moving_average(chart_data_with_this_weeks_revenue.total_revenue, 12)}
+        chart_data_with_moving_averages =
+          Map.merge(chart_data_with_this_weeks_revenue, total_moving_avg_20_weeks)
+          |> Map.merge(six_weeks_moving_avg_6_weeks)
+
 
         percentage_diff =
           case Enum.at(data, 1) do
-            nil -> "0"
+            nil -> "0.0"
             found_data ->
               (1- (found_data.six_week_revenue / six_weeks_revenue_amount)) * 100
               |> Float.round(2)
-              |> Number.Percentage.number_to_percentage(precision: 2)
+              |> Number.Percentage.number_to_percentage(precision: 1)
             end
 
+            IO.inspect(Jason.encode!(chart_data_with_moving_averages))
+
         socket
-        |> assign(:revenue_chart_data, Jason.encode!(chart_data))
+        |> assign(:revenue_chart_data, Jason.encode!(chart_data_with_moving_averages))
         |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
         |> assign(:total_revenue, total_revenue)
         |> assign(:active_jobs, active_jobs)
         |> assign(:percentage_diff, percentage_diff)
     end
   end
+
+  def calculate_moving_average(entries, weeks) do
+    # Sort entries by date to ensure correct order (oldest to newest)
+    sorted_entries = Enum.sort_by(entries, fn [date, _value] -> date end)
+
+    # Calculate moving averages
+    sorted_entries
+    |> Enum.with_index()
+    |> Enum.map(fn {[date, _value], index} ->
+      # Get the previous (weeks - 1) entries plus the current one (up to 'weeks' total)
+      window = Enum.slice(sorted_entries, max(0, index - (weeks - 1)), weeks)
+      # Extract just the values (revenues) from the window
+      values = Enum.map(window, fn [_d, v] -> v end)
+      # Calculate the average
+      avg = Enum.sum(values) / Enum.count(values)
+      [date, Float.round(avg, 2)]
+    end)
+  end
+
   def calc_current_revenue() do
     jobs = Jobboss_db.active_jobs_with_cost()
     job_numbers = Enum.map(jobs, fn job -> job.job end)
@@ -230,10 +275,12 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def load_monthly_sales_chart_component(socket) do
     beginning_of_this_month = Date.beginning_of_month(Date.utc_today())
-    current_months_sales =
-      case generate_monthly_sales(beginning_of_this_month, Date.add(Date.utc_today, 1)) |> List.first() do
-        nil -> %{amount: 0.0}
-        sales -> sales
+    beginning_of_last_month = Date.add(beginning_of_this_month, -5) |> Date.beginning_of_month()
+    {current_months_sales, last_months_sales} =
+      case generate_monthly_sales(beginning_of_last_month, Date.add(Date.utc_today, 1)) do
+        [current_months_sales, last_months_sales] -> {current_months_sales, last_months_sales}
+        [last_months_sales] -> { %{date: beginning_of_this_month, amount: 0.0}, last_months_sales}
+        _ -> {%{date: beginning_of_this_month, amount: 0.0}, %{date: beginning_of_last_month, amount: 0.0}}
       end
 
     sales_table_data =
@@ -251,9 +298,27 @@ defmodule ShophawkWeb.DashboardLive.Index do
     all_months = for month <- 1..12, do: %{date: Date.new!(Date.utc_today().year, month, 1), amount: nil}
     # Filter for future months
     all_months = Enum.filter(all_months, fn %{date: date} -> Date.compare(date, Date.utc_today()) == :gt end)
+
+    #add in last months sales if not present
+    #last months sales might not be there because the code waits 2 days after the end of month to
+    #save the previous months sales to let all checks clear.
+    contains_last_months_sales = if List.first(sales_table_data).date == beginning_of_last_month, do: true, else: false
+    #add to chart data if needed
+    sales_table_data =
+      case contains_last_months_sales do
+        false -> [last_months_sales] ++ sales_table_data
+        true -> sales_table_data
+      end
+    #add to table data if needed
+    months_to_add_to_list =
+      case contains_last_months_sales do
+        false -> [current_months_sales, last_months_sales]
+        true -> [current_months_sales]
+      end
+
     # Combine existing data with all months, preferring existing data
     final_sales_table_data =
-      ([%{date: beginning_of_this_month, amount: current_months_sales.amount} | sales_table_data] ++ all_months)
+      (months_to_add_to_list ++ sales_table_data ++ all_months)
       |> Enum.sort_by(& &1.date, {:desc, Date})
       |> Enum.uniq_by(& {&1.date.year, &1.date.month})
       |> Enum.reduce({0, %{}, []}, fn map, {year, current_year_map, acc} ->
@@ -304,6 +369,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
           |> Enum.reverse
         %{name: "#{year}", data: month_amounts}
       end)
+
     this_year_data =
       case Enum.find(sales_chart_data, fn data -> data.name == Integer.to_string(Date.utc_today().year) end) do
         nil -> %{data: [current_months_sales.amount], name: Integer.to_string(Date.utc_today().year)}
@@ -318,9 +384,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
       end)
     days_in_this_month = Date.days_in_month(Date.utc_today())
     progress_into_current_month = Date.utc_today().day / days_in_this_month
-    total_months_past = Date.utc_today().month + progress_into_current_month
-    years_monthly_average = this_years_sales / total_months_past
-    project_sales = years_monthly_average * 13
+    total_months_of_year_progress = Date.utc_today().month + progress_into_current_month - 1.0
+    years_monthly_average = this_years_sales / total_months_of_year_progress
+    project_sales = years_monthly_average * 12
 
     socket
     |> assign(:sales_chart_data, Jason.encode!(%{series: sales_chart_data}))

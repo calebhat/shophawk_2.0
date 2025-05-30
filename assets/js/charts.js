@@ -30,14 +30,10 @@ ChartHooks.Revenue_Chart = {
             foreColor: '#ffffff' // This sets the base text color for the chart
         },
         series: [
-            {
-                name: 'Total Revenue',
-                data: chartData.total_revenue
-            },
-            {
-                name: '6-Week Revenue',
-                data: chartData.six_week_revenue
-            }
+            { name: 'Total Revenue - 12 Week moving average', data: chartData.total_moving_avg },
+            { name: '6-Week Revenue - 4 Week moving Average', data: chartData.six_week_moving_avg },
+            { name: 'Total Revenue', data: chartData.total_revenue },
+            { name: '6-Week Revenue', data: chartData.six_week_revenue }            
         ],
         xaxis: {
           type: 'datetime',
@@ -72,7 +68,10 @@ ChartHooks.Revenue_Chart = {
         legend: {
             position: 'top'
         },
-        colors: ['#008FFB', '#00E396']
+        colors: ['#000000', '#000000', '#00FF00', '#FF00FF'],
+        grid: {
+          borderColor: '#ffffff40'
+        }
     };
 
     const chart = new ApexCharts(this.el, options);
@@ -80,11 +79,13 @@ ChartHooks.Revenue_Chart = {
 
     this.handleEvent("updateChartData", (data) => {
         chart.updateSeries([
+            { data: data.total_moving_avg },
+            { data: data.six_week_moving_avg },
             { data: data.total_revenue },
-            { data: data.six_week_revenue }
+            { data: data.six_week_revenue }            
         ]);
     });
-}
+  }
 }
 
 ChartHooks.monthly_sales_chart = {

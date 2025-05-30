@@ -15,7 +15,7 @@ defmodule ShophawkWeb.RevenueComponent do
               <div><%= number_to_currency(@six_weeks_revenue_amount) %></div>
               <div class="dark-tooltip-container grid grid-cols-1">
                 <div class={text_color(@percentage_diff)}><%= @percentage_diff %></div>
-                <div class="tooltip ml-6">Change from 2 weeks ago</div>
+                <div class="tooltip ml-20">Change from the previous monday</div>
               </div>
             </div>
             <div class=""><%= @active_jobs %></div>
