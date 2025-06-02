@@ -3,15 +3,15 @@ defmodule ShophawkWeb.TravelorcountComponent do
 
   def render(assigns) do
     ~H"""
-    <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
-        <div class="text-2xl">
+    <div class={["text-center justify-center rounded p-2 bg-cyan-900 m-2", @height.border]}>
+        <div class="text-[1.5vw] truncate]">
             Travelors Released in the Last 5 Days
         </div>
         <%= if Enum.empty?(@travelor_count) do  %>
             <div class="loader"></div>
         <% else %>
-        <div class="text-xl bg-cyan-800 rounded m-2 p-2 h-[87%] overflow-y-auto sm:text-lg md:text-xl lg:text-2xl">
-            <div class="flex justify-center p-2 overflow-x-auto">
+        <div class={["text-xl bg-cyan-800 rounded m-2 px-2 overflow-y-auto sm:text-lg md:text-xl lg:text-2xl", @height.frame]}>
+            <div class="flex justify-center px-2 overflow-x-auto">
                 <table class="w-full table-auto">
                     <thead>
                         <tr class="text-sm md:text-base lg:text-lg">

@@ -1,5 +1,5 @@
 <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
-<div class="px-4 py-4 sm:px-6 lg:px-8">
+<div class="px-4 py-2 sm:px-6 lg:px-8">
     <div>
         <div class="grid grid-cols-2 place-content-center text-stone-100">
             
@@ -7,7 +7,7 @@
             <.live_component module={CheckbookComponent} id="checkbook-1" 
             current_balance={@current_balance} 
             checkbook_entries={@checkbook_entries}
-            height={%{border: "h-[43vh]", frame: "h-[70%] 2xl:h-[87%]"}}
+            height={%{border: "h-96", frame: "h-[87%]"}}
             />
 
             <!-- open invoices -->
@@ -15,29 +15,30 @@
             open_invoices={@open_invoices} 
             selected_range={@selected_range}
             open_invoice_values={@open_invoice_values}
-            height={%{border: "h-[43vh", frame: "h-[70%] 2xl:h-[75%]", content: "h-[18vh] 2xl:h-[23vh]"}}
+            height={%{border: "h-96", frame: "h-[74%]", content: "h-[22vh]"}}
             />
 
             <!-- Travelor Count -->
             <.live_component module={TravelorcountComponent} id="travelor_count-1"
             travelor_count={@travelor_count}
             travelor_totals={@travelor_totals}
+            height={%{border: "h-96", frame: "h-[85%]"}}
             />
 
             <!-- Hot Jobs -->
             <.live_component module={HotjobsComponent} id="hot_jobs-1"
             hot_jobs={@hot_jobs}
-            height={%{border: "h-[43vh]", frame: "h-[87%]", style: "font-size: .75vw"}}
+            height={%{border: "h-96", frame: "h-[92%]", style: "font-size: .75vw"}}
             header_font_size="text-2xl"
             />
             
-            <!-- Hot Jobs -->
+            <!-- This weeks timeoff -->
             <.live_component module={WeekoneTimeoffComponent} id="weekonetimeoff-1"
             weekly_dates={@weekly_dates}
             week1_timeoff={@week1_timeoff}
             />
 
-            <!-- Hot Jobs -->
+            <!-- Next weeks timeoff -->
             <.live_component module={WeektwoTimeoffComponent} id="weektwotimeoff-1"
             weekly_dates={@weekly_dates}
             week2_timeoff={@week2_timeoff}
@@ -49,8 +50,8 @@
             late_deliveries={@late_deliveries}
             late_delivery_count={@late_delivery_count}
             late_deliveries_loaded={@late_deliveries_loaded}
-            height={%{border: "h-[43vh]", frame: "h-[81%] 2xl:h-[87%]", style: "font-size: 1vw"}}
-            header_font_size="text-2xl"
+            height={%{border: "h-96", frame: "h-[87%]", style: "font-size: 1vw"}}
+            header_font_size="text-[1.5vw] truncate"
             />
 
             <.live_component module={RevenueComponent} id="revenue-2"
@@ -59,8 +60,8 @@
             active_jobs={@active_jobs}
             revenue_chart_data={@revenue_chart_data}
             percentage_diff={@percentage_diff}
-            header_font_size="text-2xl"
-            height={%{frame: "h-[87%] 2xl:h-[89%]"}}
+            header_font_size="text-[1.5vw] truncate"
+            height={%{frame: "h-[85%]"}}
             />
             
             <.live_component module={MonthlySalesChartComponent} id="monthly_sales"
@@ -72,7 +73,7 @@
             sales_table_data={@sales_table_data}
             monthly_average={@monthly_average}        
             header_font_size="text-2xl"
-            height={%{frame: "h-[77%] 2xl:h-[82%]"}}
+            height={%{border: "h-[800px]", frame: "h-[82%]"}}
             />
 
             <.live_component module={YearlySalesChartComponent} id="yearly_sales_1"
@@ -80,7 +81,8 @@
             top_10_enddate={@top_10_enddate}
             yearly_sales_data={@yearly_sales_data}
             complete_yearly_sales_data={@complete_yearly_sales_data}
-            total_sales={@total_sales}        
+            total_sales={@total_sales}  
+            height={%{border: "h-[800px]", frame: "h-[78%]"}}      
             />
 
             <.live_component module={TopVendorsComponent} id="top_ten_vendors_1"

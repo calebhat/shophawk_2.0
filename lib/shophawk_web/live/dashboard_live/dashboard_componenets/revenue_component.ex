@@ -7,18 +7,18 @@ defmodule ShophawkWeb.RevenueComponent do
       <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[86vh]">
         <%= if @total_revenue != 0 do  %>
           <div class={["grid grid-cols-3", @header_font_size]}>
-            <div class="border-b border-stone-400 rounded-lg">Total Anticipated Revenue</div>
-            <div class="border-b border-stone-400 rounded-lg">Six Weeks Revenue</div>
-            <div class="border-b border-stone-400 rounded-lg">Active Jobs Right Now</div>
-            <div class=""><%= number_to_currency(@total_revenue) %></div>
+            <div class="border-b border-stone-400 rounded-lg text-[1.5vw] truncate">Total Anticipated Revenue</div>
+            <div class="border-b border-stone-400 rounded-lg text-[1.5vw] truncate">Six Weeks Revenue</div>
+            <div class="border-b border-stone-400 rounded-lg text-[1.5vw] truncate">Active Jobs Right Now</div>
+            <div class="text-[1.5vw] truncate"><%= number_to_currency(@total_revenue) %></div>
             <div class="flex justify-center">
-              <div><%= number_to_currency(@six_weeks_revenue_amount) %></div>
+              <div class="text-[1.5vw] truncate"><%= number_to_currency(@six_weeks_revenue_amount) %></div>
               <div class="dark-tooltip-container grid grid-cols-1">
-                <div class={text_color(@percentage_diff)}><%= @percentage_diff %></div>
-                <div class="tooltip ml-20">Change from the previous monday</div>
+                <div class={[text_color(@percentage_diff), "text-[1.5vw] truncate"]}><%= @percentage_diff %></div>
+                <div class="tooltip ml-20 text-[1.5vw] truncate">Change from the previous monday</div>
               </div>
             </div>
-            <div class=""><%= @active_jobs %></div>
+            <div class="text-[1.5vw] truncate"><%= @active_jobs %></div>
           </div>
         <% end %>
         <%= if @total_revenue != 0 do  %>

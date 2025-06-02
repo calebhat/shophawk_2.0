@@ -3,8 +3,8 @@ defmodule ShophawkWeb.WeekoneTimeoffComponent do
 
   def render(assigns) do
     ~H"""
-    <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[43vh]">
-        <div class="text-2xl">
+    <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-96">
+        <div class="text-[1.5vw] truncate">
         <%= if not Enum.empty?(@weekly_dates) do  %>
           Time Off This Week <%= Calendar.strftime(@weekly_dates.monday, "%m-%d") %> to <%= Calendar.strftime(@weekly_dates.friday, "%m-%d") %>
         <% else %>

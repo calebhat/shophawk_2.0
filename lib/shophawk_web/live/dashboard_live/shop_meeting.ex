@@ -29,8 +29,8 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
 
         <.live_component module={HotjobsFullScreenComponent} id="hot_jobs-1"
           hot_jobs={@hot_jobs}
-          height={%{border: "h-[88vh]", frame: "h-[85%] 2xl:h-[90%]", style: "font-size: 1.25vw"}}
-          header_font_size="text-6xl"
+          height={%{border: "h-[800px]", frame: "h-[88%]", style: "font-size: 1.25vw"}}
+          header_font_size="text-[2.5vw] truncate"
         />
         <br><br><br><br>
 
@@ -38,8 +38,8 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
           late_deliveries={@late_deliveries}
           late_deliveries_loaded={@late_deliveries_loaded}
           late_delivery_count={@late_delivery_count}
-          height={%{border: "h-[88vh]", frame: "h-[85%] 2xl:h-[90%]", style: "font-size: 1.25vw"}}
-          header_font_size="text-6xl"
+          height={%{border: "h-[800px]", frame: "h-[88%]", style: "font-size: 1.25vw"}}
+          header_font_size="text-[2.5vw] truncate"
         />
         <br><br><br><br>
 
@@ -49,8 +49,8 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
         active_jobs={@active_jobs}
         revenue_chart_data={@revenue_chart_data}
         percentage_diff={@percentage_diff}
-        header_font_size="text-4xl"
-        height={%{frame: "h-[84%] 2xl:h-[86%]"}}
+        header_font_size="text-[1.5vw] truncate"
+        height={%{frame: "h-[89%]"}}
         />
       </div>
       <br><br><br><br>
@@ -64,7 +64,7 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
         sales_table_data={@sales_table_data}
         monthly_average={@monthly_average}
         header_font_size="text-4xl"
-        height={%{frame: "h-[75%] 2xl:h-[80%]"}}
+        height={%{border: "h-[800px]", frame: "h-[82%]"}}
         />
       </div>
 

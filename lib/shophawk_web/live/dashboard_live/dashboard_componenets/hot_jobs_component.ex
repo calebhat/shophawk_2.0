@@ -10,8 +10,8 @@ defmodule ShophawkWeb.HotjobsComponent do
           <%= if Enum.empty?(@hot_jobs) do  %>
               <div class="loader"></div>
           <% else %>
-              <div class={["bg-cyan-800 rounded m-2 p-2 overflow-y-auto", @height.frame]}>
-                <div class="flex justify-center p-2-md">
+              <div class={["bg-cyan-800 rounded p-2 overflow-y-auto", @height.frame]}>
+                <div class="flex justify-center px-2-md">
                   <table class="w-full text-center table-fixed">
                       <thead class="bg-stone-800 text-white" style={@height.style}>
                         <tr class="">

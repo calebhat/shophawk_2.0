@@ -4,20 +4,20 @@ defmodule ShophawkWeb.MonthlySalesChartComponent do
 
   def render(assigns) do
     ~H"""
-      <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[86vh]">
+      <div class={["text-center justify-center rounded p-4 bg-cyan-900 m-2", @height.border]}>
         <div class="grid grid-cols-3">
           <div></div>
-          <div class="text-4xl underline pb-4 justify-items-center">
+          <div class="text-4xl underline pb-4 justify-items-center text-[1.5vw] truncate">
               Monthly Sales
           </div>
           <%= if @sales_chart_data != [] do  %>
-          <div class="justify-items-end"><.button phx-click="monthly_sales_toggle">Toggle Graph/Table</.button></div>
+          <div class="justify-items-end text-[1.5vw] truncate"><.button phx-click="monthly_sales_toggle">Toggle Graph/Table</.button></div>
           <% else %>
           <div></div>
           <% end %>
         </div>
         <%= if @sales_chart_data != [] do  %>
-            <div class={["grid grid-cols-3", @header_font_size]}>
+            <div class={["grid grid-cols-3 text-[1.5vw] truncate", @header_font_size]}>
                 <div class="border-b border-stone-400 rounded-lg">This Years Sales</div>
                 <div class="border-b border-stone-400 rounded-lg"><%= if @show_monthly_sales_table == false, do: "This Months Sales", else: "Monthly Average (12 Month)" %></div>
                 <div class="border-b border-stone-400 rounded-lg">Projected Yearly Sales</div>

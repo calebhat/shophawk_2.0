@@ -30,8 +30,7 @@ defmodule ShophawkWeb.TopVendorsComponent do
         <% else %>
         <div class="text-xl bg-cyan-800 rounded m-2 p-2 h-[87%] overflow-y-auto sm:text-lg md:text-xl lg:text-2xl">
             <div class="flex justify-center p-2 overflow-x-auto">
-                <div class="text-xl">
-
+                <div class="text-[.5vw]]">
                     <div class="grid grid-cols-3">
                         <div class="pr-2">
                         <table class="table-auto">

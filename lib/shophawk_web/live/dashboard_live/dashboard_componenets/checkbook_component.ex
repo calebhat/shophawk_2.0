@@ -7,7 +7,7 @@ defmodule ShophawkWeb.CheckbookComponent do
     def render(assigns) do
         ~H"""
         <div class={["text-center justify-center rounded p-4 bg-cyan-900 m-2", @height.border]}>
-            <div class="text-2xl">
+            <div class="text-[1.5vw] truncate">
                 Checkbook Current Balance: <%= @current_balance %>
             </div>
             <%= if Enum.empty?(@checkbook_entries) do  %>

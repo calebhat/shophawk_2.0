@@ -26,12 +26,13 @@ defmodule ShophawkWeb.DashboardLive.Office do
           <.live_component module={TravelorcountComponent} id="travelor_count-1"
           travelor_count={@travelor_count}
           travelor_totals={@travelor_totals}
+          height={%{border: "h-96", frame: "h-[85%]"}}
           />
 
           <!-- Hot Jobs -->
           <.live_component module={HotjobsComponent} id="hot_jobs-1"
           hot_jobs={@hot_jobs}
-          height={%{border: "h-[43vh]", frame: "h-[87%]", style: "font-size: .75vw"}}
+          height={%{border: "h-96", frame: "h-[92%]", style: "font-size: .75vw"}}
           header_font_size="text-2xl"
           />
 
@@ -76,7 +77,7 @@ defmodule ShophawkWeb.DashboardLive.Office do
         sales_table_data={@sales_table_data}
         monthly_average={@monthly_average}
         header_font_size="text-2xl"
-        height={%{frame: "h-[77%] 2xl:h-[82%]"}}
+        height={%{border: "h-[800px]", frame: "h-[82%]"}}
         />
       </div>
 

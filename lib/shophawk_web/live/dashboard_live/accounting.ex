@@ -20,7 +20,7 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
               <.live_component module={CheckbookComponent} id="checkbook-1"
               current_balance={@current_balance}
               checkbook_entries={@checkbook_entries}
-              height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[94%]"}}
+              height={%{border: "h-[800px]", frame: "h-[78vh]"}}
               />
 
 
@@ -29,7 +29,7 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
               open_invoices={@open_invoices}
               selected_range={@selected_range}
               open_invoice_values={@open_invoice_values}
-              height={%{border: "h-[88vh]", frame: "h-[70%] 2xl:h-[88%]", content: "h-[60%] 2xl:h-[68vh]"}}
+              height={%{border: "h-[800px]", frame: "h-[88%]", content: "h-[68vh]"}}
               />
           </div>
         </div>
