@@ -108,7 +108,7 @@ defmodule Shophawk.Shop do
       [%Runlist{}, ...]
 
   """
-  def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist items for
+  def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist rows, weekly load, and jobs that ship today
     #Shophawk.Jobboss_db.load_all_active_jobs()
     runlists = Shophawk.RunlistCache.get_runlist_ops(workcenter_list, department)
 
@@ -218,6 +218,7 @@ defmodule Shophawk.Shop do
             end
           end
         end)
+
 
       complete_runlist =
         Enum.reduce(date_rows_list, [], fn date_row, acc ->
@@ -347,7 +348,6 @@ defmodule Shophawk.Shop do
           |> Map.put_new(:status, "O")
           |> Map.put_new(:date_row_identifer, 1)
         end)
-
       {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
     end
   end

@@ -93,7 +93,16 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
-    socket = finalize_department_stream(socket, Shop.get_department_by_name(department.department).id)
+    workcenter_list = Enum.map(department.workcenters, fn w -> w.workcenter end)
+    {_runlist, weekly_load, _jobs_that_ship_today} = Shop.list_runlists(workcenter_list, department)
+    [data: weekly_loads] = :ets.lookup(:runlist_loads, :data)
+    merged_loads = [weekly_load] ++ weekly_loads #merge new department into weekly loads
+    sorted_loads = Enum.sort_by(merged_loads, &(&1.department))
+    :ets.insert(:runlist_loads, {:data, sorted_loads})
+
+    socket =
+      finalize_department_stream(socket, department.id)
+      |> assign(:department_loads, sorted_loads)
     {:noreply, apply_action(socket, :index, nil)}
   end
 
