@@ -40,77 +40,76 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                     <th class="px-2">Delete</th>
                   </tr>
                 </thead>
-                <div :for={vendor <- @bars_on_order_form}>
+                <div :for={{date, vendors} <- @bars_on_order_form}>
                   <tbody>
-                    <tr><td class="text-2xl underline p-1"><%= List.first(vendor).data.vendor %></td></tr>
+                    <tr><td colspan="4" class="text-xl text-center bg-cyan-950"><%= date %></td></tr>
+                    <div :for={vendor <- vendors}>
+                      <tr><td class="text-xl underline p-1"><%= List.first(vendor).data.vendor %></td></tr>
+                        <%= for bar <- vendor do %>
+                            <tr class="place-items-center text-lg bg-cyan-800">
+                              <td class="dark-tooltip-container">
+                                  <%= "#{bar.data.material}" %>
+                                  <!-- Loop through job assignments and display colored sections -->
+                                  <div class="relative h-full w-full">
+                                    <div class="tooltip ml-12 w-60" style="z-index: 12;">
+                                      <.fixed_widths_table_with_show_job
+                                      id="bar_assignments"
+                                      rows={Enum.reverse(bar.data.job_assignments)}
+                                      row_click={fn _row_data -> "show_job" end}
+                                      >
+                                        <:col :let={bar} label="Job" width=""><%= bar.job %></:col>
+                                        <:col :let={bar} label="Length" width=""><%= bar.length_to_use %>"</:col>
+                                        <:col :let={bar} label="Parts" width=""><%= bar.parts_from_bar %></:col>
+                                      </.fixed_widths_table_with_show_job>
+                                    </div>
+                                  </div>
+                              </td>
+                              <td class="px-2 text-center">
+                                <.form
+                                  for={bar}
+                                  id={"bar-#{bar.data.id}"}
+                                  phx-change="validate_bar_to_receive"
+                                  phx-submit="receive_bar"
+                                >
+                                  <div class="flex items-center justify-between">
+                                    <div class="hidden"><.input field={bar[:id]} type="text" /></div>
+                                    <div class=" pb-2 px-2 w-48">
+                                      <.input field={bar[:bar_length]}
+                                      type="number"
+                                      placeholder={if Map.has_key?(bar.data, :bar_length_placeholder), do: bar.data.bar_length_placeholder}
+                                      step=".01"
+                                      value={if Map.has_key?(bar.source.changes, :bar_length), do: bar.source.changes.bar_length, else: nil} />
+                                    </div>
+                                    <div class="mr-2 pb-2"><.input field={bar[:location]} type="text" placeholder="Location"/></div>
+                                    <div class="mr-2 pb-2 hidden"><.input field={bar[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()}/></div>
+                                    <div class=""><.button type="submit" phx-disable-with="Saving...">Receive</.button></div>
+                                  </div>
+                                </.form>
+                              </td>
 
-                    <%= for bar <- vendor do %>
-
-                        <tr class="place-items-center text-lg bg-cyan-800">
-
-                          <td class="dark-tooltip-container">
-                              <%= "#{bar.data.material}" %>
-                              <!-- Loop through job assignments and display colored sections -->
-                              <div class="relative h-full w-full">
-                                <div class="tooltip ml-12 w-60" style="z-index: 12;">
-                                  <.fixed_widths_table_with_show_job
-                                  id="bar_assignments"
-                                  rows={Enum.reverse(bar.data.job_assignments)}
-                                  row_click={fn _row_data -> "show_job" end}
-                                  >
-                                    <:col :let={bar} label="Job" width=""><%= bar.job %></:col>
-                                    <:col :let={bar} label="Length" width=""><%= bar.length_to_use %>"</:col>
-                                    <:col :let={bar} label="Parts" width=""><%= bar.parts_from_bar %></:col>
-                                  </.fixed_widths_table_with_show_job>
-                                </div>
-                              </div>
-                          </td>
-
-                          <td class="px-2 text-center">
-                            <.form
-                              for={bar}
-                              id={"bar-#{bar.data.id}"}
-                              phx-change="validate_bar_to_receive"
-                              phx-submit="receive_bar"
-                            >
-                              <div class="flex items-center justify-between">
-                                <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                                <div class=" pb-2 px-2 w-48">
-                                  <.input field={bar[:bar_length]}
-                                  type="number"
-                                  placeholder={if Map.has_key?(bar.data, :bar_length_placeholder), do: bar.data.bar_length_placeholder}
-                                  step=".01"
-                                  value={if Map.has_key?(bar.source.changes, :bar_length), do: bar.source.changes.bar_length, else: nil} />
-                                </div>
-                                <div class="mr-2 pb-2"><.input field={bar[:location]} type="text" placeholder="Location"/></div>
-                                <div class="mr-2 pb-2 hidden"><.input field={bar[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()}/></div>
-                                <div class=""><.button type="submit" phx-disable-with="Saving...">Receive</.button></div>
-                              </div>
-                            </.form>
-                          </td>
-
-                          <td class="">
-                            <.info_button type="button" phx-click="add_bar" phx-value-id={bar.data.id}>
-                              Add Bar
-                            </.info_button>
-                          </td>
-                          <td class="">
-                            <%= if bar.data.extra_bar_for_receiving == true do %>
-                              <.delete_button type="button" phx-click="delete_bar" phx-value-id={bar.data.id}>
-                                Remove Extra Bar
-                              </.delete_button>
-                            <% else %>
-                            <.link
-                              class="mx-2 hover:text-red-500"
-                              phx-click={JS.push("delete_bar", value: %{id: bar.data.id}) |> hide("##{bar.data.id}")}
-                              data-confirm="Are you sure?"
-                            >
-                              Delete
-                            </.link>
-                            <% end %>
-                          </td>
-                        </tr>
-                    <% end %>
+                              <td class="">
+                                <.info_button type="button" phx-click="add_bar" phx-value-id={bar.data.id}>
+                                  Add Bar
+                                </.info_button>
+                              </td>
+                              <td class="">
+                                <%= if bar.data.extra_bar_for_receiving == true do %>
+                                  <.delete_button type="button" phx-click="delete_bar" phx-value-id={bar.data.id}>
+                                    Remove Extra Bar
+                                  </.delete_button>
+                                <% else %>
+                                <.link
+                                  class="mx-2 hover:text-red-500"
+                                  phx-click={JS.push("delete_bar", value: %{id: bar.data.id}) |> hide("##{bar.data.id}")}
+                                  data-confirm="Are you sure?"
+                                >
+                                  Delete
+                                </.link>
+                                <% end %>
+                              </td>
+                            </tr>
+                        <% end %>
+                    </div>
                   </tbody>
                 </div>
               </table>
@@ -159,7 +158,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
 
   def update_material_forms(socket) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
-    assign(socket, bars_on_order_form: load_material_on_order(material_list) |> sort_by_vendor() )
+    assign(socket, bars_on_order_form: load_material_on_order(material_list) |> sort_by_vendor())
   end
 
   def load_material_on_order(material_list) do
@@ -176,53 +175,61 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
           Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
         Map.put(mat, :job_assignments, found_assignments)
         |> Map.put(:bar_length_placeholder, mat.bar_length)
-        #|> Map.put(:bar_length, nil)
       end)
-
-    sorted_material_to_order =
-      material_with_assignments
-      |> Enum.map(fn material ->
-        [size_str, material_name] =
-          case String.split(material.material, "X") do
-            [size_str, material_name] -> [size_str, material_name]
-            [size1, size2, material_name] ->
-                size_str = size1 <> "X" <> size2
-              [size_str, material_name]
-          end
-          |> Enum.map(&String.trim/1)
-
-        size =
-          case Float.parse(size_str) do
-            {size, ""} -> size
-            _ ->
-              case Integer.parse(size_str) do
-                {int_size, ""} -> int_size / 1
-                _ -> 0.0
-              end
-          end
-
-        {size, material_name, material}
+      |> Enum.group_by(fn material ->
+        NaiveDateTime.to_date(material.updated_at)
       end)
-      |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
-      |> Enum.map(fn {_, _, material} -> material end)
+      |> Enum.map(fn {date, materials} ->
+        sorted_materials =
+        Enum.map(materials, fn material ->
+          [size_str, material_name] =
+            case String.split(material.material, "X") do
+              [size_str, material_name] -> [size_str, material_name]
+              [size1, size2, material_name] ->
+                  size_str = size1 <> "X" <> size2
+                [size_str, material_name]
+            end
+            |> Enum.map(&String.trim/1)
 
-    Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+          size =
+            case Float.parse(size_str) do
+              {size, ""} -> size
+              _ ->
+                case Integer.parse(size_str) do
+                  {int_size, ""} -> int_size / 1
+                  _ -> 0.0
+                end
+            end
+
+          {size, material_name, material}
+        end)
+        |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
+        |> Enum.map(fn {_, _, material} -> material end)
+
+      {date, sorted_materials}
+    end)
+
+
+    Enum.map(material_with_assignments, fn {date, bars} ->
+      {date, Enum.map(bars, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)}
+    end)
   end
 
-  def sort_by_vendor(bars_to_order_changeset) do
-    list_of_vendors = Enum.reduce(bars_to_order_changeset, [], fn bar, acc ->
-      case Enum.member?(acc, bar.data.vendor) do
-        true -> acc
-        false -> [bar.data.vendor | acc]
-      end
-    end)
-    |> Enum.sort()
-
-
-    Enum.map(list_of_vendors, fn vendor ->
-      Enum.reduce(bars_to_order_changeset, [], fn bar, acc ->
-        if bar.data.vendor == vendor, do: acc ++ [bar], else: acc
+  def sort_by_vendor(bars_sorted_by_date) do
+    Enum.map(bars_sorted_by_date, fn {date, bars} ->
+      list_of_vendors = Enum.reduce(bars, [], fn bar, acc ->
+        case Enum.member?(acc, bar.data.vendor) do
+          true -> acc
+          false -> [bar.data.vendor | acc]
+        end
       end)
+      |> Enum.sort()
+      |> Enum.map(fn vendor ->
+        Enum.reduce(bars, [], fn bar, acc ->
+          if bar.data.vendor == vendor, do: acc ++ [bar], else: acc
+        end)
+      end)
+      {date, list_of_vendors}
     end)
   end
 
