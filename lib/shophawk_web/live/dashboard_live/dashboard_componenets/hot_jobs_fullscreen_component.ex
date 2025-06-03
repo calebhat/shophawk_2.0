@@ -29,7 +29,7 @@ defmodule ShophawkWeb.HotjobsFullScreenComponent do
                       <tr
                         :for={job <- @hot_jobs}
                         id="hot_jobs"
-                        class={["text-stone-950 border border-stone-800 hover:cursor-pointer", bg_class(job.dots)]}
+                        class={["text-stone-950 border border-stone-800 hover:cursor-pointer", bg_class(job.dots, job.currentop)]}
                         style={@height.style}
                         phx-click="show_job" phx-value-job={job.job}
                       >
@@ -40,7 +40,7 @@ defmodule ShophawkWeb.HotjobsFullScreenComponent do
                         <td class="py-1 truncate font-bold hidden 2xl:table-cell" style=""><%= job.description %></td>
                         <td class="py-1 truncate font-bold" style=""><%= Calendar.strftime(job.job_sched_end, "%m-%d-%y") %></td>
                         <td class="py-1 truncate font-bold" style=""><%= job.customer %></td>
-                        <td class="py-1 truncate font-bold" style=""><%= job.currentop %></td>
+                        <td class="py-1 truncate font-bold" style=""><%= currentop_complete(job.currentop) %></td>
                       </tr>
                     </tbody>
                   </table>
@@ -60,12 +60,20 @@ defmodule ShophawkWeb.HotjobsFullScreenComponent do
     end
   end
 
-  def bg_class(dots) do
-    case dots do
-      1 -> "bg-cyan-500/30 hover:bg-cyan-600/30"
-      2 -> "bg-amber-500/30 hover:bg-amber-600/30"
-      3 -> "bg-red-600/30 hover:bg-red-700/30"
-      _ -> ""
+  def bg_class(dots, currentop) do
+    cond do
+      currentop == nil -> "bg-green-400"
+      dots == 1 -> "bg-cyan-500/30 hover:bg-cyan-600/30"
+      dots == 2 -> "bg-amber-500/30 hover:bg-amber-600/30"
+      dots == 3 -> "bg-red-600/30 hover:bg-red-700/30"
+      true -> ""
+    end
+  end
+
+  def currentop_complete(op) do
+    case op do
+      nil -> "COMPLETE"
+      _ -> op
     end
   end
 

@@ -226,8 +226,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
               |> Number.Percentage.number_to_percentage(precision: 1)
             end
 
-            IO.inspect(Jason.encode!(chart_data_with_moving_averages))
-
         socket
         |> assign(:revenue_chart_data, Jason.encode!(chart_data_with_moving_averages))
         |> assign(:six_weeks_revenue_amount, six_weeks_revenue_amount)
