@@ -39,10 +39,16 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               >
                 <div class="grid grid-cols-5 p-1 place-items-center text-center text-lg bg-cyan-800 rounded-lg m-2">
                   <div class="dark-tooltip-container font-bold">
-                    <%= "#{bar.data.material}" %>
+                    <.link
+                      navigate={~p"/stockedmaterials?#{[material: bar.data.material_name, size: bar.data.size]}"}
+                      class="dark-tooltip-container font-bold"
+                    >
+                      <div>
+                        <%= bar.data.material %>
+                      </div>
+                    </.link>
                     <!-- Loop through job assignments and display colored sections -->
                     <div class="relative h-full w-full">
-
                       <div class="tooltip ml-8 w-60 font-normal" style="z-index: 12;">
                         <.fixed_widths_table_with_show_job
                         id="bar_assignments"
@@ -292,15 +298,18 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                 _ -> 0.0
               end
           end
-        {size, material_name, material}
+        {size, material_name, material, size_str}
       end)
-    |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
-    |> Enum.map(fn {_, _, material} -> material end)
+    |> Enum.sort_by(fn {size, material_name, _, _} -> {material_name, size} end)
 
-    material_to_order_changeset = Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+    material_to_order_changeset = Enum.map(sorted_material_to_order, fn {_size, material_name, bar, size_str} ->
+      bar = Map.put(bar, :size, size_str) |> Map.put(:material_name, material_name)
+      Material.change_stocked_material(bar, %{}) |> to_form()
+    end)
 
+    sorted_material_to_order_list = Enum.map(sorted_material_to_order, fn {_, _, material, _} -> material end)
     past_years_usage_list =
-      Enum.reduce(sorted_material_to_order, [], fn mat, acc ->
+      Enum.reduce(sorted_material_to_order_list, [], fn mat, acc ->
 
           past_years_usage =
             case Enum.find_value(material_list, fn mat_category ->

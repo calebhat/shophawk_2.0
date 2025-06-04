@@ -120,7 +120,14 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
-    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+    case Map.has_key?(params, "size") do
+      true ->
+        corrected_material_name = Shophawk.MaterialCache.merge_materials([%{material: params["material"]}])
+        |> List.first()
+        {:noreply, reload_size(socket, params["size"], corrected_material_name.material)}
+      _ -> {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+    end
+
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -158,7 +165,6 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     #{:noreply, socket}
   end
   def handle_info({ShophawkWeb.StockedMaterialLive.DetailedFormComponent, {:saved, _stocked_material, _assigns}}, socket) do
-    #IO.inspect(assigns)
     {:noreply, reload_size(socket, socket.assigns.selected_size, socket.assigns.selected_material)}
   end
 
@@ -383,6 +389,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
     socket =
       socket
       |> assign(:selected_size, selected_size)
+      |> assign(:selected_sizes, sizes)
       |> assign(:material_info, material_info)
       |> assign(:size_info, size_info)
       load_material_forms(socket, material_info)

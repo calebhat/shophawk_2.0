@@ -48,7 +48,14 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                         <%= for bar <- vendor do %>
                             <tr class="place-items-center text-lg bg-cyan-800">
                               <td class="dark-tooltip-container">
-                                  <%= "#{bar.data.material}" %>
+                                <.link
+                                  navigate={~p"/stockedmaterials?#{[material: bar.data.material_name, size: bar.data.size]}"}
+                                  class="dark-tooltip-container font-bold"
+                                >
+                                  <div>
+                                    <%= bar.data.material %>
+                                  </div>
+                                </.link>
                                   <!-- Loop through job assignments and display colored sections -->
                                   <div class="relative h-full w-full">
                                     <div class="tooltip ml-12 w-60" style="z-index: 12;">
@@ -169,7 +176,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       end)
       |> List.flatten
 
-    material_with_assignments =
+    sorted_material_with_assignments_and_dates =
       Enum.map(material_to_order, fn mat ->
         found_assignments =
           Enum.find(list_of_sizes, fn size -> size.material_name == mat.material end).assigned_material_info
@@ -181,41 +188,54 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
       end)
       |> Enum.map(fn {date, materials} ->
         sorted_materials =
-        Enum.map(materials, fn material ->
-          [size_str, material_name] =
-            case String.split(material.material, "X") do
-              [size_str, material_name] -> [size_str, material_name]
-              [size1, size2, material_name] ->
-                  size_str = size1 <> "X" <> size2
-                [size_str, material_name]
-            end
-            |> Enum.map(&String.trim/1)
+          Enum.map(materials, fn bar ->
+            [size_str, material_name] =
+              case String.split(bar.material, "X") do
+                [size_str, material_name] -> [size_str, material_name]
+                [size1, size2, material_name] ->
+                    size_str = size1 <> "X" <> size2
+                  [size_str, material_name]
+              end
+              |> Enum.map(&String.trim/1)
 
-          size =
-            case Float.parse(size_str) do
-              {size, ""} -> size
-              _ ->
-                case Integer.parse(size_str) do
-                  {int_size, ""} -> int_size / 1
-                  _ -> 0.0
-                end
-            end
+            size =
+              case Float.parse(size_str) do
+                {size, ""} -> size
+                _ ->
+                  case Integer.parse(size_str) do
+                    {int_size, ""} -> int_size / 1
+                    _ -> 0.0
+                  end
+              end
 
-          {size, material_name, material}
+            {size, material_name, bar, size_str}
+          end)
+          |> Enum.sort_by(fn {size, material_name, _, _} -> {material_name, size} end)
+          #|> Enum.map(fn {_, _, material} -> material end)
+
+        {date, sorted_materials}
+      end)
+
+    Enum.map(sorted_material_with_assignments_and_dates, fn {date, sorted_materials} ->
+
+      updated_sorted_materials =
+        Enum.map(sorted_materials, fn {_size, material_name, bar, size_str} ->
+
+          bar = Map.put(bar, :size, size_str) |> Map.put(:material_name, material_name)
+          Material.change_stocked_material(bar, %{}) |> to_form()
+
         end)
-        |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
-        |> Enum.map(fn {_, _, material} -> material end)
-
-      {date, sorted_materials}
+      {date, updated_sorted_materials}
     end)
 
 
-    Enum.map(material_with_assignments, fn {date, bars} ->
-      {date, Enum.map(bars, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)}
-    end)
+    #Enum.map(material_with_assignments, fn {date, bars} ->
+    #  {date, Enum.map(bars, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)}
+    #end)
   end
 
   def sort_by_vendor(bars_sorted_by_date) do
+    IO.inspect(bars_sorted_by_date)
     Enum.map(bars_sorted_by_date, fn {date, bars} ->
       list_of_vendors = Enum.reduce(bars, [], fn bar, acc ->
         case Enum.member?(acc, bar.data.vendor) do

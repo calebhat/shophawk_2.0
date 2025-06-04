@@ -226,31 +226,40 @@ defmodule Shophawk.MaterialCache do
   end
 
   def merge_material(material_list, mat_to_keep, name_to_use, list_of_materials) do
-    good_material = Enum.find(material_list, fn mat -> mat.material == mat_to_keep end)
+    #IO.inspect(material_list)
+    case Map.has_key?(List.first(material_list), :sizes) do
+      true -> #normal material merge operation
+        good_material = Enum.find(material_list, fn mat -> mat.material == mat_to_keep end)
 
-    case good_material do
-      nil -> material_list
-      _ ->
-        sizes_to_merge =
-          Enum.reduce(material_list, [], fn mat, acc ->
-            if Enum.member?(list_of_materials, mat.material) do
-              acc ++ mat.sizes
-            else
-              acc
-            end
-          end)
+        case good_material do
+          nil -> material_list
+          _ ->
+            sizes_to_merge =
+              Enum.reduce(material_list, [], fn mat, acc ->
+                if Enum.member?(list_of_materials, mat.material) do
+                  acc ++ mat.sizes
+                else
+                  acc
+                end
+              end)
 
-        updated_material =
-          Map.put(good_material, :material, name_to_use)
-          |> Map.put(:sizes, sizes_to_merge)
-          |> Map.put(:mat_reqs_count, Enum.reduce(sizes_to_merge, 0, fn size, acc -> size.jobs_using_size + acc end))
+            updated_material =
+              Map.put(good_material, :material, name_to_use)
+              |> Map.put(:sizes, sizes_to_merge)
+              |> Map.put(:mat_reqs_count, Enum.reduce(sizes_to_merge, 0, fn size, acc -> size.jobs_using_size + acc end))
 
-        #remove all occurences of material
-        filtered_material_list = Enum.reject(material_list, fn mat -> Enum.member?(list_of_materials, mat.material) end)
+            #remove all occurences of material
+            filtered_material_list = Enum.reject(material_list, fn mat -> Enum.member?(list_of_materials, mat.material) end)
 
-        filtered_material_list ++ [updated_material]
+            filtered_material_list ++ [updated_material]
+        end
+      false -> #material name change for liveview routing navigation
+        if List.first(material_list).material in list_of_materials do
+          [Map.put(List.first(material_list), :material, name_to_use)]
+        else
+          material_list
+        end
     end
-
   end
 
   def create_barebones_material_list() do
