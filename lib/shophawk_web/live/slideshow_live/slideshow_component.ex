@@ -167,16 +167,16 @@ defmodule ShophawkWeb.SlideshowLive.SlideshowComponent do
                 <tr
                   :for={{dom_id, job} <- @streams.hot_jobs}
                   id={dom_id}
-                  class={["text-stone-950 border border-stone-800", Parent.bg_class(job.dots)]}
+                  class={["text-stone-950 border border-stone-800", ShophawkWeb.HotjobsComponent.bg_class(job.dots, job.currentop)]}
                 >
                   <td class="px-4 py-2 truncate font-bold" style="font-size: 2vw"><%= job.job %></td>
-                  <td class="px-4 py-2 truncate"><img class="grid justify-items-start" src={Parent.display_dots(job.dots)} /></td>
+                  <td class="px-4 py-2 truncate"><img class="grid justify-items-start" src={ShophawkWeb.HotjobsComponent.display_dots(job.dots)} /></td>
                   <td class="px-4 py-2 truncated font-bold" style="font-size: 2vw"><%= job.make_quantity %></td>
                   <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= job.part_number %></td>
                   <td class="px-4 py-2 truncate font-bold hidden 2xl:table-cell" style="font-size: 1.5vw"><%= job.description %></td>
                   <td class="px-4 py-2 truncate font-bold" style="font-size: 2vw"><%= Calendar.strftime(job.job_sched_end, "%m-%d-%y") %></td>
                   <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= job.customer %></td>
-                  <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= job.currentop %></td>
+                  <td class="px-4 py-2 truncate font-bold" style="font-size: 1.5vw"><%= ShophawkWeb.HotjobsComponent.currentop_complete(job.currentop) %></td>
                 </tr>
               </tbody>
             </table>

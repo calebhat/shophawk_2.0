@@ -352,24 +352,6 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     end
   end
 
-  def display_dots(dots) do
-    case dots do
-      1 -> ~p"/images/one_dot.svg"
-      2 -> ~p"/images/two_dots.svg"
-      3 -> ~p"/images/three_dots.svg"
-      _ -> ""
-    end
-  end
-
-  def bg_class(dots) do
-    case dots do
-      1 -> "bg-cyan-500/30"
-      2 -> "bg-amber-500/30"
-      3 -> "bg-red-600/30"
-      _ -> ""
-    end
-  end
-
   def timeoff_header_rename(key) do
     case key do
       :m -> "Monday"

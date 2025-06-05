@@ -29,18 +29,18 @@ defmodule ShophawkWeb.HotjobsFullScreenComponent do
                       <tr
                         :for={job <- @hot_jobs}
                         id="hot_jobs"
-                        class={["text-stone-950 border border-stone-800 hover:cursor-pointer", bg_class(job.dots, job.currentop)]}
+                        class={["text-stone-950 border border-stone-800 hover:cursor-pointer", ShophawkWeb.HotjobsComponent.bg_class(job.dots, job.currentop)]}
                         style={@height.style}
                         phx-click="show_job" phx-value-job={job.job}
                       >
                         <td class="py-1 truncate font-bold" style=""><%= job.job %></td>
-                        <td class="py-1 truncate"><img class="grid justify-items-start" src={display_dots(job.dots)} /></td>
+                        <td class="py-1 truncate"><img class="grid justify-items-start" src={ShophawkWeb.HotjobsComponent.display_dots(job.dots)} /></td>
                         <td class="py-1 truncated font-bold" style=""><%= job.make_quantity %></td>
                         <td class="py-1 truncate font-bold" style=""><%= job.part_number %></td>
                         <td class="py-1 truncate font-bold hidden 2xl:table-cell" style=""><%= job.description %></td>
                         <td class="py-1 truncate font-bold" style=""><%= Calendar.strftime(job.job_sched_end, "%m-%d-%y") %></td>
                         <td class="py-1 truncate font-bold" style=""><%= job.customer %></td>
-                        <td class="py-1 truncate font-bold" style=""><%= currentop_complete(job.currentop) %></td>
+                        <td class="py-1 truncate font-bold" style=""><%= ShophawkWeb.HotjobsComponent.currentop_complete(job.currentop) %></td>
                       </tr>
                     </tbody>
                   </table>
