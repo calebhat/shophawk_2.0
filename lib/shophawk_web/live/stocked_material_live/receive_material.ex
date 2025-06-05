@@ -40,12 +40,12 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                     <th class="px-2">Delete</th>
                   </tr>
                 </thead>
-                <div :for={{date, vendors} <- @bars_on_order_form}>
+                <div :for={{date, bars_by_date} <- @bars_on_order_form}>
                   <tbody>
                     <tr><td colspan="4" class="text-xl text-center bg-cyan-950"><%= date %></td></tr>
-                    <div :for={vendor <- vendors}>
-                      <tr><td class="text-xl underline p-1"><%= List.first(vendor).data.vendor %></td></tr>
-                        <%= for bar <- vendor do %>
+                    <div :for={bars <- bars_by_date}>
+                      <tr><td class="text-xl underline p-1"><%= List.first(bars).data.vendor %></td></tr>
+                        <%= for bar <- bars do %>
                             <tr class="place-items-center text-lg bg-cyan-800">
                               <td class="dark-tooltip-container">
                                 <.link
@@ -165,7 +165,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
 
   def update_material_forms(socket) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
-    assign(socket, bars_on_order_form: load_material_on_order(material_list) |> sort_by_vendor())
+    assign(socket, bars_on_order_form: load_material_on_order(material_list) |> sort_by_vendor() |> IO.inspect)
   end
 
   def load_material_on_order(material_list) do
@@ -235,20 +235,20 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
   end
 
   def sort_by_vendor(bars_sorted_by_date) do
-    IO.inspect(bars_sorted_by_date)
     Enum.map(bars_sorted_by_date, fn {date, bars} ->
-      list_of_vendors = Enum.reduce(bars, [], fn bar, acc ->
-        case Enum.member?(acc, bar.data.vendor) do
-          true -> acc
-          false -> [bar.data.vendor | acc]
-        end
-      end)
-      |> Enum.sort()
-      |> Enum.map(fn vendor ->
+      list_of_vendors =
         Enum.reduce(bars, [], fn bar, acc ->
-          if bar.data.vendor == vendor, do: acc ++ [bar], else: acc
+          case Enum.member?(acc, bar.data.vendor) do
+            true -> acc
+            false -> [bar.data.vendor | acc]
+          end
         end)
-      end)
+        |> Enum.sort()
+        |> Enum.map(fn vendor ->
+          Enum.reduce(bars, [], fn bar, acc ->
+            if bar.data.vendor == vendor, do: acc ++ [bar], else: acc
+          end)
+        end)
       {date, list_of_vendors}
     end)
   end
@@ -337,24 +337,26 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
   end
 
   def validate_bar_to_receive(params, socket) do
-    vendors = socket.assigns.bars_on_order_form
-    # Determine the form being updated by matching the `id` hidden field
     form_id = Map.get(params, "id")
 
     updated_bars =
-      Enum.map(vendors, fn bars ->
-        Enum.map(bars, fn bar ->
-          if Integer.to_string(bar.data.id) == form_id do
-            updated_params = Map.put(params, "original_bar_length", params["bar_length"])
-            changeset =
-              Material.change_stocked_material(bar.data, updated_params, :receive)
-              |> Map.put(:action, :validate)
+      Enum.map(socket.assigns.bars_on_order_form, fn {date, bars_by_date} ->
+        updated_bars_by_date =
+          Enum.map(bars_by_date, fn bars ->
+            Enum.map(bars, fn bar ->
+              if Integer.to_string(bar.data.id) == form_id do
+                updated_params = Map.put(params, "original_bar_length", params["bar_length"])
+                changeset =
+                  Material.change_stocked_material(bar.data, updated_params, :receive)
+                  |> Map.put(:action, :validate)
 
-            to_form(changeset)
-          else
-            bar
-          end
-        end)
+                to_form(changeset)
+              else
+                bar
+              end
+            end)
+          end)
+          {date, updated_bars_by_date}
       end)
       assign(socket, :bars_on_order_form, updated_bars)
   end
