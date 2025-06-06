@@ -342,11 +342,12 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   def handle_event("toggle_group", %{"group-index" => index}, socket) do
     index = String.to_integer(index)
+    collapsed_groups = socket.assigns.collapsed_groups
 
-    updated_collapsed = if index in (socket.assigns.collapsed_groups || []) do
-      List.delete(socket.assigns.collapsed_groups || [], index)
+    updated_collapsed = if index in (collapsed_groups || []) do
+      List.delete(collapsed_groups || [], index)
     else
-      [index | (socket.assigns.collapsed_groups || [])]
+      [index | (collapsed_groups || [])]
     end
 
     groups =
@@ -376,15 +377,40 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
   ##### other functions #####
 
+  def toggle_material_group(index, collapsed_groups) do
+    cond do
+      index in (collapsed_groups || []) -> List.delete(collapsed_groups || [], index)
+      true -> collapsed_groups
+    end
+  end
+
+  def find_group_by_material_name(material_name, grouped_materials) do
+    Enum.find_value(grouped_materials, nil, fn {group, index} ->
+      if Enum.any?(group.materials, &(&1.material == material_name)) do
+        index # or just `index` if you only need the index
+      else
+        nil
+      end
+    end)
+  end
+
   defp reload_size(socket, selected_size, selected_material) do
     [{:data, material_list}] = :ets.lookup(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
-    size_info = Enum.find(sizes, fn size -> size.size == selected_size end)
+    size_info =  Enum.find(sizes, fn size -> size.size == selected_size end) || List.first(sizes)
+    selected_size = size_info.size
     material_info =
       case Enum.find(sizes, fn size -> size.size == selected_size end) do
         nil -> nil
         material -> material
       end
+
+      sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
+      size_info =  Enum.find(sizes, fn size -> size.size == selected_size end) || List.first(sizes)
+
+    #updated collapsed material groups to show selected material
+    group_index_material_is_in = find_group_by_material_name(selected_material, socket.assigns.grouped_materials)
+    updated_collapsed = toggle_material_group(group_index_material_is_in, socket.assigns.collapsed_groups)
 
     socket =
       socket
@@ -392,6 +418,8 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
       |> assign(:selected_sizes, sizes)
       |> assign(:material_info, material_info)
       |> assign(:size_info, size_info)
+      |> assign(:selected_material, selected_material)
+      |> assign(:collapsed_groups, updated_collapsed)
       load_material_forms(socket, material_info)
   end
 

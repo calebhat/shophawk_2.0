@@ -22,7 +22,16 @@ defmodule ShophawkWeb.StockedMaterialLive.History do
         id="stockedmaterials"
         rows={@streams.stockedmaterials}
       >
-        <:col :let={{_id, stocked_material}} label="Material"><%= stocked_material.material %></:col>
+        <:col :let={{_id, stocked_material}} label="Material">
+          <.link
+            navigate={~p"/stockedmaterials?#{[material: stocked_material.material_name, size: stocked_material.size]}"}
+            class="dark-tooltip-container font-bold"
+          >
+            <div>
+              <%= stocked_material.material %>
+            </div>
+          </.link>
+        </:col>
         <:col :let={{_id, stocked_material}} label="Purchase Bar Length"><%= stocked_material.original_bar_length %>"</:col>
         <:col :let={{_id, stocked_material}} label="Current Bar Length"><%= stocked_material.bar_length %>"</:col>
         <:col :let={{_id, stocked_material}} label="Slug Count"><%= stocked_material.number_of_slugs %></:col>
@@ -64,24 +73,45 @@ defmodule ShophawkWeb.StockedMaterialLive.History do
         %{"material" => material} ->
           Material.list_stockedmaterials_history(material)
           |> Enum.map(fn h ->
-              cond do
-                h.bar_used == true -> %{h | status: "Bar Used"}
-                h.ordered == true -> %{h | status: "ordered"}
-                h.in_house == true -> %{h | status: "In House"}
-                h.being_quoted == true -> %{h | status: "Being Quoted"}
-                true -> h
+            [size_str, material_name] =
+              case String.split(h.material, "X") do
+                [size_str, material_name] -> [size_str, material_name]
+                [size1, size2, material_name] ->
+                    size_str = size1 <> "X" <> size2
+                  [size_str, material_name]
               end
+              |> Enum.map(&String.trim/1)
+
+            cond do
+              h.bar_used == true -> %{h | status: "Bar Used"}
+              h.ordered == true -> %{h | status: "ordered"}
+              h.in_house == true -> %{h | status: "In House"}
+              h.being_quoted == true -> %{h | status: "Being Quoted"}
+              true -> h
+            end
+            |> Map.put(:material_name, material_name)
+            |> Map.put(:size, size_str)
           end)
         %{} ->
           Material.list_stockedmaterials_history
           |> Enum.map(fn h ->
-              cond do
-                h.bar_used == true -> %{h | status: "Bar Used"}
-                h.ordered == true -> %{h | status: "ordered"}
-                h.in_house == true -> %{h | status: "In House"}
-                h.being_quoted == true -> %{h | status: "Being Quoted"}
-                true -> h
+            [size_str, material_name] =
+              case String.split(h.material, "X") do
+                [size_str, material_name] -> [size_str, material_name]
+                [size1, size2, material_name] ->
+                    size_str = size1 <> "X" <> size2
+                  [size_str, material_name]
               end
+              |> Enum.map(&String.trim/1)
+            cond do
+              h.bar_used == true -> %{h | status: "Bar Used"}
+              h.ordered == true -> %{h | status: "ordered"}
+              h.in_house == true -> %{h | status: "In House"}
+              h.being_quoted == true -> %{h | status: "Being Quoted"}
+              true -> h
+            end
+            |> Map.put(:material_name, material_name)
+            |> Map.put(:size, size_str)
           end)
       end
 

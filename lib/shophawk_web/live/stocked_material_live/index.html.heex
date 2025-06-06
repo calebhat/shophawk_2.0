@@ -25,12 +25,9 @@
             <%= for material <- group.materials do %>
               <div class="flex">
                 <div class="border-l border-stone-400 ml-1"></div>
-                <div 
+                <.link
+                  navigate={~p"/stockedmaterials?#{[material: material.material, size: @selected_size]}"}
                   class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_material_bg_color(@selected_material, material.material)]}
-                  phx-click="load_material"
-                  phx-value-selected-material={material.material}
-                  phx-value-selected-size={@selected_size}
-                  phx-value-material-name={@material_name}
                 >
                   <span><%= material.material %></span>
                   <%= if material.mat_reqs_count > 0 do %>
@@ -38,7 +35,7 @@
                       <%= material.mat_reqs_count %>
                     </span>
                   <% end %>
-                </div>
+                </.link>
               </div>
             <% end %>
           <% end %>
@@ -49,19 +46,18 @@
 
     <!-- Size column -->
     <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-40 w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
-      <div 
-      :for={size <- @selected_sizes}
-      class={["flex items-center justify-between rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_size_bg_color(@selected_size, size.size)]}
-      phx-click="load_material"
-      phx-value-selected-size={size.size}
-      phx-value-selected-material={@selected_material}
-      phx-value-material-name={size.material_name}>
+      <div :for={size <- @selected_sizes} >
+      <.link
+        navigate={~p"/stockedmaterials?#{[material: @selected_material, size: size.size]}"}
+        class={["flex items-center justify-between rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_size_bg_color(@selected_size, size.size)]}
+      >
         <span><%= size.size %></span>
         <%= if size.jobs_using_size > 0 do %>
           <span class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1">
             <%= size.jobs_using_size %>
           </span>
         <% end %>
+      </.link>
       </div>
     </div>
 
@@ -85,168 +81,240 @@
       
         <!-- if a size is loaded -->
         <%= if @size_info != nil do %>
-        <div id="main-content" style={if @loading, do: "display: none;"} class="">
-          <div class=" grid grid-cols-11 text-center content-center">          
-            
-            <!-- to order and receive buttons -->
-            <div class="relative inline-block col-span-3">
-              <div class="">
+          <div id="main-content" style={if @loading, do: "display: none;"} class="">
+            <div class=" grid grid-cols-11 text-center content-center">          
+              
+              <!-- to order and receive buttons -->
+              <div class="relative inline-block col-span-4">
+                <div class="">                  
+                  <div class="flex pl-4">
+                    <.link patch={~p"/stockedmaterials/material_to_order"}>
+                      <div class="flex-1"><.button>To Order: <%= @material_to_order_count %></.button></div>
+                    </.link>
+                    <.link patch={~p"/stockedmaterials/receive_material"}>
+                      <div class="pl-2 flex-1"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
+                    </.link>
+                    <.link patch={~p"/stockedmaterials/history?#{[material: @size_info.material_name, material_name: @selected_material, size: @size_info.size]}"}>
+                      <div class="pl-2"><.button class=""><%= @size_info.material_name %> History</.button></div>
+                    </.link>
+                  </div>
+                </div>              
+              </div>
+
+              <div class="text-stone-200 text-4xl col-span-2 truncate">
+                <%= @size_info.material_name %>
+              </div>
                 
-                <div class="flex pl-4">
-                  <.link patch={~p"/stockedmaterials/material_to_order"}>
-                    <div class="flex-1"><.button>To Order: <%= @material_to_order_count %></.button></div>
-                  </.link>
-                  <.link patch={~p"/stockedmaterials/receive_material"}>
-                    <div class="pl-2 flex-1"><.button class="">Receiving: <%= @material_on_order_count %></.button></div>
-                  </.link>
-                  <.link patch={~p"/stockedmaterials/history?#{[material: @size_info.material_name, material_name: @selected_material, size: @size_info.size]}"}>
-                    <div class="pl-2"><.button class=""><%= @size_info.material_name %> History</.button></div>
-                  </.link>
+              <div class="col-span-5 flex justify-end mr-4">
+                <.link patch={~p"/stockedmaterials/new"}>
+                  <.button>Manually Receive Bar</.button>
+                </.link>
+              </div>
+
+              </div>
+            <!-- main grid -->
+            <div class="grid grid-cols-10 m-2 text-stone-200 relative">
+              <!-- Info -->
+              <div class="col-span-2">
+                <div class="bg-cyan-800 rounded-lg p-2 mx-2 mb-2 text-lg">
+                  <ul>
+                    <li>On Hand: <%= @size_info.on_hand_qty %>'</li>
+                    <%= case @size_info.cost_uofm do %>
+                    <% "lb" -> %><li>Purchase $/lb: <%= @size_info.purchase_price %></li>                
+                    <% "ft" -> %><li>Purchase $/ft: <%= @size_info.purchase_price %></li>
+                    <% _ -> %><li>Purchase $/lb: <%= @size_info.purchase_price %></li>
+                    <% end %>  
+                    <li>Sell $/Inch: <%= @size_info.cost_per_inch %></li>
+                    <%= case @size_info.cost_uofm do %>
+                    <% "lb" -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>                
+                    <% "ft" -> %><li>Sell $/ft: <%= @size_info.sell_price %></li>
+                    <% _ -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>
+                    <% end %>                
+                    <li>12 Month Usage: <%= @size_info.past_years_usage %>'</li>
+                    <li>lbs/inch: <%= @size_info.lbs_per_inch %></li>
+                    <li>need to order: <%= @size_info.need_to_order_amt %>"</li>
+                  </ul>
                 </div>
-              </div>
-            
-            </div>
-
-            <div class="text-stone-200 text-4xl col-span-4">
-              <%= @size_info.material_name %>
-            </div>
-              
-            <div class="col-span-4 flex justify-end mr-4">
-              <.link patch={~p"/stockedmaterials/new"}>
-                <.button>Manually Receive Bar</.button>
-              </.link>
-            </div>
-
-            </div>
-          <!-- main grid -->
-          <div class="grid grid-cols-10 m-2 text-stone-200 relative">
-            <!-- Info -->
-            <div class="col-span-2">
-              <div class="bg-cyan-800 rounded-lg p-2 mx-2 mb-2 text-lg">
-                <ul>
-                  <li>On Hand: <%= @size_info.on_hand_qty %>'</li>
-                  <%= case @size_info.cost_uofm do %>
-                  <% "lb" -> %><li>Purchase $/lb: <%= @size_info.purchase_price %></li>                
-                  <% "ft" -> %><li>Purchase $/ft: <%= @size_info.purchase_price %></li>
-                  <% _ -> %><li>Purchase $/lb: <%= @size_info.purchase_price %></li>
-                  <% end %>  
-                  <li>Sell $/Inch: <%= @size_info.cost_per_inch %></li>
-                  <%= case @size_info.cost_uofm do %>
-                  <% "lb" -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>                
-                  <% "ft" -> %><li>Sell $/ft: <%= @size_info.sell_price %></li>
-                  <% _ -> %><li>Sell $/lb: <%= @size_info.sell_price %></li>
-                  <% end %>                
-                  <li>12 Month Usage: <%= @size_info.past_years_usage %>'</li>
-                  <li>lbs/inch: <%= @size_info.lbs_per_inch %></li>
-                  <li>need to order: <%= @size_info.need_to_order_amt %>"</li>
-                </ul>
-              </div>
-              <%= if @related_jobs != [] do %>
-              <div class="bg-cyan-800 rounded-lg p-2 mx-2">
-                <div class="text-xl text-center mb-2">Jobs to Saw</div>
-                <table class="table-auto w-full mb-2">
-                  <thead>
-                    <tr class="border-b text-center">
-                      <td >Job</td>
-                      <td>Length</td>
-                      <td>Qty</td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%= for job <- @related_jobs do %>  
-                    <tr phx-click="show_job" phx-value-job={job.job} class="py-0.5 font-semibold rounded hover:bg-cyan-500 hover:cursor-pointer hover:text-black text-center">                   
-                      <td><%= job.job %></td>
-                      <td><%= job.part_length %>"</td>
-                      <td><%= job.make_qty %></td>
-                    </tr>
-                  <% end %>
-                  </tbody>
-                </table>
-              </div>
-              <% end %>
-
-            </div>
-            
-            <!-- Bars -->
-            <div class="col-span-5 relative overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 11rem);">
-              
-              <!-- bars in stock -->
-              <div class="bg-cyan-800 rounded-lg p-4 mx-2">
-                <div class="grid grid-cols-3 pb-2">
-                  <div></div>
-                  <div class="text-xl underline text-center">Bars</div>    
-                  <div class="text-center">
-                    <.button type="button" phx-click="new_bar" phx-value-selected-material={@selected_material} phx-value-selected-size={@selected_size}>
-                      New Bar
-                    </.button>
-                  </div>    
-                </div>      
-                <div :for={bar <- @bars_in_stock_form}>
-                  <.form
-                    for={bar}
-                    id={"bar-#{bar.id}"}
-                    phx-change="validate_bars"
-                    phx-submit="save_material"
-                  >
-                    <div class="flex p-1">
-                      <div class="grow relative">
-                        <div class="bg-black rounded-md text-left h-full max-w-full"                       
-                        style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%;"}>
-                          <span class="absolute inset-0 flex justify-center items-center">
-                            <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
-                            <%= if bar.data.location != nil, do: " - #{bar.data.location}" %>
-                          </span>
-                          <!-- Loop through job assignments and display colored sections -->
-                          <div class="relative h-full w-full">
-                            <%= for assignment <- bar.data.job_assignments do %>
-                              <div
-                                class="absolute rounded-md h-full border-2 border-stone-500"
-                                style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
-                              >
-                              </div>
-                            <% end %>                          
+                <%= if @related_jobs != [] do %>
+                <div class="bg-cyan-800 rounded-lg p-2 mx-2">
+                  <div class="text-xl text-center mb-2">Jobs to Saw</div>
+                  <table class="table-auto w-full mb-2">
+                    <thead>
+                      <tr class="border-b text-center">
+                        <td >Job</td>
+                        <td>Length</td>
+                        <td>Qty</td>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <%= for job <- @related_jobs do %>  
+                      <tr phx-click="show_job" phx-value-job={job.job} class="py-0.5 font-semibold rounded hover:bg-cyan-500 hover:cursor-pointer hover:text-black text-center">                   
+                        <td><%= job.job %></td>
+                        <td><%= job.part_length %>"</td>
+                        <td><%= job.make_qty %></td>
+                      </tr>
+                    <% end %>
+                    </tbody>
+                  </table>
+                </div>
+                <% end %>
+              </div>              
+              <!-- Bars -->
+              <div class="col-span-5 relative overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 11rem);">
+                
+                <!-- bars in stock -->
+                <div class="bg-cyan-800 rounded-lg p-4 mx-2">
+                  <div class="grid grid-cols-3 pb-2">
+                    <div></div>
+                    <div class="text-xl underline text-center">Bars</div>    
+                    <div class="text-center">
+                      <.button type="button" phx-click="new_bar" phx-value-selected-material={@selected_material} phx-value-selected-size={@selected_size}>
+                        New Bar
+                      </.button>
+                    </div>    
+                  </div>      
+                  <div :for={bar <- @bars_in_stock_form}>
+                    <.form
+                      for={bar}
+                      id={"bar-#{bar.id}"}
+                      phx-change="validate_bars"
+                      phx-submit="save_material"
+                    >
+                      <div class="flex p-1">
+                        <div class="grow relative">
+                          <div class="bg-black rounded-md text-left h-full max-w-full"                       
+                          style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%;"}>
+                            <span class="absolute inset-0 flex justify-center items-center">
+                              <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
+                              <%= if bar.data.location != nil, do: " - #{bar.data.location}" %>
+                            </span>
+                            <!-- Loop through job assignments and display colored sections -->
+                            <div class="relative h-full w-full">
+                              <%= for assignment <- bar.data.job_assignments do %>
+                                <div
+                                  class="absolute rounded-md h-full border-2 border-stone-500"
+                                  style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
+                                >
+                                </div>
+                              <% end %>                          
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div>
-                        <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                        <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>            
-                      </div>
-                      <div class="w-min-content">
-                        <%= if bar.data.saved == false do %> 
-                          <div class="flex justify-items-start w-40">
-                            <div class="ml-2"><.input field={bar[:location]} type="text" placeholder="Location" value={bar.data.location} /></div>
-                            <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
-                          </div>
-                        <% else %>
-                        <div class="flex justify-items-start w-40">
-                          <div class="pl-2 py-3">
-                            <.button 
-                            type="button"
-                            phx-click="make_slug"
-                            phx-value-selected-material={@selected_material} 
-                            phx-value-selected-size={@selected_size}
-                            phx-value-id={bar.data.id}>
-                              slug
-                            </.button>
-                          </div>
-                          <div class="pl-2 py-3">
-                            <.delete_button 
-                            type="button"
-                            phx-click="bar_used" 
-                            phx-value-selected-material={@selected_material} 
-                            phx-value-selected-size={@selected_size}
-                            phx-value-id={bar.data.id}>
-                              Used
-                            </.delete_button>
-                          </div>    
-                          <%= if Enum.count(bar.data.job_assignments) > 0 do %>
-                          <div class=" dark-tooltip-container h-full">
-                            <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2">
-                              <%= Enum.count(bar.data.job_assignments) %>
+                        <div>
+                          <div class="hidden"><.input field={bar[:id]} type="text" /></div>
+                          <div class="w-24 pb-2 pl-2"><.input field={bar[:bar_length]} type="number" placeholder="Length" step=".01" /></div>            
+                        </div>
+                        <div class="w-min-content">
+                          <%= if bar.data.saved == false do %> 
+                            <div class="flex justify-items-start w-40">
+                              <div class="ml-2"><.input field={bar[:location]} type="text" placeholder="Location" value={bar.data.location} /></div>
+                              <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
                             </div>
-                            <div class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
-                                  style="z-index: 12; white-space: nowrap;">
+                          <% else %>
+                          <div class="flex justify-items-start w-40">
+                            <div class="pl-2 py-3">
+                              <.button 
+                              type="button"
+                              phx-click="make_slug"
+                              phx-value-selected-material={@selected_material} 
+                              phx-value-selected-size={@selected_size}
+                              phx-value-id={bar.data.id}>
+                                slug
+                              </.button>
+                            </div>
+                            <div class="pl-2 py-3">
+                              <.delete_button 
+                              type="button"
+                              phx-click="bar_used" 
+                              phx-value-selected-material={@selected_material} 
+                              phx-value-selected-size={@selected_size}
+                              phx-value-id={bar.data.id}>
+                                Used
+                              </.delete_button>
+                            </div>    
+                            <%= if Enum.count(bar.data.job_assignments) > 0 do %>
+                            <div class=" dark-tooltip-container h-full">
+                              <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2">
+                                <%= Enum.count(bar.data.job_assignments) %>
+                              </div>
+                              <div class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
+                                    style="z-index: 12; white-space: nowrap;">
+                                  <.fixed_widths_table_with_show_job 
+                                  id="bar_assignments" 
+                                  rows={Enum.reverse(bar.data.job_assignments)} 
+                                  row_click={fn _row_data -> "show_job" end}
+                                  >                            
+                                    <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                                    <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
+                                    <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
+                                  </.fixed_widths_table_with_show_job>
+                                </div> 
+                            </div>
+                            <% end %>                                           
+                          </div>
+                          <% end %>
+                        </div>
+                      </div>
+                    </.form>
+                  </div>
+                </div>
+              
+                <br>
+
+                <!-- bars to order -->
+                <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
+                  <div class="grid grid-cols-3 pb-2">
+                    <div></div>
+                    <div class="text-xl underline text-center">Bars To Order</div>    
+                    <div class="text-center"></div>    
+                  </div>      
+                  <div :for={bar <- @bars_to_order_form}>
+                    <.form
+                      for={bar}
+                      id={"bar-#{bar.id}"}
+                      phx-change="validate_bars_to_order"
+                      phx-submit="save_material"
+                    >
+                      <div class="flex p-1">
+                        <div class="grow relative">
+                          <div class="bg-black rounded-md text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
+                            <span class="absolute inset-0 flex justify-center items-center">
+                              <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
+                            </span>
+
+                            <!-- Loop through job assignments and display colored sections -->
+                            <div class="relative h-full w-full">
+                              <%= for assignment <- bar.data.job_assignments do %>
+                                <div
+                                  class="absolute rounded-md h-full border-2 border-stone-500"
+                                  style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
+                                >
+                                </div>
+                              <% end %>
+                            </div>                            
+                          </div>
+                        </div>
+                        <div>                                  
+                        </div>                        
+                        <div class="w-48">                          
+                          <div class="flex justify-end items-center">
+                            <div class="ml-4 p-2 rounded-md">
+                              <%= cond do %>
+                              <% bar.data.being_quoted == true ->  %>
+                                Waiting on Quote
+                              <% bar.data.ordered == true -> %>
+                                Ordered
+                              <% true -> %>
+                                Need to Order
+                              <% end %>
+                            </div>
+                            <%= if Enum.count(bar.data.job_assignments) > 0 do %>
+                            <div class=" dark-tooltip-container">
+                              <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2 w-6">
+                                <%= Enum.count(bar.data.job_assignments) %>
+                              </div>
+                              <div class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
+                              style="z-index: 12; white-space: nowrap;">
                                 <.fixed_widths_table_with_show_job 
                                 id="bar_assignments" 
                                 rows={Enum.reverse(bar.data.job_assignments)} 
@@ -257,194 +325,107 @@
                                   <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
                                 </.fixed_widths_table_with_show_job>
                               </div> 
-                          </div>
-                          <% end %>                                           
-                        </div>
-                        <% end %>
-                      </div>
-                    </div>
-                  </.form>
-                </div>
-              </div>
-            
-
-              <br>
-
-              <!-- bars to order -->
-              <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
-                <div class="grid grid-cols-3 pb-2">
-                  <div></div>
-                  <div class="text-xl underline text-center">Bars To Order</div>    
-                  <div class="text-center"></div>    
-                </div>      
-                <div :for={bar <- @bars_to_order_form}>
-                  <.form
-                    for={bar}
-                    id={"bar-#{bar.id}"}
-                    phx-change="validate_bars_to_order"
-                    phx-submit="save_material"
-                  >
-                    <div class="flex p-1">
-                      <div class="grow relative">
-                        <div class="bg-black rounded-md text-left h-full max-w-full" style={"width: #{if bar.data.bar_length != nil, do: (bar.data.bar_length * 100 / 12 / 12), else: 0}%"}>
-                          <span class="absolute inset-0 flex justify-center items-center">
-                            <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
-                          </span>
-
-                          <!-- Loop through job assignments and display colored sections -->
-                          <div class="relative h-full w-full">
-                            <%= for assignment <- bar.data.job_assignments do %>
-                              <div
-                                class="absolute rounded-md h-full border-2 border-stone-500"
-                                style={"width: #{assignment.percentage_of_bar}%; left: #{assignment.left_offset}%;"}
-                              >
-                              </div>
-                            <% end %>
-                          </div>
-                          
-                        </div>
-                      </div>
-
-                      <div>
-                                
-                      </div>
-                      
-                      <div class="w-48">
-                        
-                        <div class="flex justify-end items-center">
-                          <div class="ml-4 p-2 rounded-md">
-                            <%= cond do %>
-                            <% bar.data.being_quoted == true ->  %>
-                              Waiting on Quote
-                            <% bar.data.ordered == true -> %>
-                              Ordered
-                            <% true -> %>
-                              Need to Order
-                            <% end %>
-                          </div>
-                          <%= if Enum.count(bar.data.job_assignments) > 0 do %>
-                          <div class=" dark-tooltip-container">
-                            <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 my-4 ml-2 w-6">
-                              <%= Enum.count(bar.data.job_assignments) %>
                             </div>
-                            <div class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
-                            style="z-index: 12; white-space: nowrap;">
-                              <.fixed_widths_table_with_show_job 
-                              id="bar_assignments" 
-                              rows={Enum.reverse(bar.data.job_assignments)} 
-                              row_click={fn _row_data -> "show_job" end}
-                              >                            
-                                <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                                <:col :let={bar} label="Length" width="w-16"><%= bar.length_to_use %>"</:col>
-                                <:col :let={bar} label="Parts" width="w-16"><%= bar.parts_from_bar %></:col>
-                              </.fixed_widths_table_with_show_job>
-                            </div> 
-                          </div>
-                          <% end %>                       
-                          </div>
+                            <% end %>                       
+                            </div>
+                        </div>
                       </div>
-                    </div>
-                  </.form>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Slugs -->
-            <div class="col-span-3 relative overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 11rem);">
-              <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
-                <div class="grid grid-cols-3">
-                  <div></div>
-                  <div class="text-xl underline text-center">Slugs</div>
-                  <div class="text-center">
-                    <.button type="button" phx-click="new_slug" phx-value-selected-material={@selected_material} phx-value-selected-size={@selected_size}>
-                      New Slug
-                    </.button>
+                    </.form>
                   </div>
                 </div>
-                <br>
-                
-                <%= if @slugs_form != [] do %>
-                <div class="flex text-center place-content-start">
-                  <div class="w-24">Inches</div>
-                  <div class="w-20">Slugs</div>
-                  <div class="w-40"></div>
-                </div>
-                <% end %>
-                <div :for={bar <- @slugs_form}>
-                  <.form
-                    for={bar}
-                    id={"bar-#{bar.id}"}
-                    phx-change="validate_slugs"
-                    phx-submit="save_material"
-                  >
-                    <div class="flex px-1">  
-                      <div class="flex dark-tooltip-container">                  
-                        <div class="w-24">
-                          <div class="hidden"><.input field={bar[:id]} type="text" /></div>
-                          <div class="pb-2 pl-2"><.input field={bar[:slug_length]} type="number" step=".01" /></div> 
-                        </div>                    
-                        <div class="w-20 pb-2 pl-2"><.input field={bar[:number_of_slugs]} type="number" step="1.0" />
-                        </div>   
-                        <%= if bar.data.location != nil do %>
-                          <div class="tooltip absolute translate-y-14 translate-x-2">
-                          <%= bar.data.location %>
-                          </div> 
-                        <% end %>
-                      </div>                 
-                      <div class="w-40">
-                        <%= if bar.data.saved == false do %> 
-                          <div class="ml-2"><.input field={bar[:location]} type="text" placeholder="Location" /></div>
-                          <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
-                        <% else %>
-                        <div class="flex items-center">
-                          <div class="pl-2 py-3">
-                            <.delete_button 
-                            type="button"
-                            phx-click="bar_used" 
-                            phx-value-selected-material={@selected_material} 
-                            phx-value-selected-size={@selected_size}
-                            phx-value-id={bar.data.id}>
-                              Used
-                            </.delete_button>                          
-                          </div>
-                          <%= if Enum.count(bar.data.job_assignments) > 0 do %>
-                          <div class="dark-tooltip-container h-full">
-                            <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 ml-2 h-6">
-                              <%= Enum.count(bar.data.job_assignments) %>
-                            </div>                        
-                            <div 
-                              class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
-                              style="z-index: 12; white-space: nowrap;"
-                            >
-                                <.fixed_widths_table_with_show_job 
-                                id="bar_assignments" 
-                                rows={Enum.reverse(bar.data.job_assignments)} 
-                                row_click={fn _row_data -> "show_job" end}
-                                >             
-                                  <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
-                                  <:col :let={bar} label="slugs" width="w-16"><%= bar.slug_qty %></:col>
-                                  <:col :let={bar} label="Parts" width="w-16"><%= bar.part_qty %></:col>
-                                </.fixed_widths_table_with_show_job>
-                            </div>
-                          </div>
-                        <% end %>   
-                        </div>
-                        <% end %>                      
-                      </div>    
+              </div>
+              <!-- Slugs -->
+              <div class="col-span-3 relative overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 11rem);">
+                <div class="bg-cyan-800 rounded-lg p-4 mx-2 text-stone-200">
+                  <div class="grid grid-cols-3">
+                    <div></div>
+                    <div class="text-xl underline text-center">Slugs</div>
+                    <div class="text-center">
+                      <.button type="button" phx-click="new_slug" phx-value-selected-material={@selected_material} phx-value-selected-size={@selected_size}>
+                        New Slug
+                      </.button>
                     </div>
-                  </.form>
+                  </div>
+                  <br>
+                  
+                  <%= if @slugs_form != [] do %>
+                  <div class="flex text-center place-content-start">
+                    <div class="w-24">Inches</div>
+                    <div class="w-20">Slugs</div>
+                    <div class="w-40"></div>
+                  </div>
+                  <% end %>
+                  <div :for={bar <- @slugs_form}>
+                    <.form
+                      for={bar}
+                      id={"bar-#{bar.id}"}
+                      phx-change="validate_slugs"
+                      phx-submit="save_material"
+                    >
+                      <div class="flex px-1">  
+                        <div class="flex dark-tooltip-container">                  
+                          <div class="w-24">
+                            <div class="hidden"><.input field={bar[:id]} type="text" /></div>
+                            <div class="pb-2 pl-2"><.input field={bar[:slug_length]} type="number" step=".01" /></div> 
+                          </div>                    
+                          <div class="w-20 pb-2 pl-2"><.input field={bar[:number_of_slugs]} type="number" step="1.0" />
+                          </div>   
+                          <%= if bar.data.location != nil do %>
+                            <div class="tooltip absolute translate-y-14 translate-x-2">
+                            <%= bar.data.location %>
+                            </div> 
+                          <% end %>
+                        </div>                 
+                        <div class="w-40">
+                          <%= if bar.data.saved == false do %> 
+                            <div class="ml-2"><.input field={bar[:location]} type="text" placeholder="Location" /></div>
+                            <div class="hidden"><.button phx-disable-with="Saving...">Save</.button></div>
+                          <% else %>
+                          <div class="flex items-center">
+                            <div class="pl-2 py-3">
+                              <.delete_button 
+                              type="button"
+                              phx-click="bar_used" 
+                              phx-value-selected-material={@selected_material} 
+                              phx-value-selected-size={@selected_size}
+                              phx-value-id={bar.data.id}>
+                                Used
+                              </.delete_button>                          
+                            </div>
+                            <%= if Enum.count(bar.data.job_assignments) > 0 do %>
+                            <div class="dark-tooltip-container h-full">
+                              <div class="bg-orange-700 text-white text-xs font-semibold rounded-full px-2 py-1 ml-2 h-6">
+                                <%= Enum.count(bar.data.job_assignments) %>
+                              </div>                        
+                              <div 
+                                class="tooltip absolute -translate-x-3/4 translate-y-2 shadow-2xl min-w-min z-12"
+                                style="z-index: 12; white-space: nowrap;"
+                              >
+                                  <.fixed_widths_table_with_show_job 
+                                  id="bar_assignments" 
+                                  rows={Enum.reverse(bar.data.job_assignments)} 
+                                  row_click={fn _row_data -> "show_job" end}
+                                  >             
+                                    <:col :let={bar} label="Job" width="w-20"><%= bar.job %></:col>
+                                    <:col :let={bar} label="slugs" width="w-16"><%= bar.slug_qty %></:col>
+                                    <:col :let={bar} label="Parts" width="w-16"><%= bar.part_qty %></:col>
+                                  </.fixed_widths_table_with_show_job>
+                              </div>
+                            </div>
+                          <% end %>   
+                          </div>
+                          <% end %>                      
+                        </div>    
+                      </div>
+                    </.form>
+                  </div>
                 </div>
               </div>
             </div>
-
           </div>
-
-        </div>
         <% end %>
         <div id="loading-content" class="loader" style={if !@loading, do: "display: none;"}>Loading...</div>
-      </div>
-      
+      </div>      
     </div>
   </div>
 
