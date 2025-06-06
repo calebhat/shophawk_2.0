@@ -22,13 +22,30 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
             <div class="text-lg row-span-2"><%= assigns.job_info.order_quantity %> </div>
             <div class="text-lg row-span-2"><%= assigns.job_info.customer %> </div>
           </div>
-          <div class="grid grid-cols-4 grid-rows-2">
+          <div class="grid grid-cols-4">
             <div class="underline text-base">Description</div>
-            <div class="underline text-base">material</div>
+            <div class="underline text-base">Material</div>
             <div class="underline text-base">Customer PO </div>
             <div class="underline text-base">Dots</div>
+          </div>
+          <div class="grid grid-cols-4">
             <div class="text-lg"><%= assigns.job_info.description %> </div>
-            <div class="text-lg"><%= assigns.job_info.material %> </div>
+            <div class="text-lg">
+              <%= for mat <- assigns.job_info.material do %>
+                <div class="truncate">
+                <%= case mat.size do %>
+                <% "" -> %> <%= mat.material_name %>
+                <% _ -> %>
+                <.link
+                    navigate={~p"/stockedmaterials?#{[material: mat.material, size: mat.size]}"}
+                    class="text-blue-900 font-bold underline"
+                  >
+                  <%= mat.material_name %>
+                </.link>
+                <% end %>
+                </div>
+              <% end %>
+            </div>
             <div class="text-lg"><%= (assigns.job_info.customer_po || "") <> ", line: " <> (assigns.job_info.customer_po_line || "") %> </div>
             <div class="flex justify-center"><img src={ShophawkWeb.HotjobsComponent.display_dots(assigns.job_info.dots)} /></div>
 
@@ -172,11 +189,42 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
         _ -> assigns.current_user.email
     end
 
+    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+
+    job_material_list =
+      assigns.job_info.material
+      |> String.split(" | ")
+      |> Enum.map(&String.trim/1)
+      |> Enum.map(fn mat ->
+        [size_str, material_name] =
+          case String.split(mat, "X") do
+            [size_str, material_name] -> [size_str, material_name]
+            [size1, size2, material_name] -> [(size1 <> "X" <> size2), material_name]
+            _ -> ["", ""]
+          end
+          |> Enum.map(&String.trim/1)
+
+
+          found_material = Enum.find(material_list, fn mat -> mat.material == material_name end)
+          [size_str, material_name] =
+            case found_material do
+              nil -> ["", %{material: ""}]
+              _ -> [size_str, Shophawk.MaterialCache.merge_materials([%{material: material_name}]) |> List.first()]
+            end
+
+
+          %{material_name: mat, material: material_name.material, size: size_str}
+      end)
+      #ending list: [%{size: "3", material: "3X4140HT", material_name: "4140HT"}]
+
+      updated_job_info = Map.put(assigns.job_info, :material, job_material_list)
+
+
     {:ok,
     socket
     |> assign(job: assigns.id)
     |> assign(job_ops: assigns.job_ops)
-    |> assign(job_info: assigns.job_info)
+    |> assign(job_info: updated_job_info)
     |> assign(current_user: current_user)
     }
   end
