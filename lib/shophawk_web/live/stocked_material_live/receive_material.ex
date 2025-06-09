@@ -88,7 +88,6 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
                                       value={if Map.has_key?(bar.source.changes, :bar_length), do: bar.source.changes.bar_length, else: nil} />
                                     </div>
                                     <div class="mr-2 pb-2"><.input field={bar[:location]} type="text" placeholder="Location"/></div>
-                                    <div class="mr-2 pb-2 hidden"><.input field={bar[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()}/></div>
                                     <div class=""><.button type="submit" phx-disable-with="Saving...">Receive</.button></div>
                                   </div>
                                 </.form>
@@ -184,7 +183,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
         |> Map.put(:bar_length_placeholder, mat.bar_length)
       end)
       |> Enum.group_by(fn material ->
-        NaiveDateTime.to_date(material.updated_at)
+        material.purchase_date
       end)
       |> Enum.map(fn {date, materials} ->
         sorted_materials =
@@ -227,11 +226,6 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
         end)
       {date, updated_sorted_materials}
     end)
-
-
-    #Enum.map(material_with_assignments, fn {date, bars} ->
-    #  {date, Enum.map(bars, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)}
-    #end)
   end
 
   def sort_by_vendor(bars_sorted_by_date) do

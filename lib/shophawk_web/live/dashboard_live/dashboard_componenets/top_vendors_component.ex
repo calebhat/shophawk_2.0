@@ -3,7 +3,7 @@ defmodule ShophawkWeb.TopVendorsComponent do
 
   def render(assigns) do
     ~H"""
-    <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[50vh]">
+    <div class="text-center justify-center rounded p-4 bg-cyan-900 m-2 h-[60vh]">
         <div class="text-2xl grid grid-cols-3">
             <div></div>
             <div>Top Paid Vendors</div>

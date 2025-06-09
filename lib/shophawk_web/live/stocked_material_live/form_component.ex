@@ -22,7 +22,7 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
         <.input field={@form[:material]} type="text" label="Material" value={@material} disabled="true" />
         <div class="hidden"><.input field={@form[:material]} type="text" label="Material" value={@material} /></div>
         <.input field={@form[:bar_length]} type="number" label="Bar Length" />
-        <.input field={@form[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()} />
+        <.input field={@form[:purchase_date]} type="date" label="Purchase Date" value={@form[:purchase_date]} />
         <.input field={@form[:purchase_price]} type="number" label="Purchase Price" />
         <.input field={@form[:vendor]} type="text" label="Vendor" phx-debounce="2000"/>
         <.input field={@form[:location]} type="text" label="Location" />

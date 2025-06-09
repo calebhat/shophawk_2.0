@@ -144,6 +144,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
                   <div class="mx-2">
                     <.input field={bar[:purchase_price]} type="number" step=".01" placeholder={"Per #{bar.data.cost_uofm}"} />
                   </div>
+                  <div class="mr-2 pb-2 hidden"><.input field={bar[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()}/></div>
                   <div class="px-2 text-center flex items-center">
                     <.button type="submit">
                         Save
@@ -418,7 +419,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def handle_event("save_bar_waiting_on_quote", params, socket) do
-    params = params["stocked_material"]
+    params = params["stocked_material"] |> IO.inspect
     found_bar = Material.get_material_waiting_on_quote_by_name(params["material"])
     updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
 
