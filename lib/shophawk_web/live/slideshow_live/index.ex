@@ -75,12 +75,15 @@ defmodule ShophawkWeb.SlideshowLive.Index do
 
   defp apply_action(socket, :index, _params) do
     {slideshow, slides, next_slide, index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])
+    current_slide_index = Enum.find_index(slides, fn s -> s == next_slide end)
+    previous_slide = Enum.at(slides, current_slide_index - 1)
     slides = Enum.map(slides, fn x -> Atom.to_string(x) end) |> Jason.encode!()
     socket
     |> assign(slideshow: slideshow)
     |> assign(slide: :week1_timeoff)
     |> assign(slide_index: 1)
     |> assign(next_slide: next_slide)
+    |> assign(previous_slide: previous_slide)
     |> assign(index: index)
     |> assign(slides: slides)
     |> assign(:page_title, "Listing Slideshow")
@@ -95,15 +98,32 @@ defmodule ShophawkWeb.SlideshowLive.Index do
 
   def handle_event("next_slide", %{"next-slide" => slide_to_load}, socket) do
     slide_to_load = String.to_atom(slide_to_load)
-    #slides = Jason.decode!(slides) |> Enum.map( fn x -> String.to_atom(x) end)
     {slideshow, slides, _next_slide, _index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])
     {_slideshow, _slides, next_slide, index} = prepare_slides(slideshow, slide_to_load, 0, slides)
+    current_slide_index = Enum.find_index(slides, fn s -> s == next_slide end) - 1
+    previous_slide = Enum.at(slides, current_slide_index - 1)
 
     slides = Enum.map(slides, fn x -> Atom.to_string(x) end) |> Jason.encode!()
 
     socket = if slide_to_load == :hot_jobs, do: stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true), else: socket
-    {:noreply, socket |> assign(slide: slide_to_load) |> assign(next_slide: next_slide) |> assign(index: (index + 2)) |> assign(slides: slides)}
+    {:noreply, socket |> assign(slide: slide_to_load) |> assign(next_slide: next_slide) |> assign(previous_slide: previous_slide) |> assign(index: (index + 2)) |> assign(slides: slides)}
   end
+
+  def handle_event("previous_slide", %{"next-slide" => slide_to_load}, socket) do
+    slide_to_load = String.to_atom(slide_to_load)
+    {slideshow, slides, _next_slide, _index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])
+    {_slideshow, _slides, next_slide, index} = prepare_slides(slideshow, slide_to_load, 0, slides)
+
+    current_slide_index = Enum.find_index(slides, fn s -> s == next_slide end) - 1
+    previous_slide = Enum.at(slides, current_slide_index - 1)
+
+    slides = Enum.map(slides, fn x -> Atom.to_string(x) end) |> Jason.encode!()
+
+    socket = if slide_to_load == :hot_jobs, do: stream(socket, :hot_jobs, slideshow.hot_jobs, reset: true), else: socket
+    {:noreply, socket |> assign(slide: slide_to_load) |> assign(next_slide: next_slide) |> assign(previous_slide: previous_slide) |> assign(index: (index + 2)) |> assign(slides: slides)}
+  end
+
+
 
   @impl true
   def handle_info({ShophawkWeb.SlideshowLive.FormComponent, {:saved, slideshow}}, socket) do

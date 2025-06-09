@@ -3,6 +3,9 @@
   <div class="bg-slate-300 rounded p-4">
   <.header>
     Listing Slideshow
+    <.link phx-click="previous_slide" phx-value-next-slide={@previous_slide} phx-value-index={@index} phx-value-slides={@slides}>
+      <.button>Previous Slide</.button>
+    </.link>
     <.link phx-click="next_slide" phx-value-next-slide={@next_slide} phx-value-index={@index} phx-value-slides={@slides}>
       <.button>Next Slide</.button>
     </.link>
