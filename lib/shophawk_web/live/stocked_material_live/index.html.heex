@@ -26,7 +26,7 @@
               <div class="flex">
                 <div class="border-l border-stone-400 ml-1"></div>
                 <.link
-                  navigate={~p"/stockedmaterials?#{[material: material.material, size: @selected_size]}"}
+                  patch={~p"/stockedmaterials?#{[material: material.material, size: @selected_size]}"}
                   class={["flex justify-between items-center rounded m-1 mr-6 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_material_bg_color(@selected_material, material.material)]}
                 >
                   <span><%= material.material %></span>
@@ -48,7 +48,7 @@
     <div class="bg-cyan-900 fixed rounded-t inset-0 top-[5.71rem] left-40 w-[8rem] pb-2 pt-2 pl-2 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
       <div :for={size <- @selected_sizes} >
       <.link
-        navigate={~p"/stockedmaterials?#{[material: @selected_material, size: size.size]}"}
+        patch={~p"/stockedmaterials?#{[material: @selected_material, size: size.size]}"}
         class={["flex items-center justify-between rounded m-1 p-1 hover:cursor-pointer hover:bg-cyan-700 hover:text-stone-200", set_size_bg_color(@selected_size, size.size)]}
       >
         <span><%= size.size %></span>
