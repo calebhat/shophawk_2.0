@@ -405,7 +405,7 @@ defmodule Shophawk.Jobboss_db do
 
   end
 
-  def load_blackout_dates do
+  def load_holidays do
     query =
       from r in Jb_holiday,
       where: r.shift == "668B4614-5E2B-418E-B156-2045FA0E8CDF"

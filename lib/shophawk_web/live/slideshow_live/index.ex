@@ -12,6 +12,8 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   def mount(_params, _session, socket) do
     socket = assign(socket, :next_slide, nil)
     {slideshow, slides, next_slide, index} = prepare_slides(Shopinfo.get_slideshow!(1), nil, 0, [])
+    current_slide_index = Enum.find_index(slides, fn s -> s == next_slide end)
+    previous_slide = Enum.at(slides, current_slide_index - 1)
     slides = Enum.map(slides, fn x -> Atom.to_string(x) end) |> Jason.encode!()
     socket =
       socket
@@ -19,6 +21,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
       |> assign(slide: :week1_timeoff)
       |> assign(slide_index: 1)
       |> assign(next_slide: next_slide)
+      |> assign(previous_slide: previous_slide)
       |> assign(index: index)
       |> assign(slides: slides)
       |> assign(:page_title, "Listing Slideshow")
@@ -245,37 +248,87 @@ defmodule ShophawkWeb.SlideshowLive.Index do
 
   defp parse_hours(slideshow) do
     map_keys = [:mondayo1, :mondayc1, :tuesdayo1, :tuesdayc1, :wednesdayo1, :wednesdayc1, :thursdayo1, :thursdayc1, :fridayo1, :fridayc1, :saturdayo1, :saturdayc1, :mondayo2, :mondayc2, :tuesdayo2, :tuesdayc2, :wednesdayo2, :wednesdayc2, :thursdayo2, :thursdayc2, :fridayo2, :fridayc2, :saturdayo2, :saturdayc2, :showsaturday1, :showsaturday2]
-        slideshow =
-          String.split(slideshow.workhours, ",")
-          |> Enum.map(fn x ->
-            if String.contains?(x, ":") do
-              [hours, minutes] = String.split(x, ":")
-              hours = String.to_integer(hours)
-              hours = if hours > 12, do: hours - 12, else: hours
-              "#{hours}:#{minutes}"
-            else
-              x
-            end
-          end)
-          |> Enum.map(fn x ->
-            case x do
-              "true" -> true
-              "false" -> false
-              _ -> x
-            end
-          end)
-          |> Enum.zip(map_keys)
-          |> Enum.reduce(slideshow, fn {value, key}, acc ->
-            Map.put(acc, key, value)
-          end)
+    slideshow =
+      String.split(slideshow.workhours, ",")
+      |> Enum.map(fn x ->
+        if String.contains?(x, ":") do
+          [hours, minutes] = String.split(x, ":")
+          hours = String.to_integer(hours)
+          hours = if hours > 12, do: hours - 12, else: hours
+          "#{hours}:#{minutes}"
+        else
+          x
+        end
+      end)
+      |> Enum.map(fn x ->
+        case x do
+          "true" -> true
+          "false" -> false
+          _ -> x
+        end
+      end)
+      |> Enum.zip(map_keys)
+      |> Enum.reduce(slideshow, fn {value, key}, acc ->
+        Map.put(acc, key, value)
+      end)
 
-        weekly_dates = load_weekly_dates()
-        monday_formatted = Date.to_string(weekly_dates.monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        friday_formatted = Date.to_string(weekly_dates.friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        next_monday_formatted = Date.to_string(weekly_dates.next_monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        next_friday_formatted = Date.to_string(weekly_dates.next_friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
-        slideshow = Map.put(slideshow, :this_week, "#{monday_formatted} - #{friday_formatted}")
-        Map.put(slideshow, :next_week, "#{next_monday_formatted} - #{next_friday_formatted}")
+    slideshow = Map.put(slideshow, :workhours, set_days_to_closed_for_holidays(slideshow))
+
+    weekly_dates = load_weekly_dates()
+    monday_formatted = Date.to_string(weekly_dates.monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
+    friday_formatted = Date.to_string(weekly_dates.friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
+    next_monday_formatted = Date.to_string(weekly_dates.next_monday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
+    next_friday_formatted = Date.to_string(weekly_dates.next_friday) |> String.split("-") |> Enum.take(-2) |> Enum.join("/")
+    slideshow = Map.put(slideshow, :this_week, "#{monday_formatted} - #{friday_formatted}")
+    Map.put(slideshow, :next_week, "#{next_monday_formatted} - #{next_friday_formatted}")
+  end
+
+  def set_days_to_closed_for_holidays(slideshow) do
+    daily_hours =
+      String.split(slideshow.workhours, ",", trim: false)
+      |> Enum.chunk_every(2, 2, :preserve)
+      |> Enum.map(fn
+        [a, b] -> {a, b}
+        [a] -> {a, ""}
+      end)
+
+    #Zip dates into tuple {date, {openTime, closeTime}}
+    zipped = Enum.zip(current_two_weeks_including_saturdays(), daily_hours)
+
+    holidays = Shophawk.Jobboss_db.load_holidays()
+
+    this_weeks_dates_with_closed_holidays =
+      Enum.map(zipped, fn {date, {open, close}} ->
+        if date in holidays do
+          ["", ""]
+        else
+          [open, close]
+        end
+      end)
+      |> List.flatten
+      |> Enum.join(",")
+
+     append_string(this_weeks_dates_with_closed_holidays, List.last(daily_hours))
+  end
+
+  def current_two_weeks_including_saturdays() do
+    today = Date.utc_today()
+    current_monday = today |> Date.beginning_of_week(:monday)
+    next_monday = Date.add(current_monday, 7)
+    # Generate Monday to Saturday for current week
+    current_week =
+      0..5
+      |> Enum.map(&Date.add(current_monday, &1))
+    # Generate Monday to Saturday for next week
+    next_week =
+      0..5
+      |> Enum.map(&Date.add(next_monday, &1))
+    # Combine both weeks
+    current_week ++ next_week
+  end
+
+  def append_string(string, {first, second}) do
+    string <> "," <> first <> "," <> second
   end
 
   def load_timeoff(weekly_dates) do

@@ -19,7 +19,7 @@ defmodule ShophawkWeb.SlideshowLive.FormComponent do
         phx-submit="save"
       >
       <div class="grid grid-cols-2">
-        <div class="bg-cyan-700 rounded-lg m-4">
+        <div class="bg-cyan-800 rounded-lg m-4">
           <div class="mt-4 text-2xl flex justify-center border-b-4 border-black">Current Week</div>
           <div class="grid grid-cols-4 gap-4 content-center justify-around p-2 m-2 text-xl">
             <div></div>
@@ -68,7 +68,7 @@ defmodule ShophawkWeb.SlideshowLive.FormComponent do
             <div></div>
           </div>
         </div>
-        <div class="bg-cyan-700 rounded-lg m-4">
+        <div class="bg-cyan-800 rounded-lg m-4">
           <div class="mt-4 text-2xl flex justify-center border-b-4 border-black">Next Week</div>
           <div class="grid grid-cols-4 gap-4 content-center justify-around p-2 m-2 text-xl">
             <div></div>

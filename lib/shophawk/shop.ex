@@ -119,7 +119,7 @@ defmodule Shophawk.Shop do
       last_row = List.last(runlists)
       first_row_id = first_row.id
       last_row_id = last_row.id
-      blackout_dates = Shophawk.Jobboss_db.load_blackout_dates
+      holidays = Shophawk.Jobboss_db.load_holidays
 
       carryover_list =
         case department.capacity do
@@ -134,7 +134,7 @@ defmodule Shophawk.Shop do
               end
             end)
             |> Enum.reduce([], fn %{date: date, hours: remaining_hours, id: id}, acc ->
-              generate_daily_carryover_days(id, date, remaining_hours, department.capacity, acc, blackout_dates, 0)
+              generate_daily_carryover_days(id, date, remaining_hours, department.capacity, acc, holidays, 0)
             end)
         end
 
@@ -550,22 +550,22 @@ defmodule Shophawk.Shop do
     end
   end
 
-  defp generate_daily_carryover_days(id, date, remaining_hours, daily_capacity, acc, blackout_dates, index) do
+  defp generate_daily_carryover_days(id, date, remaining_hours, daily_capacity, acc, holidays, index) do
     if remaining_hours > 0 do
       hours_today = min(remaining_hours, daily_capacity)
       new_remaining_hours = remaining_hours - hours_today
-      new_date = advance_to_next_workday(date, blackout_dates)
+      new_date = advance_to_next_workday(date, holidays)
 
-      [%{id: id, date: date, hours: hours_today, index: index} | generate_daily_carryover_days(id, new_date, new_remaining_hours, daily_capacity, acc, blackout_dates, index + 1)]
+      [%{id: id, date: date, hours: hours_today, index: index} | generate_daily_carryover_days(id, new_date, new_remaining_hours, daily_capacity, acc, holidays, index + 1)]
     else
       acc
     end
   end
 
-  defp advance_to_next_workday(date, blackout_dates) do
+  defp advance_to_next_workday(date, holidays) do
     new_date = Date.add(date, 1)
-    if Date.day_of_week(new_date) in [6, 7] or Enum.member?(blackout_dates, new_date) do
-      advance_to_next_workday(new_date, blackout_dates)
+    if Date.day_of_week(new_date) in [6, 7] or Enum.member?(holidays, new_date) do
+      advance_to_next_workday(new_date, holidays)
     else
       new_date
     end
