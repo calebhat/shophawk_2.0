@@ -166,7 +166,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         weekly_dates = load_weekly_dates()
 
         slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
-        {week1_timeoff, week2_timeoff} = load_timeoff(slideshow, weekly_dates)
+        {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
         {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
 
         {slideshow, slides} = {parse_hours(slideshow), slides ++ [:hours]}
@@ -331,7 +331,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     string <> "," <> first <> "," <> second
   end
 
-  def load_timeoff(slideshow, weekly_dates) do
+  def load_timeoff(weekly_dates) do
     weekly_dates_list = current_two_weeks_including_saturdays()
     final_timeoff_map = %{m: [], t: [], w: [], thur: [], f: [], s: [], sun: [], nm: [], nt: [], nw: [], nthur: [], nf: []}
     timeoff_map = #set Dates as values to map with closed days
