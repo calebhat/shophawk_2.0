@@ -437,12 +437,12 @@
       title={@page_title}
       action={@live_action}
       stocked_material={@stocked_material}    
-      material={if @material_name == "", do: "", else: @size_info.material_name}
+      material={@size_info.material_name || ""}
       size={if @size_info == nil, do: "", else: @size_info.size}
       patch={~p"/stockedmaterials"}
     />
   </.modal>
-<% IO.inspect(@material_name) %>
+
   <.modal :if={@live_action in [:detailededit]} id="stocked_material-modal" show on_cancel={JS.patch(~p"/stockedmaterials")}>
     <.live_component
       module={ShophawkWeb.StockedMaterialLive.DetailedFormComponent}
