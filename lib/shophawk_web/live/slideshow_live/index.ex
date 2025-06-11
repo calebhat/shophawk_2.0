@@ -166,7 +166,7 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         weekly_dates = load_weekly_dates()
 
         slideshow = Map.put(slideshow, :weekly_dates, weekly_dates)
-        {week1_timeoff, week2_timeoff} = load_timeoff(weekly_dates)
+        {week1_timeoff, week2_timeoff} = load_timeoff(slideshow, weekly_dates)
         {slideshow, slides} = if Enum.all?(week2_timeoff, fn {_k, v} -> v == [] end) == false, do: {Map.put(slideshow, :week2_timeoff, week2_timeoff), slides ++ [:week2_timeoff]}, else: {slideshow, slides}
 
         {slideshow, slides} = {parse_hours(slideshow), slides ++ [:hours]}
@@ -331,15 +331,51 @@ defmodule ShophawkWeb.SlideshowLive.Index do
     string <> "," <> first <> "," <> second
   end
 
-  def load_timeoff(weekly_dates) do
+  def load_timeoff(slideshow, weekly_dates) do
+    weekly_dates_list = current_two_weeks_including_saturdays()
     final_timeoff_map = %{m: [], t: [], w: [], thur: [], f: [], s: [], sun: [], nm: [], nt: [], nw: [], nthur: [], nf: []}
+    timeoff_map = #set Dates as values to map with closed days
+      %{m: Enum.at(weekly_dates_list, 0),
+      t: Enum.at(weekly_dates_list, 1),
+      w: Enum.at(weekly_dates_list, 2),
+      thur: Enum.at(weekly_dates_list, 3),
+      f: Enum.at(weekly_dates_list, 4),
+      s: Enum.at(weekly_dates_list, 5),
+      sun: [],
+      nm: Enum.at(weekly_dates_list, 6),
+      nt: Enum.at(weekly_dates_list, 7),
+      nw: Enum.at(weekly_dates_list, 8),
+      nthur: Enum.at(weekly_dates_list, 9),
+      nf: Enum.at(weekly_dates_list, 10)
+    }
+    holidays = Shophawk.Jobboss_db.load_holidays()
+
+    days_closed_for_holiday = #set value to "Closed" if lines up with a holiday
+      Enum.map(timeoff_map, fn {day, date} ->
+        if date in holidays do
+          {day, "Closed"}
+        else
+          {day, date}
+        end
+      end)
+      |> Enum.into(%{})
+
     all_time_off =
       Shophawk.Shopinfo.search_timeoff("", weekly_dates.monday, Date.add(weekly_dates.next_friday, 1))
       |> sort_time_off(weekly_dates, final_timeoff_map)
 
+    timeoff_with_closed_day = #override whoever has time off with "Closed" for that day
+      Enum.map(all_time_off, fn {key, list} ->
+        if Map.get(days_closed_for_holiday, key) == "Closed" do
+          {key, ["Closed"]}
+        else
+          {key, list}
+        end
+      end)
+      |> Enum.into(%{})
 
     order = [:m, :t, :w, :thur, :f, :s, :sun, :nm, :nt, :nw, :nthur, :nf]
-    sorted_all_time_off = Enum.map(order, fn key -> {key, Map.get(all_time_off, key, [])} end)
+    sorted_all_time_off = Enum.map(order, fn key -> {key, Map.get(timeoff_with_closed_day, key, [])} end)
     {week1_timeoff, tail} = Enum.split_while(sorted_all_time_off, fn {k, _v} -> k != :s end)
     {_head, week2_timeoff} = Enum.split_while(tail, fn {k, _v} -> k != :nm end)
     {week1_timeoff, week2_timeoff}
