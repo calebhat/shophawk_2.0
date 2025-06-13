@@ -78,6 +78,10 @@ defmodule ShophawkWeb.Components.Navbar do
                 <% end %>
               </div>
 
+              <a href={~p"/parthistory"} class="text-white text-2xl rounded-lg px-1 py-1 hover:text-stone-400">
+                Part History
+              </a>
+
 
             </div>
 

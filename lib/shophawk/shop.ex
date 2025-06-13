@@ -49,7 +49,7 @@ defmodule Shophawk.Shop do
         |> String.trim()
     end
     %{}
-    |> Map.put(:part_number, job.part_number <> job.rev)
+    |> Map.put(:part_number, job.part_number || "" <> job.rev || "")
     |> Map.put(:order_quantity, job.order_quantity)
     |> Map.put(:make_quantity, job.make_quantity)
     |> Map.put(:customer, job.customer)

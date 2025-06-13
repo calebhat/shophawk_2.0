@@ -5,12 +5,27 @@ defmodule ShophawkWeb.ShowJob do
     quote do
 
       @impl true
-      def handle_event("show_job", %{"job" => job}, socket) do
+      def handle_event("show_job", %{"job" => job_number}, socket) do
+
+        socket =
+          case showjob(job_number) do
+            {:error} ->
+              Process.send_after(self(), :clear_flash, 1000)
+              socket |> put_flash(:error, "Job Not Found")
+            job ->
+              socket
+              |> assign(:live_action, :show_job)
+              |> assign(page_title: "Job #{job.job}")
+              |> assign(id: job.job)
+              |> assign(:job_ops, job.job_ops) #routing operations for job
+              |> assign(:job_info, job.job_info)
+          end
+
         {:noreply,
         socket
         |> assign(:search_value, "")
         |> push_event("reset_form", %{})
-        |> showjob(job)}
+        }
       end
 
       def handle_event("attachments", _, socket) do
@@ -45,24 +60,23 @@ defmodule ShophawkWeb.ShowJob do
 #        {:noreply, clear_flash(socket)}
 #      end
 
-      def showjob(socket, job) do
+      def showjob(job) do
         case Shophawk.Shop.list_job(job) do
-          {:error, :error} ->
-            Process.send_after(self(), :clear_flash, 1000)
-            socket |> put_flash(:error, "Job Not Found")
-          {job_ops, job_info} ->
+          {:error, _} ->
+            {:error}
+          {job_operations, job_info} ->
             deliveries =
               Shophawk.Jobboss_db.load_all_deliveries([job])
               |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
             updated_job_info =
               Map.put(job_info, :deliveries, deliveries)
-              |> Map.put(:dots, List.first(job_ops).dots)
-            socket
-            |> assign(id: job)
-            |> assign(page_title: "Job #{job}")
-            |> assign(:live_action, :show_job)
-            |> assign(:job_ops, job_ops) #Load job data here and send as a list of ops in order
-            |> assign(:job_info, updated_job_info)
+              |> Map.put(:dots, List.first(job_operations).dots)
+
+          %{
+            job: job,
+            job_ops: job_operations,
+            job_info: updated_job_info
+          }
         end
       end
 

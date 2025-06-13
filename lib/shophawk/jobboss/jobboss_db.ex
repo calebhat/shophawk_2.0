@@ -961,6 +961,67 @@ defmodule Shophawk.Jobboss_db do
     elem(Float.parse(string), 0)
   end
 
+  #### Part History Search Function ####
+  def jobs_search(params) do
+    #params_map =
+      #%{
+      #  "customer" => "",
+      #  "customer_po" => "",
+      #  "description" => "",
+      #  "end-date" => "2000-01-12",
+      #  "job" => "",
+      #  "part" => "",
+      #  "start-date" => "2025-06-13",
+      #  "status" => ""
+      #}
+
+    # Convert string dates to NaiveDateTime or nil if empty/invalid
+    start_date = parse_date(params["start-date"])
+    end_date = parse_date(params["end-date"])
+
+    # Build dynamic query starting with base query
+    query =
+      Jb_job
+      |> maybe_filter(:customer, params["customer"])
+      |> maybe_filter(:customer_po, params["customer_po"])
+      |> maybe_filter(:description, params["description"])
+      |> maybe_filter(:job, params["job"])
+      |> maybe_filter(:part_number, params["part"])
+      |> maybe_filter(:status, params["status"])
+      |> maybe_filter_date_range(start_date, end_date)
+      |> limit(100)
+
+    failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> sanitize_map()
+      end)
+  end
+
+  # Helper to parse date strings to NaiveDateTime or return nil
+  defp parse_date(""), do: nil
+  defp parse_date(date_str) do
+    case NaiveDateTime.from_iso8601(date_str <> "T00:00:00") do
+      {:ok, ndt} -> ndt
+      {:error, _} -> nil
+    end
+  end
+
+  # Helper to add filter for non-empty string values
+  defp maybe_filter(query, _field, ""), do: query
+  defp maybe_filter(query, field, value) when is_binary(value) do
+    from r in query, where: field(r, ^field) == ^value
+  end
+
+  # Helper to add date range filter if both dates are valid
+  defp maybe_filter_date_range(query, nil, _), do: query
+  defp maybe_filter_date_range(query, _, nil), do: query
+  defp maybe_filter_date_range(query, start_date, end_date) do
+    from r in query,
+      where: r.order_date >= ^start_date and r.order_date <= ^end_date
+  end
+
   #### Query Failsafes ####
   def failsafed_query(query, retries \\ 3, delay \\ 100) do #For jobboss db queries
     Process.sleep(delay)

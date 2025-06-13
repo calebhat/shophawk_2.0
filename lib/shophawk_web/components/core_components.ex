@@ -562,7 +562,7 @@ defmodule ShophawkWeb.CoreComponents do
       >
         <option :if={@prompt} value=""><%= @prompt %></option>
         <%= for option <- @options do %>
-          <option value="hi"> <%= option %></option>
+          <option> <%= option %></option>
         <% end %>
       </select>
       <.error :for={msg <- @errors}><%= msg %></.error>

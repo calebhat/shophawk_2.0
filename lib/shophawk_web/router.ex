@@ -80,6 +80,8 @@ defmodule ShophawkWeb.Router do
       live "/stockedmaterials/:id/detailededit", StockedMaterialLive.Index, :detailededit
       live "/stockedmaterials/:id", StockedMaterialLive.Show, :show
       live "/stockedmaterials/:id/show/edit", StockedMaterialLive.Show, :edit
+
+      live "/parthistory", PartHistoryLive.Index, :index
     end
 
   end
