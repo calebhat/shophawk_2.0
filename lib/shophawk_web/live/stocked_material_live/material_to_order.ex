@@ -221,7 +221,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def update_material_forms(socket) do
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    {:ok, material_list} = Cachex.get(:material_list, :data)
 
     {material_to_order_changeset, past_years_usage_list} = load_material_to_order(material_list)
     socket

@@ -57,7 +57,8 @@ defmodule Shophawk.MixProject do
       {:tds, "~> 2.3"},
       {:quantum, "~> 3.0"},
       {:tzdata, "~> 1.1"},
-      {:timex, "~> 3.7"}
+      {:timex, "~> 3.7"},
+      {:cachex, "~> 4.1"}
     ]
   end
 

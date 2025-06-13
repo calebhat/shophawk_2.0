@@ -28,9 +28,9 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
 
   def load_active_deliveries() do
     active_routing_ops =
-      case :ets.lookup(:runlist, :active_jobs) do
-        [{:active_jobs, runlists}] -> Enum.sort_by(runlists, fn r -> r.job_operation end, :desc)
-        [] -> []
+      case Cachex.get(:runlist, :active_jobs) do
+        {:ok, runlists} when not is_nil(runlists) -> Enum.sort_by(runlists, fn r -> r.job_operation end, :desc)
+        {:ok, nil} -> []
       end
 
     service_operations =
@@ -125,7 +125,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
       deliveries
       |> add_date_rows()
       |> add_vendor_rows()
-    :ets.insert(:delivery_list, {:data, deliveries})
+    Cachex.put(:delivery_list, :data, deliveries)
     Phoenix.PubSub.broadcast(Shophawk.PubSub, "delivery_update", {:delivery_update, deliveries})
     deliveries
   end
@@ -372,7 +372,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
   end
 
   def update_user_inputs(delivery, comment \\ nil) do
-    [{:data, rows}] = :ets.lookup(:delivery_list, :data)
+    {:ok, rows} = Cachex.get(:delivery_list, :data)
     active_delivery = Enum.find(rows, fn d -> d.delivery == delivery end)
     {:ok, updated_delivery} =
       case Shophawk.Shop.get_department_by_delivery(active_delivery.delivery) do
@@ -400,7 +400,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
           r
         end
       end)
-    :ets.insert(:delivery_list, {:data, updated_deliveries})
+      Cachex.put(:delivery_list, :data, updated_deliveries)
     updated_delivery
   end
 

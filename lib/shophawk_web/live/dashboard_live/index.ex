@@ -570,9 +570,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def load_late_shipments(socket) do
     runlists =
-      case :ets.lookup(:runlist, :active_jobs) do
-        [{:active_jobs, runlists}] -> Enum.reverse(runlists)
-        [] -> []
+      case Cachex.get(:runlist, :active_jobs) do
+        {:ok, runlists} when not is_nil(runlists) -> Enum.reverse(runlists)
+        {:ok, nil} -> []
       end
     late_deliveries = case Shophawk.Jobboss_db.load_late_deliveries() do
         [] -> [] #if no deliveries found

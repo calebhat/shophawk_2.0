@@ -42,7 +42,7 @@ defmodule Shophawk.Jobboss_db do
       |> Enum.map(fn x -> merge_jobboss_job_info(x) end)
       |> List.flatten()
 
-    :ets.insert(:runlist, {:active_jobs, runlist})  # Store the data in ETS
+    Cachex.put(:runlist, :active_jobs, runlist)  # Store the data in ETS
   end
 
   def merge_jobboss_job_info(job_numbers) do
@@ -315,7 +315,7 @@ defmodule Shophawk.Jobboss_db do
   end
 
   defp set_assignment_from_note_text_if_op_started(operations) do
-    [{:data, employees}] = :ets.lookup(:employees, :data)
+    {:ok, employees} = Cachex.get(:employees, :data)
 
     Enum.map(operations, fn op ->
       if op.status == "S" do
@@ -471,7 +471,7 @@ defmodule Shophawk.Jobboss_db do
     jobs_to_update = jobs ++ job_operation_jobs ++ material_jobs ++ job_operation_time_jobs
     |> Enum.uniq
     operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
-    [{:active_jobs, runlist}] = :ets.lookup(:runlist, :active_jobs)
+    {:ok, runlist} = Cachex.get(:runlist, :active_jobs)
     runlist = List.flatten(runlist)
     skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc -> #removes all operations that have a job that gets updated
       Enum.reject(acc, fn op -> job == op.job end)
@@ -479,7 +479,7 @@ defmodule Shophawk.Jobboss_db do
     new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
       if op.job_status == "Active", do: [op | acc], else: acc
     end)
-    :ets.insert(:runlist, {:active_jobs, new_runlist})  # Store the data in ETS
+    Cachex.put(:runlist, :active_jobs, new_runlist)  # Store the data in ETS
   end
 
   ######

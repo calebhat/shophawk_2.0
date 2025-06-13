@@ -180,9 +180,9 @@ defmodule ShophawkWeb.SlideshowLive.Index do
         {slideshow, slides} = if personal_time != "", do: {Map.put(slideshow, :personal_time, personal_time), slides ++ [:personal_time]}, else: {slideshow, slides}
 
         birthdays =
-          case :ets.lookup(:slideshow, :this_weeks_birthdays) do
-            [this_weeks_birthdays: birthdays] -> birthdays
-            [] -> []
+          case Cachex.get(:slideshow, :this_weeks_birthdays) do
+            {:ok, birthdays} when not is_nil(birthdays) -> birthdays
+            {:ok, nil} -> []
           end
         {slideshow, slides} = if birthdays != [], do: {Map.put(slideshow, :birthdays, birthdays), slides ++ [:birthdays]}, else: {slideshow, slides}
         slides = if String.trim(slideshow.quote) != "", do: slides ++ [:quote], else: slides
@@ -233,9 +233,9 @@ defmodule ShophawkWeb.SlideshowLive.Index do
   end
 
   def load_weekly_dates do
-    case :ets.lookup(:slideshow, :weekly_dates) do
-      [weekly_dates: weekly_dates] -> weekly_dates
-      [] ->
+    case Cachex.get(:slideshow, :weekly_dates) do
+      {:ok, weekly_dates} when not is_nil(weekly_dates) -> weekly_dates
+      {:ok, nil} ->
         today = Date.utc_today()
         day_of_week = Date.day_of_week(today)
         monday = Date.add(today, -(day_of_week - 1))

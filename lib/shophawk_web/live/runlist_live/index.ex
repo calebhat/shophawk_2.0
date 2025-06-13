@@ -41,7 +41,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def get_runlist_loads() do
-    [data: data] = :ets.lookup(:runlist_loads, :data)
+    {:ok, data} = Cachex.get(:runlist_loads, :data)
     data
   end
 
@@ -95,10 +95,10 @@ defmodule ShophawkWeb.RunlistLive.Index do
   def handle_info({ShophawkWeb.RunlistLive.DepartmentForm, {:saved, department}}, socket) do
     workcenter_list = Enum.map(department.workcenters, fn w -> w.workcenter end)
     {_runlist, weekly_load, _jobs_that_ship_today} = Shop.list_runlists(workcenter_list, department)
-    [data: weekly_loads] = :ets.lookup(:runlist_loads, :data)
+    {:ok, weekly_loads} = Cachex.get(:runlist_loads, :data)
     merged_loads = [weekly_load] ++ weekly_loads #merge new department into weekly loads
     sorted_loads = Enum.sort_by(merged_loads, &(&1.department))
-    :ets.insert(:runlist_loads, {:data, sorted_loads})
+    Cachex.put(:runlist_loads, :data, sorted_loads)
 
     socket =
       finalize_department_stream(socket, department.id)
@@ -217,7 +217,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
         Shophawk.RunlistCache.update_key_value(String.to_integer(job_operation), :material_waiting, true)
         Shop.create_runlist(%{job_operation: job_operation, material_waiting: true})
       op ->
-        [{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+        {:ok, runlists} = Cachex.get(:runlist, :active_jobs)
         job_number = Enum.find(runlists, fn o -> o.job_operation == op.job_operation end).job
         job_ops = Enum.filter(runlists, fn o -> o.job == job_number end)
         Enum.each(job_ops, fn o ->
@@ -249,11 +249,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
     Shophawk.Jobboss_db.merge_jobboss_job_info(["135480"])
     #Shophawk.Jobboss_db.update_workcenters
 
-    #[{:refresh_time, previous_check}] = :ets.lookup(:runlist, :refresh_time)
-    #:ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
+    #{:ok, previous_check} = Cachex.get(:runlist, :refresh_time)
+    #Cachex.put(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     #jobs = Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
 
-    #[{:active_jobs, runlists}] = :ets.lookup(:runlist, :active_jobs)
+    #{:ok, runlists} = Cachex.get(:runlist, :active_jobs)
     #Enum.each(runlists, fn op ->
     #if op.job =="135480" do
     #end

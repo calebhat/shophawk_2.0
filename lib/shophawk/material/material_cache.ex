@@ -35,7 +35,6 @@ defmodule Shophawk.MaterialCache do
   def create_material_cache() do
     #Create bare bones list for material cache and save to cache
     {material_list, jobboss_material_info} = create_barebones_material_list()
-    #:ets.insert(:material_list, {:data, material_list})
 
     #load all data needed
     mat_reqs = Jobboss_db.load_material_requirements()
@@ -144,7 +143,7 @@ defmodule Shophawk.MaterialCache do
       end)
 
 
-    :ets.insert(:material_list, {:data, merged_material_list})
+    Cachex.put(:material_list, :data, merged_material_list)
     merged_material_list
   end
 
@@ -444,9 +443,9 @@ defmodule Shophawk.MaterialCache do
 
         #find first saw operation, subtract any qty complete
         runlists =
-          case :ets.lookup(:runlist, :active_jobs) do
-            [{:active_jobs, runlists}] -> runlists
-            [] -> []
+          case Cachex.get(:runlist, :active_jobs) do
+            {:ok, runlists} when not is_nil(runlists) -> runlists
+            {:ok, nil} -> []
           end
         first_saw_operation =
           Enum.filter(runlists, fn r ->
@@ -498,7 +497,7 @@ defmodule Shophawk.MaterialCache do
 
   #Updates one size and saves updated material_list in cache
   def update_single_material_size_in_cache(material_name) do
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    {:ok, material_list} = Cachex.get(:material_list, :data)
     #material_not_used = Material.list_material_not_used
     updated_material_list =
       Enum.map(material_list, fn mat ->
@@ -552,7 +551,7 @@ defmodule Shophawk.MaterialCache do
         Map.put(mat, :sizes, sizes)
       end)
 
-    :ets.insert(:material_list, {:data, updated_material_list})
+    Cachex.put(:material_list, :data, updated_material_list)
     updated_material_list
   end
 

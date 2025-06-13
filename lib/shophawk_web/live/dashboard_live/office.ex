@@ -174,7 +174,7 @@ defmodule ShophawkWeb.DashboardLive.Office do
   end
 
   def handle_info({:load_attachments, job}, socket) do
-    :ets.insert(:job_attachments, {:data, Shophawk.Jobboss_db.export_attachments(job)})  # Store the data in ETS
+    Cachex.put(:job_attachments, :data, Shophawk.Jobboss_db.export_attachments(job))  # Store the data in ETS
     {:noreply, socket}
   end
 

@@ -20,10 +20,10 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
 
     #{:ok, initial_material_list_creation(socket)}
 
-    case :ets.lookup(:material_list, :data) do
-      [{:data, []}] ->
+    case Cachex.get(:material_list, :data) do
+      {:ok, []} ->
         {:ok, initial_material_list_creation(socket)}
-      [{:data, material_list}] ->
+      {:ok, material_list} ->
         {:ok, assign_material_data(socket, material_list)}
     end
   end
@@ -325,7 +325,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   def handle_event("load_material", %{"selected-material" => selected_material, "selected-size" => selected_size}, socket) do
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    {:ok, material_list} = Cachex.get(:material_list, :data)
     sizes = Enum.find(material_list, fn mat -> mat.material == selected_material end).sizes
     size_info =  Enum.find(sizes, fn size -> size.size == selected_size end) || List.first(sizes)
     selected_size = size_info.size
@@ -382,7 +382,7 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   ##### other functions #####
 
   defp reload_size(socket, selected_size, selected_material) do
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    {:ok, material_list} = Cachex.get(:material_list, :data)
     found_material = Enum.find(material_list, fn mat -> mat.material == selected_material end)
     case found_material do
       nil -> apply_action(socket, :index, %{}) #loads default material page if no material found

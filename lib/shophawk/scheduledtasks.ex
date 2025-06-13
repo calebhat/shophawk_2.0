@@ -10,12 +10,12 @@ defmodule ScheduledTasks do
   # Server callbacks
   def init([]) do
     #Initial ETS Table settings
-    :ets.insert(:runlist_loads, {:refresh_time, NaiveDateTime.utc_now()})
-    :ets.insert(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
-    :ets.insert(:runlist_loads, {:data, [%{department: "ShopHawk Restarting, refresh in 1 minute", department_id: 0, weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}]})  # Store the data in ETS
-    :ets.insert(:employees, {:data, Shophawk.Jobboss_db.employee_data})
-    :ets.insert(:material_list, {:data, []}) #empty list gets populated upon first material page load
-    :ets.insert(:delivery_list, {:data, []}) #empty list gets populated upon first material page load
+    Cachex.put(:runlist_loads, :refresh_time, NaiveDateTime.utc_now())
+    Cachex.put(:runlist, :refresh_time, NaiveDateTime.utc_now())
+    Cachex.put(:runlist_loads, :data, [%{department: "ShopHawk Restarting, refresh in 1 minute", department_id: 0, weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}])  # Store the data in ETS
+    Cachex.put(:employees, :data, Shophawk.Jobboss_db.employee_data)
+    Cachex.put(:material_list, :data, []) #empty list gets populated upon first material page load
+    Cachex.put(:delivery_list, :data, []) #empty list gets populated upon first material page load
 
     #inital Loading of Active jobs into cache
     Shophawk.Jobboss_db.load_all_active_jobs
@@ -39,9 +39,9 @@ defmodule ScheduledTasks do
     timezone = "America/Chicago"  # Set to your local timezone
 
     previous_check =
-      case :ets.lookup(:runlist, :refresh_time) do
-        [{:refresh_time, previous_check}] -> previous_check
-        [] ->
+      case Cachex.get(:runlist, :refresh_time) do
+        {:ok, previous_check} when not is_nil(previous_check) -> previous_check
+        {:ok, nil} ->
           # Fetch the current time in the specified timezone
           DateTime.now!(timezone)
           |> DateTime.add(-20, :second)
@@ -50,7 +50,7 @@ defmodule ScheduledTasks do
     current_time = DateTime.now!(timezone)
 
     # Store the current time with timezone
-    :ets.insert(:runlist, {:refresh_time, current_time})
+    Cachex.put(:runlist, :refresh_time, current_time)
     Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
 
     Process.send_after(self(), :update_from_jobboss, 7000)  # Runs again 7 seconds after finishing function
@@ -72,7 +72,7 @@ defmodule ScheduledTasks do
         acc ++ [weekly_load]
       end)
       |> Enum.filter(&is_map/1)
-    :ets.insert(:runlist_loads, {:data, department_loads})  # Store the data in ETS
+    Cachex.put(:runlist_loads, :data, department_loads)  # Store the data in ETS
     IO.puts("Loads Updated")
 
     #{:noreply, nil}
@@ -81,7 +81,7 @@ defmodule ScheduledTasks do
 #runs once a day
   def load_current_week_birthdays do
     employees = Shophawk.Jobboss_db.employee_data
-    :ets.insert(:employees, {:data, employees})
+    Cachex.put(:employees, :data, employees)
     today = Date.utc_today()
     day_of_week = Date.day_of_week(today)
     sunday = Date.add(today, -day_of_week)
@@ -100,7 +100,7 @@ defmodule ScheduledTasks do
         acc ++ ["#{bday.first_name} #{bday.last_name} on #{Calendar.strftime(bday.birthday, "%A")} (#{bday.birthday.month}-#{bday.birthday.day})"]
       end)
 
-    :ets.insert(:slideshow, {:this_weeks_birthdays, birthday_lines})  # Store the data in ETS
+    Cachex.put(:slideshow, :this_weeks_birthdays, birthday_lines)  # Store the data in ETS
     #Process.send_after(self(), :load_current_week_birthdays, 86400000)
     IO.puts("This Weeks Birthdays Updated")
     #{:noreply, nil}
@@ -113,7 +113,7 @@ defmodule ScheduledTasks do
     friday = Date.add(monday, 4)
     next_monday = Date.add(monday, 7)
     next_friday = Date.add(next_monday, 4)
-    :ets.insert(:slideshow, {:weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday}})
+    Cachex.put(:slideshow, :weekly_dates, %{monday: monday, friday: friday, next_monday: next_monday, next_friday: next_friday})
     IO.puts("weekly dates updated")
     #Process.send_after(self(), :save_weekly_dates, 86500000)
     #{:noreply, nil}

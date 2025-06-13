@@ -8,16 +8,16 @@ defmodule Shophawk.Application do
   @impl true
   def start(_type, _args) do
 
-    #create all ets caches needed
-    :ets.new(:runlist, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:job_attachments, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:runlist_loads, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:slideshow, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:employees, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:material_list, [:set, :named_table, :public, read_concurrency: true])
-    :ets.new(:delivery_list, [:set, :named_table, :public, read_concurrency: true])
-
     children = [
+      #Create Caches needed for app
+      Supervisor.child_spec({Cachex, [name: :runlist]}, id: :cachex_runlist),
+      Supervisor.child_spec({Cachex, [name: :job_attachments]}, id: :cachex_job_attachments),
+      Supervisor.child_spec({Cachex, [name: :runlist_loads]}, id: :cachex_runlist_loads),
+      Supervisor.child_spec({Cachex, [name: :slideshow]}, id: :cachex_slideshow),
+      Supervisor.child_spec({Cachex, [name: :employees]}, id: :cachex_employees),
+      Supervisor.child_spec({Cachex, [name: :material_list]}, id: :cachex_material_list),
+      Supervisor.child_spec({Cachex, [name: :delivery_list]}, id: :cachex_delivery_list),
+
       # Start the Telemetry supervisor
       ShophawkWeb.Telemetry,
       # Start the Ecto repository
@@ -32,7 +32,6 @@ defmodule Shophawk.Application do
       ShophawkWeb.Endpoint,
       # Start a worker by calling: Shophawk.Worker.start_link(arg)
       # {Shophawk.Worker, arg}
-
 
       #Started app repeating functions
       ScheduledTasks, #run initial task startup and ets initialization

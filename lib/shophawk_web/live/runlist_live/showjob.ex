@@ -189,7 +189,7 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
         _ -> assigns.current_user.email
     end
 
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    {:ok, material_list} = Cachex.get(:material_list, :data)
 
     job_material_list =
       assigns.job_info.material

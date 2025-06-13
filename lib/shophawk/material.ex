@@ -189,7 +189,7 @@ defmodule Shophawk.Material do
       true ->
         Repo.delete(stocked_material)
       false ->
-        [{:data, material_list}] = :ets.lookup(:material_list, :data)
+        {:data, material_list} = Cachex.get(:material_list, :data)
         size_info = Enum.find_value(material_list, fn mat ->
           Enum.find(mat.sizes, fn s ->
             s.material_name == stocked_material.material
@@ -224,7 +224,7 @@ defmodule Shophawk.Material do
 
   def update_or_create_material(stocked_material, attrs, action) do
 
-    [{:data, material_list}] = :ets.lookup(:material_list, :data)
+    {:data, material_list} = Cachex.get(:material_list, :data)
     size_info = Enum.find_value(material_list, fn mat ->
       Enum.find(mat.sizes, fn s ->
         s.material_name == stocked_material.material
