@@ -2,8 +2,13 @@ defmodule Shophawk.RunlistCache do
   #Used for all loading of ETS Caches related to the runlist
 
   def get_runlist_ops(workcenter_list, department) do
-    {:ok, runlists} = Cachex.get(:runlist, :active_jobs)
-    runlists = List.flatten(runlists)
+
+    runlists =
+      Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+      |> Enum.to_list
+      |> Enum.map(fn job_data -> job_data.job_ops end)
+      |> List.flatten
+
     runlists = if department.show_jobs_started == true do
       Enum.filter(runlists, fn op -> op.status == "O" or op.status == "S" end)
     else
@@ -28,12 +33,15 @@ defmodule Shophawk.RunlistCache do
   end
 
   def job(job) do
-    {:ok, runlists} = Cachex.get(:runlist, :active_jobs)
+    runlists =
+      Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+      |> Enum.to_list
+      |> Enum.map(fn job_data -> job_data.job_ops end)
+      |> List.flatten
     case runlists do
-      nil -> []
+      [] -> []
     runlists ->
       runlists
-      |> List.flatten
       |> Enum.filter(fn op -> op.job == job end)
       |> Enum.uniq()
       |> Enum.sort_by(&(&1.sequence))
@@ -55,21 +63,23 @@ defmodule Shophawk.RunlistCache do
   end
 
   def operation(operation) do
-    {:ok, runlists} = Cachex.get(:runlist, :active_jobs)
-    runlists
+
+    Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+    |> Enum.to_list
+    |> Enum.map(fn job_data -> job_data.job_ops end)
     |> List.flatten
     |> Enum.find(fn op -> op.job_operation == operation end)
   end
 
-  def update_key_value(job_operation, key, value) do
-    {:ok, runlists} = Cachex.get(:runlist, :active_jobs)
-    updated_runlist =
-      runlists
-      |> List.flatten
-      |> Enum.map(fn op ->
-        if op.job_operation == job_operation, do: Map.replace(op, key, value), else: op
-      end)
-    Cachex.put(:runlist, :active_jobs, updated_runlist)  # Store the data in ETS
+  def update_key_value(job, job_operation, key, value) do
+    case Cachex.get(:active_jobs, job) do
+      {:ok, nil} -> nil
+      {:ok, job_data} ->
+        updated_job_ops =
+          Enum.map(job_data.job_ops, fn op -> if op.job_operation == job_operation, do: Map.replace(op, key, value), else: op end)
+
+        Cachex.put(:active_jobs, job, Map.put(job_data, :job_ops, updated_job_ops))  # Store the data in ETS
+      end
   end
 
 end

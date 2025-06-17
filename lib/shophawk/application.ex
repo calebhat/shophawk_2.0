@@ -10,7 +10,9 @@ defmodule Shophawk.Application do
 
     children = [
       #Create Caches needed for app
-      Supervisor.child_spec({Cachex, [name: :runlist]}, id: :cachex_runlist),
+      Supervisor.child_spec({Cachex, [name: :runlist]}, id: :cachex_runlist), #delete this one once all instances removed. replace with active_jobs
+      Supervisor.child_spec({Cachex, [name: :active_jobs]}, id: :cachex_active_jobs),
+      Supervisor.child_spec({Cachex, [name: :runlist_refresh_time]}, id: :cachex_runlist_refresh_time),
       Supervisor.child_spec({Cachex, [name: :temporary_runlist_jobs_for_history, limit: 5000]}, id: :cachex_runlist_for_history),
       Supervisor.child_spec({Cachex, [name: :job_attachments]}, id: :cachex_job_attachments),
       Supervisor.child_spec({Cachex, [name: :runlist_loads]}, id: :cachex_runlist_loads),

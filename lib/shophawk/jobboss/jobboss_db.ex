@@ -37,10 +37,20 @@ defmodule Shophawk.Jobboss_db do
       |> distinct(true)
       |> Shophawk.Repo_jb.all()
 
-    runlist =
+    active_jobs =
       Enum.chunk_every(job_numbers, 50)
       |> Enum.map(fn x -> merge_jobboss_job_info(x) end)
       |> List.flatten()
+      |> Enum.group_by(&{&1.job})
+      |> Map.to_list
+      |> add_job_data
+
+    Cachex.put_many(:active_jobs, active_jobs)
+    #Process.sleep(2000)
+
+    #|> IO.inspect
+
+      #|> List.flatten()
 
       #Make runlist a list of maps of %{job: job, job_data: [job data: data, job_jops: ops, id: id]}
 
@@ -51,9 +61,27 @@ defmodule Shophawk.Jobboss_db do
     #use cachex.get_and_update for active job replacements
     #use cachex.put_many for mass upload at beginning of app or multiple insertions
     #use cachex.stream for grabbing all entries in a cache
+    #use cachex.del to delete entries
 
+    #Cachex.put(:runlist, :active_jobs, runlist)  # Store the data in ETS
+  end
 
-    Cachex.put(:runlist, :active_jobs, runlist)  # Store the data in ETS
+  def add_job_data(job_ops) do
+    #CALCULATE OTHER JOB DATA HERE FOR SHOW_JOB AND WHATNOT. ADD TO MAP FOR EASY LOADING LATER
+
+    Enum.map(job_ops, fn {{key},  job_ops}  ->
+      first_op = List.first(job_ops)
+
+      #tuple for Cashex.put_many
+      {key,
+      %{
+        job: first_op.job,
+        id: "id-" <> first_op.job,
+        job_status: first_op.job_status,
+        job_ops: job_ops
+        }
+      }
+    end)
   end
 
 
@@ -73,9 +101,6 @@ defmodule Shophawk.Jobboss_db do
 
       [updated_job | acc]
     end)
-
-
-
   end
 
   def load_job_history(job_numbers) do #loads all routing operations with a matching job
@@ -485,19 +510,47 @@ defmodule Shophawk.Jobboss_db do
 
     jobs_to_update = jobs ++ job_operation_jobs ++ material_jobs ++ job_operation_time_jobs
     |> Enum.uniq
-    operations = merge_jobboss_job_info(jobs_to_update) |> Enum.reject(fn op -> op.job_sched_end == nil end)
 
-    {:ok, runlist} = Cachex.get(:runlist, :active_jobs)
-    runlist = List.flatten(runlist)
+    operations =
+      merge_jobboss_job_info(jobs_to_update)
+      |> Enum.reject(fn op -> op.job_sched_end == nil end)
+
+      |> List.flatten()
+      |> Enum.group_by(&{&1.job})
+      |> Map.to_list
+      |> add_job_data
+
+    Enum.each(operations, fn {key, job_data} ->
+      case job_data.job_status do
+        "Active" ->
+          IO.inspect("Updating/Adding job to cache")
+          Cachex.put(:active_jobs, key, job_data)
+        _ ->
+          IO.inspect("Deleting job from cache")
+          Cachex.del(:active_jobs, key)
+      end
+    end)
+
+
+
+    #runlist = #DON'T HAVE TO DO THIS, CAN JUST REPLACE KEY IN CACHE
+    #  Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+    #  |> Enum.to_list
+    #  |> Enum.map(fn job_data -> job_data.job_ops end)
+    #  |> List.flatten
+
     #removes all operations that have a job that gets updated
-    skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc ->
-      Enum.reject(acc, fn op -> job == op.job end)
-    end)
-    #adds back in active jobs
-    new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
-      if op.job_status == "Active", do: [op | acc], else: acc
-    end)
-    Cachex.put(:runlist, :active_jobs, new_runlist)  # Store the data in ETS
+    #skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc ->
+    #  Enum.reject(acc, fn op -> job == op.job end)
+    #end)
+
+    #adds back in active jobs. DON'T HAVE TO DO THIS.
+    #new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
+    #  if op.job_status == "Active", do: [op | acc], else: acc
+    #end)
+
+    #Cachex.put_many(:active_jobs, active_jobs)
+    #Cachex.put(:runlist, :active_jobs, new_runlist)  # OLD, REPLACE
   end
 
   ######

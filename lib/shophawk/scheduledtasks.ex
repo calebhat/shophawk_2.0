@@ -11,7 +11,7 @@ defmodule ScheduledTasks do
   def init([]) do
     #Initial ETS Table settings
     Cachex.put(:runlist_loads, :refresh_time, NaiveDateTime.utc_now())
-    Cachex.put(:runlist, :refresh_time, NaiveDateTime.utc_now())
+    Cachex.put(:runlist_refresh_time, :refresh_time, NaiveDateTime.utc_now())
     Cachex.put(:runlist_loads, :data, [%{department: "ShopHawk Restarting, refresh in 1 minute", department_id: 0, weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}])  # Store the data in ETS
     Cachex.put(:employees, :data, Shophawk.Jobboss_db.employee_data)
     Cachex.put(:material_list, :data, []) #empty list gets populated upon first material page load
@@ -30,7 +30,9 @@ defmodule ScheduledTasks do
 
     #tasks less than 1 minutes must be ran in the genserver.
     #All other functions here are ran with Quantum dep that is controlled from /config/config.ex file
-    if System.get_env("MIX_ENV") == "prod", do: Process.send_after(self(), :update_from_jobboss, 2000)
+    if System.get_env("MIX_ENV") == "prod" do
+      Process.send_after(self(), :update_from_jobboss, 2000)
+    end
     {:ok, nil}
   end
 
@@ -39,7 +41,7 @@ defmodule ScheduledTasks do
     timezone = "America/Chicago"  # Set to your local timezone
 
     previous_check =
-      case Cachex.get(:runlist, :refresh_time) do
+      case Cachex.get(:runlist_refresh_time, :refresh_time) do
         {:ok, previous_check} when not is_nil(previous_check) -> previous_check
         {:ok, nil} ->
           # Fetch the current time in the specified timezone
@@ -50,7 +52,7 @@ defmodule ScheduledTasks do
     current_time = DateTime.now!(timezone)
 
     # Store the current time with timezone
-    Cachex.put(:runlist, :refresh_time, current_time)
+    Cachex.put(:runlist_refresh_time, :refresh_time, current_time)
     Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
 
     Process.send_after(self(), :update_from_jobboss, 7000)  # Runs again 7 seconds after finishing function

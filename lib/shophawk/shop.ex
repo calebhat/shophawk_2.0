@@ -300,10 +300,11 @@ defmodule Shophawk.Shop do
 
 
       jobs_ops_with_an_outside_op_and_starts_today_or_sooner =
-        case Cachex.get(:runlist, :active_jobs) do
-          {:ok, all_runlists_ops} when not is_nil(all_runlists_ops)-> Enum.sort_by(all_runlists_ops, fn r -> r.sequence end, :desc)
-          {:ok, nil} -> []
-        end
+        Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+        |> Enum.to_list
+        |> Enum.map(fn job_data -> job_data.job_ops end)
+        |> List.flatten
+
         |> Enum.filter(fn op -> op.inside_oper == false and op.status == "O" end)
         |> Enum.reject(fn op -> op == nil end)
         |> Enum.reject(fn op -> op.sched_start == nil end)
@@ -616,13 +617,12 @@ defmodule Shophawk.Shop do
 
   def get_hot_jobs() do
     runlists =
-      case Cachex.get(:runlist, :active_jobs) do
-        {:ok, runlists} when not is_nil(runlists) -> runlists
-        {:ok, nil} -> []
-      end
+      Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+        |> Enum.to_list
+        |> Enum.map(fn job_data -> job_data.job_ops end)
+        |> List.flatten
     case runlists do
         [] -> []
-        nil -> []
         _ ->
           hot_jobs =
             List.flatten(runlists)

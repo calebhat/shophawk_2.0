@@ -210,18 +210,23 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, assign(socket, :live_action, :color_key)}
   end
 
-  def handle_event("mat_waiting_toggle", %{"job-operation" => job_operation}, socket) do
+  def handle_event("mat_waiting_toggle", %{"job-operation" => job_operation, "job" => job}, socket) do
 
     case Shop.get_runlist_by_job_operation(String.to_integer(job_operation)) do
       nil ->
-        Shophawk.RunlistCache.update_key_value(String.to_integer(job_operation), :material_waiting, true)
+        Shophawk.RunlistCache.update_key_value(job, String.to_integer(job_operation), :material_waiting, true)
         Shop.create_runlist(%{job_operation: job_operation, material_waiting: true})
       op ->
-        {:ok, runlists} = Cachex.get(:runlist, :active_jobs)
+        runlists =
+          Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+          |> Enum.to_list
+          |> Enum.map(fn job_data -> job_data.job_ops end)
+          |> List.flatten
+
         job_number = Enum.find(runlists, fn o -> o.job_operation == op.job_operation end).job
         job_ops = Enum.filter(runlists, fn o -> o.job == job_number end)
         Enum.each(job_ops, fn o ->
-          Shophawk.RunlistCache.update_key_value(o.job_operation, :material_waiting, !op.material_waiting)
+          Shophawk.RunlistCache.update_key_value(job, o.job_operation, :material_waiting, !op.material_waiting)
           case Shop.get_runlist_by_job_operation(o.job_operation) do
             nil -> :noop
             operation -> Shop.update_runlist(operation, %{material_waiting: !op.material_waiting})
@@ -232,8 +237,8 @@ defmodule ShophawkWeb.RunlistLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("change_assignment", %{"job-operation" => job_operation, "selection" => selection} = _params, socket) do
-    Shophawk.RunlistCache.update_key_value(String.to_integer(job_operation), :assignment, selection)
+  def handle_event("change_assignment", %{"job-operation" => job_operation, "selection" => selection, "job" => job} = _params, socket) do
+    Shophawk.RunlistCache.update_key_value(job, String.to_integer(job_operation), :assignment, selection)
     case Shop.get_runlist_by_job_operation(String.to_integer(job_operation)) do
       nil -> Shop.create_runlist(%{job_operation: job_operation, assignment: selection})
       op -> Shop.update_runlist(op, %{assignment: selection})
@@ -249,11 +254,11 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
     #Shophawk.Jobboss_db.update_workcenters
 
-    #{:ok, previous_check} = Cachex.get(:runlist, :refresh_time)
+    #{:ok, previous_check} = Cachex.get(:runlist_refresh_time, :refresh_time)
     #Cachex.put(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
     #jobs = Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
 
-    #{:ok, runlists} = Cachex.get(:runlist, :active_jobs)
+
     #Enum.each(runlists, fn op ->
     #if op.job =="135480" do
     #end

@@ -443,10 +443,11 @@ defmodule Shophawk.MaterialCache do
 
         #find first saw operation, subtract any qty complete
         runlists =
-          case Cachex.get(:runlist, :active_jobs) do
-            {:ok, runlists} when not is_nil(runlists) -> runlists
-            {:ok, nil} -> []
-          end
+          Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+          |> Enum.to_list
+          |> Enum.map(fn job_data -> job_data.job_ops end)
+          |> List.flatten
+
         first_saw_operation =
           Enum.filter(runlists, fn r ->
             r.job == job.job

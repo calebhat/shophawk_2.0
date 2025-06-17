@@ -28,10 +28,10 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
 
   def load_active_deliveries() do
     active_routing_ops =
-      case Cachex.get(:runlist, :active_jobs) do
-        {:ok, runlists} when not is_nil(runlists) -> Enum.sort_by(runlists, fn r -> r.job_operation end, :desc)
-        {:ok, nil} -> []
-      end
+      Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
+      |> Enum.to_list
+      |> Enum.map(fn job_data -> job_data.job_ops end)
+      |> List.flatten
 
     service_operations =
       Enum.filter(active_routing_ops, fn j -> j.inside_oper == false and j.status == "O" end)
