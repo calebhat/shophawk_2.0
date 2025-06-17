@@ -246,7 +246,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("test", _, socket) do
-    Shophawk.Jobboss_db.merge_jobboss_job_info(["135480"])
+
     #Shophawk.Jobboss_db.update_workcenters
 
     #{:ok, previous_check} = Cachex.get(:runlist, :refresh_time)
