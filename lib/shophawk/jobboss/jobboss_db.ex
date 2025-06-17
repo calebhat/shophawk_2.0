@@ -57,7 +57,7 @@ defmodule Shophawk.Jobboss_db do
     |> set_assignment_from_note_text_if_op_started
   end
 
-  def load_job_history(job_numbers) do
+  def load_job_history(job_numbers) do #loads all routing operations with a matching job
     {prepared_ops, job_operation_numbers} = load_and_prepare_job_operations(job_numbers)
     prepared_ops
     |> merge_shophawk_runlist_db(job_operation_numbers)

@@ -10,9 +10,24 @@ defmodule Shophawk.Shop do
   def list_job(job) do #loads all operations for a job
     found_ops =
       case Shophawk.RunlistCache.job(job) do
-        [] -> Shophawk.Jobboss_db.load_job_history([job]) |> List.flatten #Function here to load job history directly from JB (not active job in cache(part history))
+        [] ->
+          #IO.inspect(Shophawk.RunlistCache.non_active_job(job))
+          case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
+            [] ->
+              job_data = Shophawk.Jobboss_db.load_job_history([job])  #Function to load job history directly from JB (not active job in caches)
+              |> List.flatten() #list of routing operations for job
+
+
+              # Add a non-active job to the temporary cache
+              Cachex.put(:temporary_runlist_jobs_for_history, job, job_data)
+              job_data
+            non_active_job ->
+              #IO.inspect("from history cache")
+              non_active_job
+          end
         active_job -> active_job
       end
+
 
     case found_ops do
       [] -> {:error, :error}

@@ -16,9 +16,9 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
         <div class="absolute left-4 right-4 m-2 rounded-lg bg-cyan-900 grid grid-cols-12" style="top: 5rem; bottom: 1rem;">
           <!-- Search Form -->
-          <div class="my-4 mx-2 col-span-1">
+          <div class="my-4 ml-4 col-span-1 overflow-y-auto">
             <.form for={%{}} phx-submit="submit_form">
-              <div class="my-2">
+              <div class="">
                 <.input name="job" value="" placeholder="Job"/>
               </div>
               <div class="my-2">
@@ -59,12 +59,74 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
             </.link>
           </div>
 
-          <div class="">
+          <div class="m-4 bg-cyan-800 rounded-md overflow-y-auto h-auto w-auto col-span-11">
+            <div phx-update="stream" id="jobs">
 
+
+              <table id="parthistory" class="text-center w-auto mx-4">
+                <thead class="text-white text-base">
+                  <tr>
+                    <th class="px-2">Job</th>
+                    <th>Qty</th>
+                    <th>Order Date</th>
+                    <th>Status</th>
+                    <th>Current Operation</th>
+                    <th>Status</th>
+                    <th>Profit %</th><!-- calc by parts for order, not total to account for extra pcs % being off -->
+                    <th>Price/each</th>
+                    <th>Cost/each</th>
+                  </tr>
+                </thead>
+                <tbody phx-update="stream" id="jobs">
+                  <tr :for={{id, row} <- @streams.jobs}
+                      id={id}
+                      phx-click={JS.push("show_job", value: %{job: row.job})}
+                      class={["hover:bg-sky-100 bg-sky-200 hover:cursor-pointer border-b-2 border-stone-700"]}
+                  >
+                    <td><%= row.job %></td>
+                    <td><%= %></td>
+                    <td><%= %></td>
+                    <td><%= %></td>
+                    <td><%= %></td>
+                    <td><%= %></td>
+                    <td><%= %></td>
+                    <td><%= %></td>
+                    <td><%= %></td>
+                  </tr>
+                </tbody>
+              </table>
+
+
+
+            </div>
           </div>
 
 
         </div>
+
+        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.push("close_modal")}>
+          <.live_component
+            module={ShophawkWeb.RunlistLive.ShowJob}
+            id={@id || :show_job}
+            job_ops={@job_ops}
+            job_info={@job_info}
+            title={@page_title}
+            action={@live_action}
+            current_user={@current_user}
+          />
+        </.modal>
+
+        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("close_modal")}>
+          <div class="w-[1600px]">
+          <.live_component
+            module={ShophawkWeb.RunlistLive.JobAttachments}
+            id={@id || :job_attachments}
+            attachments={@attachments}
+            title={@page_title}
+            action={@live_action}
+          />
+          </div>
+        </.modal>
       </div>
     """
   end
@@ -79,29 +141,43 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
   def set_default_assigns(socket) do
     socket
+    |> stream(:jobs, [])
   end
 
   def handle_event("submit_form", params, socket) do
     {:noreply, push_patch(socket, to: ~p"/parthistory?#{params}")}
   end
 
+  def handle_event("close_modal", _params, socket) do
+    {:noreply, assign(socket, :live_action, nil)}
+  end
+
   def handle_params(params, _uri, socket) do
-    IO.inspect(params)
-    socket =
-      case params do
-        %{} when map_size(params) == 0 ->
-          socket #empty map
-        _ -> #
-          job_maps = Shophawk.Jobboss_db.jobs_search(params)
+    if map_size(params) > 0 do
+      job_maps = Shophawk.Jobboss_db.jobs_search(params)
+      self = self()
+      Task.async(fn ->
+        Enum.each(job_maps, fn job ->
+          send(self, {:loaded_job, showjob(job.job)})
+        end)
+      end)
+    end
 
-          #NEED TO SPIN THIS OFF INTO OWN PROCESS (TASK.ASYNC) AND CACHE EACH JOB WITH AN EXPIRATION FOR QUICK LOOKUP LATER
-          Enum.each(job_maps, fn job -> showjob(job.job) end)
+    {:noreply, socket |> stream(:jobs, [], reset: true)}
+  end
 
-          socket
-      end
+  def handle_info({:loaded_job, job_data}, socket) do
+    #IO.inspect(job_data)
+    {:noreply, stream_insert(socket, :jobs, job_data, at: -1)}
+  end
 
+  def handle_info({ref, :ok}, socket) when is_reference(ref) do #completion message for task.async
+    # Task completed, turn off loading indicator
+    {:noreply, assign(socket, loading: false)}
+  end
 
-
+  # Required to prevent Task.async/1 from crashing on exit
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
     {:noreply, socket}
   end
 

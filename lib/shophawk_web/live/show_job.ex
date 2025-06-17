@@ -72,11 +72,12 @@ defmodule ShophawkWeb.ShowJob do
               Map.put(job_info, :deliveries, deliveries)
               |> Map.put(:dots, List.first(job_operations).dots)
 
-          %{
-            job: job,
-            job_ops: job_operations,
-            job_info: updated_job_info
-          }
+            %{
+              job: job,
+              id: "id-" <> job,
+              job_ops: job_operations,
+              job_info: updated_job_info
+            }
         end
       end
 

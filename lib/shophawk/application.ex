@@ -11,6 +11,7 @@ defmodule Shophawk.Application do
     children = [
       #Create Caches needed for app
       Supervisor.child_spec({Cachex, [name: :runlist]}, id: :cachex_runlist),
+      Supervisor.child_spec({Cachex, [name: :temporary_runlist_jobs_for_history, limit: 5000]}, id: :cachex_runlist_for_history),
       Supervisor.child_spec({Cachex, [name: :job_attachments]}, id: :cachex_job_attachments),
       Supervisor.child_spec({Cachex, [name: :runlist_loads]}, id: :cachex_runlist_loads),
       Supervisor.child_spec({Cachex, [name: :slideshow]}, id: :cachex_slideshow),

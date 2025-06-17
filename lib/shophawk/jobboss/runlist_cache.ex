@@ -29,11 +29,29 @@ defmodule Shophawk.RunlistCache do
 
   def job(job) do
     {:ok, runlists} = Cachex.get(:runlist, :active_jobs)
-    runlists
-    |> List.flatten
-    |> Enum.filter(fn op -> op.job == job end)
-    |> Enum.uniq()
-    |> Enum.sort_by(&(&1.sequence))
+    case runlists do
+      nil -> []
+    runlists ->
+      runlists
+      |> List.flatten
+      |> Enum.filter(fn op -> op.job == job end)
+      |> Enum.uniq()
+      |> Enum.sort_by(&(&1.sequence))
+    end
+  end
+
+  def non_active_job(job) do
+    {:ok, runlists} = Cachex.get(:temporary_runlist_jobs_for_history, job)
+    case runlists do
+      nil ->
+        []
+      runlists ->
+        runlists
+        |> List.flatten
+        |> Enum.filter(fn op -> op.job == job end)
+        |> Enum.uniq()
+        |> Enum.sort_by(&(&1.sequence))
+    end
   end
 
   def operation(operation) do
