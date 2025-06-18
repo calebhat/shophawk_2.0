@@ -8,11 +8,12 @@ defmodule Shophawk.RunlistCache do
       |> Enum.to_list
       |> Enum.map(fn job_data -> job_data.job_ops end)
       |> List.flatten
+      #|> IO.inspect
 
     runlists = if department.show_jobs_started == true do
-      Enum.filter(runlists, fn op -> op.status == "O" or op.status == "S" end)
+      Enum.filter(runlists, fn op -> op.status == "Open" or op.status == "Started" end)
     else
-      Enum.filter(runlists, fn op -> op.status == "O"end)
+      Enum.filter(runlists, fn op -> op.status == "Open"end)
     end
 
     runlists =
@@ -33,32 +34,16 @@ defmodule Shophawk.RunlistCache do
   end
 
   def job(job) do
-    runlists =
-      Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
-      |> Enum.to_list
-      |> Enum.map(fn job_data -> job_data.job_ops end)
-      |> List.flatten
-    case runlists do
-      [] -> []
-    runlists ->
-      runlists
-      |> Enum.filter(fn op -> op.job == job end)
-      |> Enum.uniq()
-      |> Enum.sort_by(&(&1.sequence))
+    case Cachex.get(:active_jobs, job) do
+      {:ok, nil} -> []
+      {:ok, job_data} -> job_data
     end
   end
 
   def non_active_job(job) do
-    {:ok, runlists} = Cachex.get(:temporary_runlist_jobs_for_history, job)
-    case runlists do
-      nil ->
-        []
-      runlists ->
-        runlists
-        |> List.flatten
-        |> Enum.filter(fn op -> op.job == job end)
-        |> Enum.uniq()
-        |> Enum.sort_by(&(&1.sequence))
+    case Cachex.get(:temporary_runlist_jobs_for_history, job) do
+      {:ok, nil} -> []
+      {:ok, job_data} -> job_data
     end
   end
 

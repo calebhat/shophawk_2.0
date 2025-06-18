@@ -11,6 +11,7 @@ defmodule ShophawkWeb.RunlistLive.Index do
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
+      ScheduledTasks.update_all_runlist_loads
       department_loads = get_runlist_loads()
       socket = if Enum.any?(department_loads, fn list -> list != [] end), do: assign(socket, show_department_loads: true), else: assign(socket, show_department_loads: false)
       {:ok, set_default_assigns(socket) |> assign(:department_loads, department_loads) }

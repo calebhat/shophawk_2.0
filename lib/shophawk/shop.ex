@@ -7,83 +7,6 @@ defmodule Shophawk.Shop do
   alias Shophawk.Shop.Workcenter
   alias Shophawk.Shop.Assignment
 
-  def list_job(job) do #loads all operations for a job
-    found_ops =
-      case Shophawk.RunlistCache.job(job) do
-        [] ->
-          #IO.inspect(Shophawk.RunlistCache.non_active_job(job))
-          case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
-            [] ->
-              job_data = Shophawk.Jobboss_db.load_job_history([job])  #Function to load job history directly from JB (not active job in caches)
-              |> List.flatten() #list of routing operations for job
-
-
-              # Add a non-active job to the temporary cache
-              Cachex.put(:temporary_runlist_jobs_for_history, job, job_data)
-              job_data
-            non_active_job ->
-              #IO.inspect("from history cache")
-              non_active_job
-          end
-        active_job -> active_job
-      end
-
-
-    case found_ops do
-      [] -> {:error, :error}
-      _ ->
-        job_ops =
-          Enum.map(found_ops, fn map ->
-            map = case map do
-              %{operation_service: nil} -> Map.put(map, :operation_service, nil)
-              %{operation_service: ""} -> Map.put(map, :operation_service, nil)
-              %{operation_service: value} -> Map.put(map, :operation_service, " -" <> value)
-              _ -> map
-            end
-            |> Map.put(:status, status_change(map.status))
-            map = if map.rev == nil, do: Map.put(map, :rev, ""), else: Map.put(map, :rev, ", Rev: " <> map.rev)
-            if map.customer_po_line == nil, do: Map.put(map, :customer_po_line, ""), else: map
-            if map.operation_note_text == nil, do:  Map.put(map, :operation_note_text, ""), else: map
-          end)
-        [first_operation | _tail] = job_ops
-        {job_ops, sort_job_info(first_operation)}
-    end
-  end
-
-  def sort_job_info(job) do
-    job_manager = case job.note_text do
-      nil -> ""
-      _ ->
-        job.note_text
-        |> String.replace("\r", " ")
-        |> String.replace("\n", " ")
-        |> String.split(" ")
-        |> Enum.slice(-2, 2)
-        |> Enum.map(&(String.capitalize(&1, :ascii)))
-        |> Enum.join(" ")
-        |> String.trim()
-    end
-    %{}
-    |> Map.put(:part_number, job.part_number || "" <> job.rev || "")
-    |> Map.put(:order_quantity, job.order_quantity)
-    |> Map.put(:make_quantity, job.make_quantity)
-    |> Map.put(:customer, job.customer)
-    |> Map.put(:customer_po, job.customer_po)
-    |> Map.put(:customer_po_line, job.customer_po_line)
-    |> Map.put(:description, job.description)
-    |> Map.put(:material, job.material)
-    |> Map.put(:job_manager, job_manager)
-  end
-
-  defp status_change(status) do
-    case status do
-      "C" -> "Closed"
-      "S" -> "Started"
-      "O" -> "Open"
-      _ -> status
-    end
-  end
-
   def import_all(operations) do #WARNING, THIS TAKES A MINUTE AND WILL OVERLOAD CHROME IF ALL DATA IS LOADED.
     operations
     |> Enum.chunk_every(1500)
@@ -125,7 +48,11 @@ defmodule Shophawk.Shop do
   """
   def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist rows, weekly load, and jobs that ship today
     #Shophawk.Jobboss_db.load_all_active_jobs()
+    #THIS FUNCTION NOT LOADING DEPARTMENTS PROPERLY
+    #IO.inspect(workcenter_list, label: "workcenter list")
+    #IO.inspect(department, label: "department")
     runlists = Shophawk.RunlistCache.get_runlist_ops(workcenter_list, department)
+
 
     if Enum.empty?(runlists) do
       {[], [], []}
@@ -256,12 +183,12 @@ defmodule Shophawk.Shop do
           end
 
           main_ops =
-            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "Open"  end)
             |> Enum.sort_by(dot_sorter)
             |> Enum.sort_by(at_location_sorter)
 
           started_ops =
-            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "Started"  end)
 
           runners_list =
             Enum.filter(carryover_list, fn %{date: date, index: index} -> date == date_row.sched_start and index > 0 end)
@@ -305,7 +232,7 @@ defmodule Shophawk.Shop do
         |> Enum.map(fn job_data -> job_data.job_ops end)
         |> List.flatten
 
-        |> Enum.filter(fn op -> op.inside_oper == false and op.status == "O" end)
+        |> Enum.filter(fn op -> op.inside_oper == false and op.status == "Open" end)
         |> Enum.reject(fn op -> op == nil end)
         |> Enum.reject(fn op -> op.sched_start == nil end)
         |> Enum.filter(fn op ->
@@ -361,7 +288,7 @@ defmodule Shophawk.Shop do
         end
         |> Enum.map(fn op -> #add extra keys to each map if needed
           Map.put_new(op, :runner, false)
-          |> Map.put_new(:status, "O")
+          |> Map.put_new(:status, "Open")
           |> Map.put_new(:date_row_identifer, 1)
         end)
       {complete_runlist, calc_weekly_load(date_rows_list, department, runlists), jobs_that_ship_today}
@@ -432,11 +359,11 @@ defmodule Shophawk.Shop do
             end
           end
           main_ops =
-            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "O"  end)
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "Open"  end)
             |> Enum.sort_by(dot_sorter)
             |> Enum.sort_by(at_location_sorter)
           started_ops =
-            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "S"  end)
+            Enum.filter(runlists, fn %{sched_start: sched_start, status: status} -> sched_start == date_row.sched_start and status == "Started"  end)
           acc ++ [date_row] ++ main_ops ++ started_ops
         end)
 
@@ -483,7 +410,7 @@ defmodule Shophawk.Shop do
   end
 
   def load_job_operations(job) do #loads all operations for a job
-    Shophawk.RunlistCache.job(job)
+    Shophawk.RunlistCache.job(job).job_ops
   end
 
   def get_all_active_jobs_from_db() do #loads all operations for a job

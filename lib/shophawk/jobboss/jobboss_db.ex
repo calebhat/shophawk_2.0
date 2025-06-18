@@ -48,29 +48,12 @@ defmodule Shophawk.Jobboss_db do
     Cachex.put_many(:active_jobs, active_jobs)
     #Process.sleep(2000)
 
-    #|> IO.inspect
-
-      #|> List.flatten()
-
-      #Make runlist a list of maps of %{job: job, job_data: [job data: data, job_jops: ops, id: id]}
-
-
-    # for active_jobs, make it one list that contains all jobs
-
-    #for non-active jobs, do an Enum.each() for every grouped job data, and insert them into the cache one at a time.
-    #use cachex.get_and_update for active job replacements
-    #use cachex.put_many for mass upload at beginning of app or multiple insertions
-    #use cachex.stream for grabbing all entries in a cache
-    #use cachex.del to delete entries
-
-    #Cachex.put(:runlist, :active_jobs, runlist)  # Store the data in ETS
   end
 
   def add_job_data(job_ops) do
-    #CALCULATE OTHER JOB DATA HERE FOR SHOW_JOB AND WHATNOT. ADD TO MAP FOR EASY LOADING LATER
-
     Enum.map(job_ops, fn {{key},  job_ops}  ->
       first_op = List.first(job_ops)
+      job_info = create_job_info(first_op)
 
       #tuple for Cashex.put_many
       {key,
@@ -78,12 +61,44 @@ defmodule Shophawk.Jobboss_db do
         job: first_op.job,
         id: "id-" <> first_op.job,
         job_status: first_op.job_status,
-        job_ops: job_ops
+        job_ops: job_ops,
+        job_info: job_info
         }
       }
     end)
   end
 
+  def create_job_info(job) do
+    job_manager = case job.note_text do
+      nil -> ""
+      _ ->
+        job.note_text
+        |> String.replace("\r", " ")
+        |> String.replace("\n", " ")
+        |> String.split(" ")
+        |> Enum.slice(-2, 2)
+        |> Enum.map(&(String.capitalize(&1, :ascii)))
+        |> Enum.join(" ")
+        |> String.trim()
+    end
+    %{}
+    |> Map.put(:part_number, job.part_number || "" <> job.rev || "")
+    |> Map.put(:order_quantity, job.order_quantity)
+    |> Map.put(:make_quantity, job.make_quantity)
+    |> Map.put(:customer, job.customer)
+    |> Map.put(:customer_po, job.customer_po)
+    |> Map.put(:customer_po_line, job.customer_po_line)
+    |> Map.put(:description, job.description)
+    |> Map.put(:material, job.material)
+    |> Map.put(:job_manager, job_manager)
+    |> Map.put(:deliveries, load_deliveries_for_job(job.job))
+    |> Map.put(:dots, job.dots)
+  end
+
+  def load_deliveries_for_job(job) do
+    Shophawk.Jobboss_db.load_all_deliveries([job])
+    |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
+  end
 
   def merge_jobboss_job_info(job_numbers) do
     {prepared_ops, job_operation_numbers} = load_and_prepare_job_operations(job_numbers)
@@ -97,18 +112,44 @@ defmodule Shophawk.Jobboss_db do
       updated_job =
         set_current_op(job_ops)
         |> set_material_waiting()
-        |> set_assignment_from_note_text_if_op_started
-
+        |> set_assignment_from_note_text_if_op_started()
+        |> convert_nil_values_to_empty_strings_for_ops()
+        |> Enum.sort_by(&(&1.sequence))
       [updated_job | acc]
     end)
   end
 
-  def load_job_history(job_numbers) do #loads all routing operations with a matching job
-    {prepared_ops, job_operation_numbers} = load_and_prepare_job_operations(job_numbers)
-    prepared_ops
-    |> merge_shophawk_runlist_db(job_operation_numbers)
+  def convert_nil_values_to_empty_strings_for_ops(job_ops) do
+    Enum.map(job_ops, fn op ->
+      op = case op do
+        %{operation_service: nil} -> Map.put(op, :operation_service, nil)
+        %{operation_service: ""} -> Map.put(op, :operation_service, nil)
+        %{operation_service: value} -> Map.put(op, :operation_service, " -" <> value)
+        _ -> op
+      end
+      |> Map.put(:status, status_change(op.status))
+      op = if op.rev == nil, do: Map.put(op, :rev, ""), else: Map.put(op, :rev, ", Rev: " <> op.rev)
+      op = if op.customer_po_line == nil, do: Map.put(op, :customer_po_line, ""), else: op
+      if op.operation_note_text == nil, do:  Map.put(op, :operation_note_text, ""), else: op
+    end)
+  end
+
+  defp status_change(status) do
+    case status do
+      "C" -> "Closed"
+      "S" -> "Started"
+      "O" -> "Open"
+      _ -> status
+    end
+  end
+
+  def load_job_history(job_number) do #loads all routing operations with a matching job
+    merge_jobboss_job_info(job_number)
+    |> List.flatten()
     |> Enum.group_by(&{&1.job})
-    |> Map.values
+    |> Map.to_list
+    |> add_job_data
+
   end
 
   def load_and_prepare_job_operations(job_numbers) do
@@ -526,7 +567,7 @@ defmodule Shophawk.Jobboss_db do
           IO.inspect("Updating/Adding job to cache")
           Cachex.put(:active_jobs, key, job_data)
         _ ->
-          IO.inspect("Deleting job from cache")
+          IO.inspect("Deleting job from cache")  #ENSURE THIS WORKS, TEST
           Cachex.del(:active_jobs, key)
       end
     end)
@@ -922,7 +963,7 @@ defmodule Shophawk.Jobboss_db do
   def load_material_requirements do
     query =
       from r in Jb_material_req,
-      where: r.status == "O",
+      where: r.status in ["O", "S"],
       where: r.pick_buy_indicator == "P",
       where: r.uofm == "ft",
       where: not is_nil(r.due_date)
@@ -933,7 +974,7 @@ defmodule Shophawk.Jobboss_db do
         |> Map.drop([:__meta__])
         |> Map.update!(:cutoff, &(Float.round(&1, 2)))
         |> Map.update!(:part_length, &(Float.round(&1, 2)))
-        |> Map.update!(:est_qty, &(Float.round(&1, 2)))
+        |> Map.put(:est_qty, Float.round((op.est_qty - op.act_qty), 2))
       end)
       job_numbers = Enum.map(mat_reqs, fn mat -> mat.job end) |> Enum.uniq
       query = from r in Jb_job_qty, where: r.job in ^job_numbers
@@ -997,7 +1038,7 @@ defmodule Shophawk.Jobboss_db do
   def load_single_material_requirements(material) do
     query =
       from r in Jb_material_req,
-      where: r.status == "O",
+      where: r.status in ["O", "S"],
       where: r.pick_buy_indicator == "P",
       where: r.uofm == "ft",
       where: not is_nil(r.due_date),
@@ -1005,11 +1046,12 @@ defmodule Shophawk.Jobboss_db do
     mat_reqs =
       failsafed_query(query)
       |> Enum.map(fn op ->
+        IO.inspect(Float.round((op.est_qty - op.act_qty), 2), label: "calculated value: ")
         Map.from_struct(op)
         |> Map.drop([:__meta__])
         |> Map.update!(:cutoff, &(Float.round(&1, 2)))
         |> Map.update!(:part_length, &(Float.round(&1, 2)))
-        |> Map.update!(:est_qty, &(Float.round(&1, 2)))
+        |> Map.put(:est_qty, Float.round((op.est_qty - op.act_qty), 2))
       end)
       job_numbers = Enum.map(mat_reqs, fn mat -> mat.job end) |> Enum.uniq
       query = from r in Jb_job_qty, where: r.job in ^job_numbers
@@ -1112,14 +1154,14 @@ defmodule Shophawk.Jobboss_db do
     end
   end
 
-defp handle_retry(_query, 0, delay, reason) do #For jobboss db queries
-  Process.sleep(delay)
-  {:error, reason}
-end
+  defp handle_retry(_query, 0, delay, reason) do #For jobboss db queries
+    Process.sleep(delay)
+    {:error, reason}
+  end
 
-defp handle_retry(query, retries, delay, _reason) do #For jobboss db queries
-  :timer.sleep(delay)
-  failsafed_query(query, retries - 1, delay)
-end
+  defp handle_retry(query, retries, delay, _reason) do #For jobboss db queries
+    :timer.sleep(delay)
+    failsafed_query(query, retries - 1, delay)
+  end
 
 end

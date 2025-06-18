@@ -61,28 +61,26 @@ defmodule ShophawkWeb.ShowJob do
 #      end
 
       def showjob(job) do
-        case Shophawk.Shop.list_job(job) do
-          {:error, _} ->
-            {:error}
-          {job_operations, job_info} ->
-            deliveries =
-              Shophawk.Jobboss_db.load_all_deliveries([job])
-              |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
-            updated_job_info =
-              Map.put(job_info, :deliveries, deliveries)
-              |> Map.put(:dots, List.first(job_operations).dots)
-
-            %{
-              job: job,
-              id: "id-" <> job,
-              job_ops: job_operations,
-              job_info: updated_job_info
-            }
+        case Shophawk.RunlistCache.job(job) do
+          [] ->
+            #IO.inspect(Shophawk.RunlistCache.non_active_job(job))
+            case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
+              [] ->
+                #Function to load job history directly from JB (not active job in caches)
+                case Shophawk.Jobboss_db.load_job_history([job]) |> List.first() do
+                  nil -> {:error}
+                  {_job, job_data} ->
+                    Cachex.put(:temporary_runlist_jobs_for_history, job, job_data)
+                    job_data
+                end
+              non_active_job ->
+                non_active_job
+            end
+          active_job -> active_job
         end
       end
 
     end
   end
-  # Default implementations (can be overridden) Normal functions called from the handle_event/handle_info functions
 
 end
