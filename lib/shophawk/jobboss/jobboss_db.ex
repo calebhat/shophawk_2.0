@@ -54,19 +54,108 @@ defmodule Shophawk.Jobboss_db do
     Enum.map(job_ops, fn {{key},  job_ops}  ->
       first_op = List.first(job_ops)
       job_info = create_job_info(first_op)
-
       #tuple for Cashex.put_many
       {key,
-      %{
-        job: first_op.job,
-        id: "id-" <> first_op.job,
-        job_status: first_op.job_status,
-        job_ops: job_ops,
-        job_info: job_info
+        %{
+          job: first_op.job,
+          id: "id-" <> first_op.job,
+          job_status: first_op.job_status,
+          job_ops: job_ops,
+          job_info: job_info
         }
       }
     end)
   end
+
+  def add_job_data(job_ops, [job_number]) do
+    case job_ops do
+      [] -> #if there's no routing data, fill in job data manually here
+        job_map =
+          failsafed_query(from r in Jb_job, where: r.job == ^job_number)
+          |> Enum.map(fn op ->
+            Map.from_struct(op)
+            |> Map.drop([:__meta__])
+            |> rename_key(:sched_end, :job_sched_end)
+            |> rename_key(:sched_start, :job_sched_start)
+            |> rename_key(:status, :job_status)
+            |> rename_key(:customer_po_ln, :customer_po_line)
+          end)
+
+        # Query and map Jb_material_req
+        mats_map =
+          failsafed_query(from r in Jb_material_req, where: r.job == ^job_number)
+          |> Enum.map(fn op ->
+            Map.from_struct(op)
+            |> Map.drop([:__meta__, :job])
+            |> rename_key(:status, :mat_status)
+            |> rename_key(:description, :mat_description)
+          end)
+
+        updated_mats_map =
+          case Enum.count(mats_map) do
+            0 ->
+              Map.from_struct(%Jb_material_req{}
+              |> Map.drop([:__meta__])
+              |> Map.drop([:status, :description]))
+              |> Map.put(:material, "Customer Supplied")
+            1 ->
+              Enum.at(mats_map, 0)
+            _ ->
+              Enum.reduce(mats_map, %{}, fn map, acc ->
+                Map.merge(acc, map, fn _, value1, value2 ->
+                  "#{value1} | #{value2}"
+                end)
+              end)
+              |> Enum.at(0)
+          end
+
+        user_values_list = Enum.map(job_map, fn job -> job.user_values end)
+        query = from r in Jb_user_values, where: r.user_values in ^user_values_list
+        user_values_map =
+          failsafed_query(query)
+          |> Enum.map(fn op ->
+            Map.from_struct(op)
+            |> Map.drop([:__meta__])
+            |> Map.put(:text1, dots_calc(op.text1))
+            |> rename_key(:text1, :dots)
+          end)
+
+          job_map = if Enum.at(job_map, 0) == nil, do: %{}, else: Enum.at(job_map, 0)
+          user_values_map = if Enum.at(user_values_map, 0) == nil, do: %{dots: nil}, else: Enum.at(user_values_map, 0)
+          updated_mats_map = if map_size(updated_mats_map) == 0, do: %{}, else: updated_mats_map
+
+          merged_job_map =
+            Map.merge(job_map, user_values_map)
+            |> Map.merge(updated_mats_map)
+
+
+        job_info = create_job_info(merged_job_map)
+        {job_number,
+          %{
+            job: job_number,
+            id: "id-" <> job_number,
+            job_status: merged_job_map.job_status,
+            job_ops: [],
+            job_info: job_info
+            }
+          }
+      job_ops ->
+        {{key}, ops} = List.first(job_ops)
+        first_op = List.first(ops)
+        job_info = create_job_info(first_op)
+        #tuple for Cashex.put_many
+        {key,
+        %{
+          job: first_op.job,
+          id: "id-" <> first_op.job,
+          job_status: first_op.job_status,
+          job_ops: ops,
+          job_info: job_info
+          }
+        }
+    end
+  end
+
 
   def create_job_info(job) do
     job_manager = case job.note_text do
@@ -143,13 +232,16 @@ defmodule Shophawk.Jobboss_db do
     end
   end
 
-  def load_job_history(job_number) do #loads all routing operations with a matching job
-    merge_jobboss_job_info(job_number)
-    |> List.flatten()
-    |> Enum.group_by(&{&1.job})
-    |> Map.to_list
-    |> add_job_data
-
+  def load_job_history([job_number]) do #loads all routing operations with a matching job
+    case Shophawk.Repo_jb.exists?(from r in Jb_job, where: r.job == ^job_number) do
+      false -> []
+    _ ->
+      merge_jobboss_job_info([job_number])
+      |> List.flatten()
+      |> Enum.group_by(&{&1.job})
+      |> Map.to_list
+      |> add_job_data([job_number])
+    end
   end
 
   def load_and_prepare_job_operations(job_numbers) do
@@ -221,7 +313,7 @@ defmodule Shophawk.Jobboss_db do
             Map.merge(op, Map.from_struct(%Jb_material_req{})
               |> Map.drop([:__meta__])
               |> Map.drop([:job, :status, :description]))
-            |> Map.put(:material, "Customer Supplied")
+              |> Map.put(:material, "Customer Supplied")
           1 ->
             Map.merge(op, Enum.at(matching_maps, 0))
           _ ->
@@ -564,34 +656,11 @@ defmodule Shophawk.Jobboss_db do
     Enum.each(operations, fn {key, job_data} ->
       case job_data.job_status do
         "Active" ->
-          IO.inspect("Updating/Adding job to cache")
           Cachex.put(:active_jobs, key, job_data)
         _ ->
-          IO.inspect("Deleting job from cache")  #ENSURE THIS WORKS, TEST
           Cachex.del(:active_jobs, key)
       end
     end)
-
-
-
-    #runlist = #DON'T HAVE TO DO THIS, CAN JUST REPLACE KEY IN CACHE
-    #  Cachex.stream!(:active_jobs, Cachex.Query.build(output: :value))
-    #  |> Enum.to_list
-    #  |> Enum.map(fn job_data -> job_data.job_ops end)
-    #  |> List.flatten
-
-    #removes all operations that have a job that gets updated
-    #skinned_runlist = Enum.reduce(jobs_to_update, runlist, fn job, acc ->
-    #  Enum.reject(acc, fn op -> job == op.job end)
-    #end)
-
-    #adds back in active jobs. DON'T HAVE TO DO THIS.
-    #new_runlist = Enum.reduce(operations, skinned_runlist, fn op, acc ->
-    #  if op.job_status == "Active", do: [op | acc], else: acc
-    #end)
-
-    #Cachex.put_many(:active_jobs, active_jobs)
-    #Cachex.put(:runlist, :active_jobs, new_runlist)  # OLD, REPLACE
   end
 
   ######
@@ -1046,7 +1115,6 @@ defmodule Shophawk.Jobboss_db do
     mat_reqs =
       failsafed_query(query)
       |> Enum.map(fn op ->
-        IO.inspect(Float.round((op.est_qty - op.act_qty), 2), label: "calculated value: ")
         Map.from_struct(op)
         |> Map.drop([:__meta__])
         |> Map.update!(:cutoff, &(Float.round(&1, 2)))
@@ -1102,6 +1170,7 @@ defmodule Shophawk.Jobboss_db do
       |> maybe_filter(:part_number, params["part"])
       |> maybe_filter(:status, params["status"])
       |> maybe_filter_date_range(start_date, end_date)
+      |> order_by([desc: :released_date])
       |> limit(100)
 
     failsafed_query(query)

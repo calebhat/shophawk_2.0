@@ -71,7 +71,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                     <th>Order Date</th>
                     <th>Status</th>
                     <th>Current Operation</th>
-                    <th>Status</th>
+                    <th>Description</th>
                     <th>Profit %</th><!-- calc by parts for order, not total to account for extra pcs % being off -->
                     <th>Price/each</th>
                     <th>Cost/each</th>
@@ -84,11 +84,11 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                       class={["hover:bg-sky-100 bg-sky-200 hover:cursor-pointer border-b-2 border-stone-700"]}
                   >
                     <td><%= row.job %></td>
+                    <td><%= row.job_info.order_quantity%></td>
                     <td><%= %></td>
+                    <td><%= row.job_status %></td>
                     <td><%= %></td>
-                    <td><%= %></td>
-                    <td><%= %></td>
-                    <td><%= %></td>
+                    <td><%= row.job_info.description %></td>
                     <td><%= %></td>
                     <td><%= %></td>
                     <td><%= %></td>
@@ -155,20 +155,29 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
   def handle_params(params, _uri, socket) do
     if map_size(params) > 0 do
       job_maps = Shophawk.Jobboss_db.jobs_search(params)
-      self = self()
+      case job_maps do
+        [] ->
+          IO.inspect("no jobs found")
+          []
+        _ ->
+          self = self()
       Task.async(fn ->
         Enum.each(job_maps, fn job ->
           send(self, {:loaded_job, showjob(job.job)})
         end)
       end)
+      end
+
     end
 
     {:noreply, socket |> stream(:jobs, [], reset: true)}
   end
 
   def handle_info({:loaded_job, job_data}, socket) do
-    #IO.inspect(job_data)
-    {:noreply, stream_insert(socket, :jobs, job_data, at: -1)}
+    case job_data do
+      {:error} -> {:noreply, socket}
+      _ -> {:noreply, stream_insert(socket, :jobs, job_data, at: -1)}
+    end
   end
 
   def handle_info({ref, :ok}, socket) when is_reference(ref) do #completion message for task.async

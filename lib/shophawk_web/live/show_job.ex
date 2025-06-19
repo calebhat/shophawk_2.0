@@ -63,12 +63,12 @@ defmodule ShophawkWeb.ShowJob do
       def showjob(job) do
         case Shophawk.RunlistCache.job(job) do
           [] ->
-            #IO.inspect(Shophawk.RunlistCache.non_active_job(job))
             case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
               [] ->
                 #Function to load job history directly from JB (not active job in caches)
-                case Shophawk.Jobboss_db.load_job_history([job]) |> List.first() do
-                  nil -> {:error}
+                case Shophawk.Jobboss_db.load_job_history([job]) do
+                  [] ->
+                    {:error}
                   {_job, job_data} ->
                     Cachex.put(:temporary_runlist_jobs_for_history, job, job_data)
                     job_data

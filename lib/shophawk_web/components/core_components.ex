@@ -1774,10 +1774,10 @@ defmodule ShophawkWeb.CoreComponents do
 
   def show_modal(js \\ %JS{}, id) when is_binary(id) do
     js
-    |> JS.show(to: "##{id}")
+    |> JS.show(to: "##{id}", time: 10) #time not working here? trying to speed up total transition
     |> JS.show(
       to: "##{id}-bg",
-      transition: {"transition-all transform ease-out duration-300", "opacity-0", "opacity-100"}
+      transition: {"transition-all transform ease-out duration-10", "opacity-0", "opacity-100"}
     )
     |> show("##{id}-container")
     |> JS.add_class("overflow-hidden", to: "body")
