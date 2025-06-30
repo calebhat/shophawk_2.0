@@ -995,7 +995,7 @@ defmodule Shophawk.Jobboss_db do
     end_date = NaiveDateTime.new(end_date, ~T[00:00:00]) |> elem(1)
     query =
       from r in Jb_Ap_Check,
-      where: r.check_date >= ^start_date and r.check_date <= ^end_date
+      where: r.check_date >= ^start_date and r.check_date <= ^end_date and r.vendor not in ["DH", "DTH REAL"]
     failsafed_query(query) |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
   end
 
