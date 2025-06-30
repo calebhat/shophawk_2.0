@@ -8,11 +8,11 @@ defmodule ShophawkWeb.ShowJob do
       def handle_event("show_job", %{"job" => job_number}, socket) do
 
         socket =
-          case showjob(job_number) do
+          case showjob([job_number]) do
             {:error} ->
               Process.send_after(self(), :clear_flash, 1000)
               socket |> put_flash(:error, "Job Not Found")
-            job ->
+            [job] ->
               socket
               |> assign(:live_action, :show_job)
               |> assign(page_title: "Job #{job.job}")
@@ -60,16 +60,67 @@ defmodule ShophawkWeb.ShowJob do
 #        {:noreply, clear_flash(socket)}
 #      end
 
+      def showjob(jobs) when is_list(jobs) do
+        case Enum.count(jobs) do
+          0 -> {:error}
+          1 -> #single job to load
+            job_number = List.first(jobs, "")
+            case Shophawk.Jobboss_db.job_exists?(job_number) do
+              true -> [showjob(job_number)]
+              false -> {:error}
+            end
+          _ -> #multiple jobs to load
+            jobs_with_any_cached_data =
+              Enum.map(jobs, fn job ->
+                case Shophawk.RunlistCache.job(job) do
+                  [] ->
+                    case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
+                      [] -> job
+                      job_data -> job_data
+                    end
+                  job_data -> job_data
+                end
+              end)
+
+            list_of_jobs_needed_to_load = Enum.reduce(jobs_with_any_cached_data, [], fn job, acc ->
+              if is_map(job) == false, do: acc ++ [job], else: acc
+            end)
+
+            case list_of_jobs_needed_to_load do
+              [] -> jobs_with_any_cached_data #all jobs already loaded
+              _ ->
+                loaded_jobs =
+                  case Shophawk.Jobboss_db.load_job_history(list_of_jobs_needed_to_load) do #batch load jobs if passed a list of jobs
+                    [] ->
+                      {:error}
+                    job_data_list ->
+                      Enum.each(job_data_list, fn {job, job_data} ->
+                        Cachex.put(:temporary_runlist_jobs_for_history, job, job_data)
+                      end)
+                      job_data_list
+                  end
+
+                Enum.map(jobs_with_any_cached_data, fn job_data ->
+                  case is_map(job_data) do
+                    false ->
+                      {job, found_data} = Enum.find(loaded_jobs, fn {job, data} -> job == job_data end)
+                      found_data
+                    true -> job_data
+                  end
+                end)
+            end
+        end
+      end
+
       def showjob(job) do
         case Shophawk.RunlistCache.job(job) do
           [] ->
             case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
               [] ->
-                #Function to load job history directly from JB (not active job in caches)
-                case Shophawk.Jobboss_db.load_job_history([job]) do
+                case Shophawk.Jobboss_db.load_job_history([job]) do #load single job if no list is passed to function
                   [] ->
                     {:error}
-                  {_job, job_data} ->
+                  [{_job, job_data}] ->
                     Cachex.put(:temporary_runlist_jobs_for_history, job, job_data)
                     job_data
                 end

@@ -157,32 +157,51 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       job_maps = Shophawk.Jobboss_db.jobs_search(params)
       case job_maps do
         [] ->
-          IO.inspect("no jobs found")
-          []
-        _ ->
+          Process.send_after(self(), :clear_flash, 1000)
+          socket = put_flash(socket, :error, "Job Not Found")
+          {:noreply, socket |> stream(:jobs, [], reset: true)}
+
+        job_maps ->
           self = self()
-      Task.async(fn ->
-        Enum.each(job_maps, fn job ->
-          send(self, {:loaded_job, showjob(job.job)})
-        end)
-      end)
+          batch_size = 5
+          # Group job numbers into batches
+          job_numbers = Enum.map(job_maps, & &1.job)
+          batches = Enum.chunk_every(job_numbers, batch_size)
+
+          # Start async task to process batches
+          Task.async(fn ->
+            batches
+            |> Enum.map(fn batch ->
+              # Process each batch and maintain job order within batch
+              batch_results = showjob(batch)
+
+              # Immediately send job data for this batch
+              batch_results
+              |> Enum.each(fn
+                {:error} -> :skip
+                job_data -> send(self, {:loaded_job, job_data})
+              end)
+            end)
+          end)
+
+          {:noreply, socket |> stream(:jobs, [], reset: true)}
       end
-
+    else
+      {:noreply, socket |> stream(:jobs, [], reset: true)}
     end
-
-    {:noreply, socket |> stream(:jobs, [], reset: true)}
   end
 
   def handle_info({:loaded_job, job_data}, socket) do
     case job_data do
-      {:error} -> {:noreply, socket}
+      {:error} ->
+        Process.send_after(self(), :clear_flash, 1000)
+        {:noreply, socket |> put_flash(:error, "Job Not Found")}
       _ -> {:noreply, stream_insert(socket, :jobs, job_data, at: -1)}
     end
   end
 
-  def handle_info({ref, :ok}, socket) when is_reference(ref) do #completion message for task.async
-    # Task completed, turn off loading indicator
-    {:noreply, assign(socket, loading: false)}
+  def handle_info({_ref, _result}, state) do
+    {:noreply, state}
   end
 
   # Required to prevent Task.async/1 from crashing on exit
