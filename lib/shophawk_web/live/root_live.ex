@@ -29,7 +29,7 @@ defmodule ShophawkWeb.RootLive do
       <div class="px-4 py-4 sm:px-6 lg:px-8">
       </div>
 
-      <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/")}>
+      <.showjob_modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/")}>
         <.live_component
             module={ShophawkWeb.ShowJobLive.ShowJob}
             id={@id || :show_job}
@@ -39,19 +39,7 @@ defmodule ShophawkWeb.RootLive do
             action={@live_action}
             current_user={@current_user}
           />
-      </.modal>
-
-      <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/")}>
-        <div class="w-[1600px]">
-        <.live_component
-          module={ShophawkWeb.ShowJobLive.JobAttachments}
-          id={@id || :job_attachments}
-          attachments={@attachments}
-          title={@page_title}
-          action={@live_action}
-        />
-        </div>
-      </.modal>
+      </.showjob_modal>
     </div>
     """
   end

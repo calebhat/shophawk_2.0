@@ -113,7 +113,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
         </div>
 
-        <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.push("close_modal")}>
+        <.showjob_modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.push("close_modal")}>
           <.live_component
             module={ShophawkWeb.ShowJobLive.ShowJob}
             id={@id || :show_job}
@@ -123,19 +123,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
             action={@live_action}
             current_user={@current_user}
           />
-        </.modal>
-
-        <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("close_modal")}>
-          <div class="w-[1600px]">
-          <.live_component
-            module={ShophawkWeb.ShowJobLive.JobAttachments}
-            id={@id || :job_attachments}
-            attachments={@attachments}
-            title={@page_title}
-            action={@live_action}
-          />
-          </div>
-        </.modal>
+        </.showjob_modal>
       </div>
     """
   end

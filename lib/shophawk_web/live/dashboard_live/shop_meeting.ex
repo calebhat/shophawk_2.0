@@ -68,7 +68,7 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
         />
       </div>
 
-      <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard/shop_meeting")}>
+      <.showjob_modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard/shop_meeting")}>
       <.live_component
           module={ShophawkWeb.ShowJobLive.ShowJob}
           id={@id || :show_job}
@@ -78,18 +78,7 @@ defmodule ShophawkWeb.DashboardLive.ShopMeeting do
           action={@live_action}
           current_user={@current_user}
       />
-      </.modal>
-
-      <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
-      <.live_component
-          module={ShophawkWeb.ShowJobLive.JobAttachments}
-          id={@id || :job_attachments}
-          attachments={@attachments}
-          title={@page_title}
-          action={@live_action}
-      />
-      </.modal>
-
+      </.showjob_modal>
 
       </div>
     """

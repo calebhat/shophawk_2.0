@@ -49,7 +49,7 @@ defmodule Shophawk.Jobboss_db do
     Enum.chunk_every(full_job_numbers_list, 50)
     |> Enum.map(fn job_numbers ->
       #NEED TO MERGE DELIVERIES TO JOB MAPS AND THEN CLEAN UP UNESED FUNCTIONS IN THIS AND SHOW_JOB PAGES
-      {jobs_map, mats_map, user_values_map, deliveries_map, operation_time_map, job_operation_numbers, operations_map} = jobboss_queries_for_jobs(job_numbers)
+      {jobs_map, mats_map, user_values_map, deliveries_map, operation_time_map, job_operation_numbers, operations_map, attachments_map} = jobboss_queries_for_jobs(job_numbers)
 
       operations = #merge all operation data from JB
         operations_map
@@ -92,7 +92,7 @@ defmodule Shophawk.Jobboss_db do
           Map.merge(first_op_job_map, user_values_map)
           |> Map.merge(merged_mats_map)
 
-        job_info = create_job_info(merged_first_op_job_map, deliveries_map, matching_operations)
+        job_info = create_job_info(merged_first_op_job_map, deliveries_map, matching_operations, attachments_map)
 
         {job_number, %{
           job: job_number,
@@ -161,7 +161,18 @@ defmodule Shophawk.Jobboss_db do
         |> sanitize_map()
         #|> Enum.sort_by(&(&1.promised_date), {:asc, Date})
       end)
+    end
 
+    attachments_query = fn ->
+      query = from r in Jb_attachment, where: r.owner_id in ^job_numbers
+      failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> sanitize_map()
+        |> rename_key(:attach_path, :path)
+        |> rename_key(:owner_id, :job)
+      end)
     end
 
 
@@ -170,7 +181,8 @@ defmodule Shophawk.Jobboss_db do
       {:jobs, job_query},
       {:operations, operation_query},
       {:materials, material_query},
-      {:deliveries, deliveries_query}
+      {:deliveries, deliveries_query},
+      {:attachments, attachments_query}
     ]
 
     # Execute tasks concurrently and collect results
@@ -183,6 +195,7 @@ defmodule Shophawk.Jobboss_db do
     operations_map = results[:operations]
     deliveries_map = results[:deliveries]
     mats_map = results[:materials]
+    attachments_map = results[:attachments]
     updated_mats_maps = #group together mats by job and change values as needed
       Enum.map(job_numbers, fn job_number ->
         mats = Map.get(mats_map, job_number, [])
@@ -252,7 +265,7 @@ defmodule Shophawk.Jobboss_db do
     operation_time_map = dependent_results[:operation_time]
     user_values_map = dependent_results[:user_values]
 
-    {jobs_map, updated_mats_maps, user_values_map, deliveries_map, operation_time_map, job_operation_numbers, operations_map}
+    {jobs_map, updated_mats_maps, user_values_map, deliveries_map, operation_time_map, job_operation_numbers, operations_map, attachments_map}
   end
 
   def merge_job_data(ops, jobs_map) do
@@ -358,7 +371,7 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
-  def create_job_info(job, deliveries_map, operations) do
+  def create_job_info(job, deliveries_map, operations, attachments_map) do
     job_manager = case job.note_text do
       nil -> ""
       _ ->
@@ -450,6 +463,7 @@ defmodule Shophawk.Jobboss_db do
     |> Map.put(:est_total_hrs, Float.round(job.est_total_hrs, 2))
     |> Map.put(:cost_each, Float.round(cost_each, 2))
     |> Map.put(:percent_profit, percent_profit)
+    |> Map.put(:attachments, filter_attachments_for_job(job.job, attachments_map))
 
   end
 
@@ -470,109 +484,18 @@ defmodule Shophawk.Jobboss_db do
   end
 
   def filter_deliveries_for_job(job, deliveries_map) do
-    #Shophawk.Jobboss_db.load_all_deliveries([job])
     Enum.filter(deliveries_map, fn d -> d.job == job end)
     |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
+  end
+
+  def filter_attachments_for_job(job, attachments_map) do
+    Enum.filter(attachments_map, fn d -> d.job == job end)
   end
 
   def filter_deliveries_for_job(job) do
     Shophawk.Jobboss_db.load_all_deliveries([job])
     #Enum.filter(deliveries_map, fn d -> d.job == job end)
     |> Enum.sort_by(&(&1.promised_date), {:asc, Date})
-  end
-
-  def load_and_prepare_job_operations(job_numbers) do
-    # Run the query functions asynchronously
-    {jobs_map, mats_map, user_values_map, _deliveries_map, operation_time_map, _job_operation_numbers, operations_map} = jobboss_queries_for_jobs(job_numbers)
-    # Merge data and prepare operations
-    prepared_operations =
-      operations_map
-      |> Enum.map(fn %{job: job} = op ->
-        Map.merge(op, Enum.find(jobs_map, &(&1.job == job)))
-      end)
-      |> Enum.map(fn %{job: job} = op ->
-        matching_maps = Enum.filter(mats_map, fn mat -> mat.job == job end)
-        case Enum.count(matching_maps) do
-          0 ->
-            Map.merge(op, Map.from_struct(%Jb_material_req{})
-              |> Map.drop([:__meta__])
-              |> Map.drop([:job, :status, :description]))
-              |> Map.put(:material, "Customer Supplied")
-              |> sanitize_map()
-          1 ->
-            Map.merge(op, Enum.at(matching_maps, 0))
-          _ ->
-            merged_matching_maps =
-              Enum.reduce(matching_maps, %{}, fn map, acc ->
-                map_without_job = Map.drop(map, [:job])
-                Map.merge(acc, map_without_job, fn _, value1, value2 ->
-                  "#{value1} | #{value2}"
-                end)
-              end)
-            Map.merge(op, merged_matching_maps)
-        end
-      end)
-      |> Enum.map(fn %{job_operation: job_operation} = op ->
-        matching_data = Enum.filter(operation_time_map, &(&1.job_operation == job_operation))
-        starting_map =
-          Map.from_struct(%Jb_job_operation_time{})
-          |> Map.drop([:__meta__])
-          |> Map.drop([:job_operation])
-          |> Map.put(:full_employee_log, [])
-        combined_data_collection =
-          if matching_data != [] do
-            Enum.reduce(matching_data, starting_map, fn row, acc ->
-              acc
-              |> Map.put(:act_run_labor_hrs, (row.act_run_labor_hrs || 0) + acc.act_run_labor_hrs)
-              |> Map.put(:act_run_qty, (row.act_run_qty || 0) + acc.act_run_qty)
-              |> Map.put(:act_scrap_qty, (row.act_scrap_qty || 0) + acc.act_scrap_qty)
-              |> Map.put(:employee,
-                case row.employee do
-                  "" -> acc.employee
-                  nil -> acc.employee
-                  _ -> acc.employee <> " | " <> row.employee <> ": " <> Calendar.strftime(row.work_date, "%m-%d-%y")
-                end)
-              |> Map.put(:full_employee_log, acc.full_employee_log ++ ["#{Calendar.strftime(row.work_date, "%m-%d-%y")}: #{row.employee} - #{row.act_run_labor_hrs} hrs"])
-            end)
-          else
-            starting_map
-          end
-        new_map = Map.merge(op, combined_data_collection)
-        trimmed_employee =
-          if new_map.employee != nil do
-            new_map.employee
-            |> String.split("|")
-            |> Enum.map(&String.trim/1)
-            |> Enum.filter(fn x -> x != "" end)
-            |> Enum.uniq
-            |> Enum.join(" | ")
-          else
-            op.employee
-          end
-        Map.put(new_map, :employee, trimmed_employee)
-      end)
-      |> Enum.map(fn %{user_values: user_value} = op ->
-        new_user_data = Enum.find(user_values_map, &(&1.user_values == user_value))
-        if new_user_data do
-          Map.merge(op, new_user_data)
-        else
-          Map.merge(op, Map.from_struct(%Jb_user_values{})
-            |> Map.drop([:__meta__])
-            |> Map.put(:text1, nil)
-            |> rename_key(:text1, :dots))
-        end
-      end)
-      |> Enum.map(fn map ->
-        sanitize_map(map)
-        |> Map.put(:id, "op-#{map.job_operation}")
-        |> Map.put(:assignment, nil)
-        |> Map.put(:currentop, nil)
-        |> Map.put(:material_waiting, false)
-        |> Map.put(:runner, false)
-        |> Map.put(:date_row_identifer, nil)
-      end)
-
-    prepared_operations
   end
 
   def convert_nil_values_to_empty_strings_for_ops(job_ops) do

@@ -61,12 +61,44 @@ let ResetForm = { //trigger with push_event(socket, "reset_form", %{})
   }
 }
 
+let ModalScrollControl = 
+{
+  mounted() {
+    console.log("ModalScrollControl mounted on:", this.el.id);
+    console.log("Is scrollable?", getComputedStyle(this.el).overflowY);
+    // Initial scroll to top
+    this.el.scrollTop = 0;
+
+    const iframes = this.el.querySelectorAll("iframe");
+    iframes.forEach((iframe) => {
+      console.log("Iframe found:", iframe.src);
+      iframe.addEventListener("load", () => {
+        console.log("Iframe loaded:", iframe.src);
+        // Add a 100ms delay to ensure scroll happens after rendering
+        setTimeout(() => {
+          this.el.scrollTop = 0;
+          console.log("Scroll reset after delay");
+        }, 300);
+      });
+    });
+  },
+  updated() {
+    console.log("ModalScrollControl updated");
+    // Add a 100ms delay for LiveView updates
+    setTimeout(() => {
+      this.el.scrollTop = 0;
+      console.log("Scroll reset after update");
+    }, 100);
+  }
+}
+
 // Register hooks with LiveSocket
 let Hooks = {
   ...ChartHooks,
   AutofocusHook,
   StandAloneInputboxChange,
-  ResetForm
+  ResetForm,
+  ModalScrollControl
 }; // Merge hooks
 
 

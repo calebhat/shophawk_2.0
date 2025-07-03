@@ -165,7 +165,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         </div>
 
         <div class="text-black">
-          <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials/material_to_order")}>
+          <.showjob_modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials/material_to_order")}>
           <.live_component
               module={ShophawkWeb.ShowJobLive.ShowJob}
               id={@id || :show_job}
@@ -175,17 +175,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               action={@live_action}
               current_user={@current_user}
           />
-          </.modal>
-
-          <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
-          <.live_component
-              module={ShophawkWeb.ShowJobLive.JobAttachments}
-              id={@id || :job_attachments}
-              attachments={@attachments}
-              title={@page_title}
-              action={@live_action}
-          />
-          </.modal>
+          </.showjob_modal>
         </div>
 
         <.modal :if={@live_action in [:jobboss_save_error]} id="runlist-jobboss-save-modal" show on_cancel={JS.patch(~p"/stockedmaterials/material_to_order")}>
