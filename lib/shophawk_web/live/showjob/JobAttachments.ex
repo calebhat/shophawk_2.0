@@ -1,4 +1,4 @@
-defmodule ShophawkWeb.RunlistLive.JobAttachments do
+defmodule ShophawkWeb.ShowJobLive.JobAttachments do
   use ShophawkWeb, :live_component
 
   def render(assigns) do

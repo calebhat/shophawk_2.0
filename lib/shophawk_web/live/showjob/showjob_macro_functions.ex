@@ -1,5 +1,5 @@
 # Functions used by show job modals
-defmodule ShophawkWeb.ShowJob do
+defmodule ShophawkWeb.ShowJobLive.ShowJobMacroFunctions do
 
   defmacro __using__(_opts) do
     quote do

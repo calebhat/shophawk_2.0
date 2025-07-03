@@ -1,6 +1,6 @@
 defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
   use ShophawkWeb, :live_view
-  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.ShowJobLive.ShowJobMacroFunctions #functions needed for showjob modal to work
   use ShophawkWeb.FlashRemover
 
   alias Shophawk.Material
@@ -125,7 +125,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
         <div class="text-black">
           <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/stockedmaterials/receive_material")}>
           <.live_component
-              module={ShophawkWeb.RunlistLive.ShowJob}
+              module={ShophawkWeb.ShowJobLive.ShowJob}
               id={@id || :show_job}
               job_ops={@job_ops}
               job_info={@job_info}
@@ -137,7 +137,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
 
           <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.push("show_job", value: %{job: @id})}>
           <.live_component
-              module={ShophawkWeb.RunlistLive.JobAttachments}
+              module={ShophawkWeb.ShowJobLive.JobAttachments}
               id={@id || :job_attachments}
               attachments={@attachments}
               title={@page_title}

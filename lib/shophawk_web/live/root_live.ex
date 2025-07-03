@@ -1,7 +1,7 @@
 #Root homepage with liveview navbar component
 defmodule ShophawkWeb.RootLive do
   use ShophawkWeb, :live_view
-  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.ShowJobLive.ShowJobMacroFunctions #functions needed for showjob modal to work
   use ShophawkWeb.FlashRemover
 
   on_mount {ShophawkWeb.UserAuth, :mount_current_user}
@@ -31,7 +31,7 @@ defmodule ShophawkWeb.RootLive do
 
       <.modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/")}>
         <.live_component
-            module={ShophawkWeb.RunlistLive.ShowJob}
+            module={ShophawkWeb.ShowJobLive.ShowJob}
             id={@id || :show_job}
             job_ops={@job_ops}
             job_info={@job_info}
@@ -44,7 +44,7 @@ defmodule ShophawkWeb.RootLive do
       <.modal :if={@live_action in [:job_attachments]} id="job-attachments-modal" show on_cancel={JS.patch(~p"/")}>
         <div class="w-[1600px]">
         <.live_component
-          module={ShophawkWeb.RunlistLive.JobAttachments}
+          module={ShophawkWeb.ShowJobLive.JobAttachments}
           id={@id || :job_attachments}
           attachments={@attachments}
           title={@page_title}

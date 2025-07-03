@@ -1,6 +1,6 @@
 defmodule ShophawkWeb.Components.Navbar do
   use Phoenix.LiveComponent
-  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.ShowJobLive.ShowJobMacroFunctions #functions needed for showjob modal to work
   import Phoenix.VerifiedRoutes, only: [sigil_p: 2]
   import ShophawkWeb.CoreComponents
 

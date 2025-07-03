@@ -1,6 +1,6 @@
 defmodule ShophawkWeb.DashboardLive.Index do
   use ShophawkWeb, :live_view
-  use ShophawkWeb.ShowJob #functions needed for showjob modal to work
+  use ShophawkWeb.ShowJobLive.ShowJobMacroFunctions #functions needed for showjob modal to work
   use ShophawkWeb.FlashRemover
   alias ShophawkWeb.UserAuth
   alias Shophawk.Jobboss_db
