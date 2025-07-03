@@ -26,6 +26,7 @@ defmodule Shophawk.Jobboss_db do
     job_numbers =
       Jb_job
       |> where([j], j.status == "Active")
+      |> where([j], not is_nil(j.customer))
       |> select([j], j.job)
       |> distinct(true)
       |> Shophawk.Repo_jb.all()
@@ -40,12 +41,15 @@ defmodule Shophawk.Jobboss_db do
   def job_exists?(job_number), do: Shophawk.Repo_jb.exists?(from r in Jb_job, where: r.job == ^job_number)
 
   def load_job_history(full_job_numbers_list) when is_list(full_job_numbers_list) do #loads all routing operations with a matching job
+    full_job_numbers_list =
+      full_job_numbers_list
+      |> Enum.reject(fn j -> j == nil end)
+      |> Enum.reject(fn j -> j == "" end)
 
     Enum.chunk_every(full_job_numbers_list, 50)
     |> Enum.map(fn job_numbers ->
       #NEED TO MERGE DELIVERIES TO JOB MAPS AND THEN CLEAN UP UNESED FUNCTIONS IN THIS AND SHOW_JOB PAGES
       {jobs_map, mats_map, user_values_map, deliveries_map, operation_time_map, job_operation_numbers, operations_map} = jobboss_queries_for_jobs(job_numbers)
-      job_tuples = create_job_map(job_numbers, jobs_map, mats_map, user_values_map, deliveries_map)
 
       operations = #merge all operation data from JB
         operations_map
@@ -55,16 +59,10 @@ defmodule Shophawk.Jobboss_db do
         |> merge_jb_user_values(user_values_map)
         |> add_runlist_user_values()
         |> Enum.reject(fn op -> op.job_sched_end == nil end)
-
-        IO.inspect(Enum.count(operations), label: "individual operations")
-
-      #merge data from shophawk db into routing operations (ie. assignments, mat_waiting)
-      operations =
-        operations
+        #merge data from shophawk db into routing operations (ie. assignments, mat_waiting)
         |> merge_shophawk_runlist_db(job_operation_numbers)
         |> Enum.group_by(&{&1.job})
         |> Enum.map(fn {{job}, job_ops} ->
-          #IO.inspect(job_ops)
           updated_job_ops =
             set_current_op(job_ops)
             |> set_material_waiting()
@@ -73,18 +71,37 @@ defmodule Shophawk.Jobboss_db do
             |> Enum.sort_by(&(&1.sequence))
           {job, updated_job_ops}
         end)
-      #IO.inspect(List.first(operations), label: "grouped operations")
 
-      completed_tuples =
-        Enum.map(job_tuples, fn {job, job_map} ->
-          case Enum.find(operations, fn {job_key, _data} -> job_key == job end) do
-            nil -> {job, job_map}
-            {_job, found_ops} ->
-              updated_map = Map.put(job_map, :job_ops, found_ops)
-              {job, updated_map}
+      Enum.map(job_numbers, fn job_number ->
+
+        matching_operations =
+          case Enum.find(operations, fn {job_key, _data} -> job_key == job_number end) do
+            nil -> []
+            {_job, found_ops} -> found_ops
           end
-        end)
-      completed_tuples
+
+        first_op_job_map = Enum.find(jobs_map, fn {jn, _} -> jn == job_number end) |> elem(1) |> List.first() || %{}
+        user_value = first_op_job_map[:user_values]
+
+        user_values_map =
+          user_values_map
+          |> Enum.find(%{dots: nil}, &(&1.user_values == user_value))
+        merged_mats_map = Map.get(mats_map, job_number, %{})
+
+        merged_first_op_job_map =
+          Map.merge(first_op_job_map, user_values_map)
+          |> Map.merge(merged_mats_map)
+
+        job_info = create_job_info(merged_first_op_job_map, deliveries_map, matching_operations)
+
+        {job_number, %{
+          job: job_number,
+          id: "id-" <> job_number,
+          job_status: merged_first_op_job_map[:job_status],
+          job_ops: matching_operations,
+          job_info: job_info
+        }}
+      end)
     end)
     |> List.flatten()
   end
@@ -238,35 +255,10 @@ defmodule Shophawk.Jobboss_db do
     {jobs_map, updated_mats_maps, user_values_map, deliveries_map, operation_time_map, job_operation_numbers, operations_map}
   end
 
-  def create_job_map(job_numbers, jobs_map, mats_map, user_values_map, deliveries_map) do #creates basic barebones job data structure
-    # Create final job tuples
-    Enum.map(job_numbers, fn job_number ->
-      job_map = Enum.find(jobs_map, fn {jn, _} -> jn == job_number end) |> elem(1) |> List.first() || %{}
-      user_value = job_map[:user_values]
-      user_values_map =
-        user_values_map
-        |> Enum.find(%{dots: nil}, &(&1.user_values == user_value))
-      merged_mats_map = Map.get(mats_map, job_number, %{})
-
-      merged_job_map =
-        Map.merge(job_map, user_values_map)
-        |> Map.merge(merged_mats_map)
-
-      job_info = create_job_info(merged_job_map, deliveries_map)
-
-      {job_number, %{
-        job: job_number,
-        id: "id-" <> job_number,
-        job_status: merged_job_map[:job_status],
-        job_ops: [],
-        job_info: job_info
-      }}
-    end)
-  end
-
   def merge_job_data(ops, jobs_map) do
     Enum.map(ops, fn %{job: job} = op ->
       {_jn , [data]} = Enum.find(jobs_map, fn {jn, _data} -> jn == job end)
+      data = Map.drop(data, [:est_rem_hrs, :est_total_hrs, :est_labor, :est_material, :est_service, :act_total_hrs, :act_labor, :act_material, :act_service ])
       Map.merge(op, data)
     end)
   end
@@ -366,7 +358,7 @@ defmodule Shophawk.Jobboss_db do
     end)
   end
 
-  def create_job_info(job, deliveries_map) do
+  def create_job_info(job, deliveries_map, operations) do
     job_manager = case job.note_text do
       nil -> ""
       _ ->
@@ -379,18 +371,102 @@ defmodule Shophawk.Jobboss_db do
         |> Enum.join(" ")
         |> String.trim()
     end
+
+    cost_each =
+      case job.make_quantity do
+        0 -> 0.0
+        _ -> (job.act_labor + job.act_material + job.act_service) / job.make_quantity
+      end
+      |> Float.round(2)
+
+    percent_profit =
+      case cost_each do
+        +0.0 ->
+          previous_make_job = get_previous_make_job(job.part_number, job.order_date)
+
+          previous_job_data =
+            case Shophawk.RunlistCache.job(previous_make_job) do
+              [] ->
+                case Shophawk.RunlistCache.non_active_job(previous_make_job) do #check non-active job cache
+                  [] ->
+                    case Shophawk.Jobboss_db.load_job_history([previous_make_job]) do #load single job if no list is passed to function
+                      [] ->
+                        {:error}
+                      [{_job, job_data}] ->
+                        Cachex.put(:temporary_runlist_jobs_for_history, previous_make_job, job_data)
+                        job_data
+                    end
+                  non_active_job ->
+                    non_active_job
+                end
+              active_job -> active_job
+            end
+
+          case previous_job_data do
+            {:error} -> 0.0
+            job_list -> job_list.job_info.percent_profit
+          end
+        _ ->
+          case job.unit_price do
+            +0.0 -> 0.0
+            _ -> (((job.unit_price - cost_each) / job.unit_price) * 100) #profit per each made, correct unlike jobboss for jobs with spares
+          end
+      end
+      |> Float.round(2)
+
+    percent_profit = #clears out profit value if it's an active job
+      case job.job_status do
+        "Active" -> 0.0
+        _ -> percent_profit
+      end
+
+
+    current_op =
+      case operations do
+        [] -> ""
+        _ -> List.last(operations).currentop
+      end
+
     %{}
-    |> Map.put(:part_number, to_string(job.part_number) <> to_string(job.rev))
+    |> Map.put(:part_number, to_string(job.part_number))
+    |> Map.put(:rev, to_string(job.rev))
     |> Map.put(:order_quantity, job.order_quantity)
+    |> Map.put(:pick_quantity, job.pick_quantity)
     |> Map.put(:make_quantity, job.make_quantity)
+    |> Map.put(:spares_made, job.make_quantity - job.order_quantity)
     |> Map.put(:customer, job.customer)
     |> Map.put(:customer_po, job.customer_po)
     |> Map.put(:customer_po_line, job.customer_po_line)
     |> Map.put(:description, job.description)
     |> Map.put(:material, job.material)
+    |> Map.put(:currentop, current_op)
     |> Map.put(:job_manager, job_manager)
     |> Map.put(:deliveries, filter_deliveries_for_job(job.job, deliveries_map))
     |> Map.put(:dots, job.dots)
+    |> Map.put(:order_date, job.order_date)
+    |> Map.put(:unit_price, Float.round(job.unit_price, 2))
+    |> Map.put(:total_price, Float.round(job.total_price, 2))
+    |> Map.put(:est_rem_hrs, Float.round(job.est_rem_hrs, 2))
+    |> Map.put(:est_total_hrs, Float.round(job.est_total_hrs, 2))
+    |> Map.put(:cost_each, Float.round(cost_each, 2))
+    |> Map.put(:percent_profit, percent_profit)
+
+  end
+
+  def get_previous_make_job(part_number, date) do
+    case part_number do
+      nil -> ""
+      _ ->
+        {:ok, date} = NaiveDateTime.new(date, ~T[00:00:00])
+        query =
+          from(j in Jb_job,
+          where: j.part_number == ^part_number and j.make_quantity > 0 and j.order_date < ^date,
+          order_by: [desc: j.order_date],
+          limit: 1,
+          select: j.job
+          )
+      failsafed_query_one_result(query)
+    end
   end
 
   def filter_deliveries_for_job(job, deliveries_map) do
@@ -777,9 +853,9 @@ defmodule Shophawk.Jobboss_db do
     jobs_to_update = jobs ++ job_operation_jobs ++ material_jobs ++ job_operation_time_jobs
     |> Enum.uniq
 
-    operations = load_job_history(jobs_to_update)
+    job_tuples = load_job_history(jobs_to_update)
 
-    Enum.each(operations, fn {key, job_data} ->
+    Enum.each(job_tuples, fn {key, job_data} ->
       case job_data.job_status do
         "Active" ->
           Cachex.put(:active_jobs, key, job_data)
@@ -1295,17 +1371,16 @@ defmodule Shophawk.Jobboss_db do
     start_date = parse_date(params["start-date"])
     end_date = parse_date(params["end-date"])
 
-    # Build dynamic query starting with base query
     query =
       Jb_job
       |> maybe_filter(:customer, params["customer"])
       |> maybe_filter(:customer_po, params["customer_po"])
-      |> maybe_filter(:description, params["description"])
+      |> maybe_filter_description(params["description"])
       |> maybe_filter(:job, params["job"])
       |> maybe_filter(:part_number, params["part"])
       |> maybe_filter(:status, params["status"])
       |> maybe_filter_date_range(start_date, end_date)
-      |> order_by([desc: :released_date])
+      |> order_by([desc: :order_date])
       |> limit(100)
 
     failsafed_query(query)
@@ -1329,6 +1404,22 @@ defmodule Shophawk.Jobboss_db do
   defp maybe_filter(query, _field, ""), do: query
   defp maybe_filter(query, field, value) when is_binary(value) do
     from r in query, where: field(r, ^field) == ^value
+  end
+
+  # Helper for multiple wildcard searches on description
+  defp maybe_filter_description(query, ""), do: query
+  defp maybe_filter_description(query, value) when is_binary(value) do
+    # Remove commas, split on spaces, remove empty terms
+    terms = value |> String.replace(",", "") |> String.split(" ", trim: true)
+    Enum.reduce(terms, query, fn term, q ->
+      from r in q, where: ilike(r.description, ^"%#{sanitize_term(term)}%")
+    end)
+  end
+
+  # Sanitize term to prevent SQL injection
+  defp sanitize_term(term) do
+    # Only allow alphanumeric and spaces; remove other characters
+    String.replace(term, ~r/[^a-zA-Z0-9\s]/, "")
   end
 
   # Helper to add date range filter if both dates are valid
@@ -1357,6 +1448,24 @@ defmodule Shophawk.Jobboss_db do
         handle_retry(query, retries, delay, :unexpected_error)
     end
   end
+
+  def failsafed_query_one_result(query, retries \\ 3, delay \\ 100) do #For jobboss db queries
+  Process.sleep(delay)
+  try do
+    {:ok, result} = {:ok, Shophawk.Repo_jb.one(query)}
+    result
+  rescue
+    _e in DBConnection.ConnectionError ->
+      IO.puts("Database connection error. Retries left: #{retries}")
+      handle_retry(query, retries, delay, :connection_error)
+    e in Ecto.QueryError ->
+      IO.puts("Query error: #{inspect(e)}. Retries left: #{retries}")
+      handle_retry(query, retries, delay, :query_error)
+    e ->
+      IO.puts("Unexpected error: #{inspect(e)}. Retries left: #{retries}")
+      handle_retry(query, retries, delay, :unexpected_error)
+  end
+end
 
   defp handle_retry(_query, 0, delay, reason) do #For jobboss db queries
     Process.sleep(delay)

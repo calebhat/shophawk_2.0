@@ -19,79 +19,88 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
           <div class="my-4 ml-4 col-span-1 overflow-y-auto">
             <.form for={%{}} phx-submit="submit_form">
               <div class="">
-                <.input name="job" value="" placeholder="Job"/>
+                <.input name="job" value={@job} placeholder="Job"/>
               </div>
               <div class="my-2">
-                <.input name="part" value="" placeholder="Part"/>
+                <.input name="part" value={@part_number} placeholder="Part"/>
               </div>
               <div class="my-2">
-                <.input name="customer" value="" placeholder="Customer"/>
+                <.input name="description" value={@description} placeholder="Description"/>
               </div>
               <div class="my-2">
-                <.input name="description" value="" placeholder="Description"/>
+                <.input name="customer" value={@customer} placeholder="Customer"/>
               </div>
               <div class="my-2">
-                <.input name="customer" value="" placeholder="Customer"/>
-              </div>
-              <div class="my-2">
-                <.input name="customer_po" value="" placeholder="Customer PO"/>
+                <.input name="customer_po" value={@customer_po} placeholder="Customer PO"/>
               </div>
               <div class="my-2">
                 <div class="text-white"> Status</div>
-                <.input class="" name="status" value="" type="select" options={["", "Active", "Complete", "Closed", "Hold", "Pending", "Template", "Canceled"]}/>
+                <.input class="" name="status" type="select" options={selected_status(@status)}/>
               </div>
               <div class="my-2">
                 <div class="text-white"> Search Start</div>
-                <.input name="start-date" value={~D[2000-01-01]} type="date" />
+                <.input name="start-date" value={@start_date} type="date" />
               </div>
               <div class="my-2">
                 <div class="text-white"> Search End</div>
-                <.input name="end-date" value={Date.utc_today()} type="date" />
+                <.input name="end-date" value={@end_date} type="date" />
               </div>
 
-              <.button type="submit">Search</.button>
+              <.button class="my-1 w-full" type="submit">Search</.button>
+
+              <.info_button phx-click="clear_search" class="my-1 w-full">Clear Search</.info_button>
+
             </.form>
-            <.link
-                navigate={~p"/parthistory?#{[part: "hello", job: "131232"]}"}
-                class="text-blue-900 font-bold underline"
-              >
-              link
-            </.link>
           </div>
 
           <div class="m-4 bg-cyan-800 rounded-md overflow-y-auto h-auto w-auto col-span-11">
-            <div phx-update="stream" id="jobs">
+            <div phx-update="stream" id="jobs" class="mx-2">
 
 
-              <table id="parthistory" class="text-center w-auto mx-4">
-                <thead class="text-white text-base">
+              <table id="parthistory" class="text-center w-full px-4 table-fixed text-lg">
+                <thead class="text-white text-base sticky top-0 z-10 bg-cyan-800">
                   <tr>
-                    <th class="px-2">Job</th>
-                    <th>Qty</th>
-                    <th>Order Date</th>
-                    <th>Status</th>
-                    <th>Current Operation</th>
-                    <th>Description</th>
-                    <th>Profit %</th><!-- calc by parts for order, not total to account for extra pcs % being off -->
-                    <th>Price/each</th>
-                    <th>Cost/each</th>
+                    <th class="truncate" style="width: 5.0%">Job</th>
+                    <th class="truncate" style="width: 3.0%">Make</th>
+                    <th class="truncate" style="width: 3.0%">Pick</th>
+                    <th class="truncate" style="width: 3.0%">Order</th>
+                    <th class="" style="width: 3.0%">spares</th>
+                    <th class="truncate" style="width: 5.0%">Profit %</th>
+                    <th class="truncate" style="width: 6.0%">Order Date</th>
+                    <th class="truncate" style="width: 6.0%">Cost/Part</th>
+                    <th class="truncate" style="width: 6.0%">Sell Price</th>
+                    <th class="truncate" style="width: 8.0%">Job Total</th>
+                    <th class="truncate" style="width: 4.0%">Status</th>
+                    <th class="truncate" style="width: 6.0%">est. rem. hrs</th>
+                    <th class="truncate" style="width: 8.0%">Customer</th>
+                    <th class="truncate" style="width: 10.0%">Current Operation</th>
+                    <th class="truncate" style="">Description</th>
                   </tr>
                 </thead>
                 <tbody phx-update="stream" id="jobs">
                   <tr :for={{id, row} <- @streams.jobs}
                       id={id}
                       phx-click={JS.push("show_job", value: %{job: row.job})}
-                      class={["hover:bg-sky-100 bg-sky-200 hover:cursor-pointer border-b-2 border-stone-700"]}
+                      class={[
+                        "hover:cursor-pointer border-b-2 border-stone-700",
+                        row_color(row.job_status, row.job_info.pick_quantity, row.job_info.make_quantity)
+                      ]}
                   >
-                    <td><%= row.job %></td>
-                    <td><%= row.job_info.order_quantity%></td>
-                    <td><%= %></td>
-                    <td><%= row.job_status %></td>
-                    <td><%= %></td>
-                    <td><%= row.job_info.description %></td>
-                    <td><%= %></td>
-                    <td><%= %></td>
-                    <td><%= %></td>
+                    <td class="truncate" ><%= row.job %></td>
+                    <td class="truncate" ><%= row.job_info.make_quantity%></td>
+                    <td class="truncate" ><%= row.job_info.pick_quantity%></td>
+                    <td class="truncate" ><%= row.job_info.order_quantity%></td>
+                    <td class="truncate" ><%= row.job_info.spares_made%></td>
+                    <td class="truncate" ><%= row.job_info.percent_profit %>%</td>
+                    <td class="truncate" ><%= row.job_info.order_date%></td>
+                    <td class="truncate" ><%= Number.Currency.number_to_currency(row.job_info.cost_each) %></td>
+                    <td class="truncate" ><%= Number.Currency.number_to_currency(row.job_info.unit_price) %></td>
+                    <td class="" ><%= Number.Currency.number_to_currency(row.job_info.total_price) %></td>
+                    <td class="" ><%= row.job_status %></td>
+                    <td class="truncate" ><%= row.job_info.est_rem_hrs%></td>
+                    <td class="truncate" ><%= row.job_info.customer%></td>
+                    <td class="truncate" ><%= row.job_info.currentop%></td>
+                    <td class="truncate"><%= row.job_info.description %></td>
                   </tr>
                 </tbody>
               </table>
@@ -133,19 +142,22 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      {:ok, set_default_assigns(socket)}
-    else
-     {:ok, set_default_assigns(socket)}
-    end
-  end
 
-  def set_default_assigns(socket) do
-    socket
-    |> stream(:jobs, [])
+      #NEED TO GET PARAMS TO POPULATE VALUES IN SEARCH FIELDS
+      {:noreply, socket} = handle_params(%{}, nil, socket)
+      {:ok, socket}
+    else
+      {:noreply, socket} = handle_params(%{}, nil, socket)
+      {:ok, socket}
+    end
   end
 
   def handle_event("submit_form", params, socket) do
     {:noreply, push_patch(socket, to: ~p"/parthistory?#{params}")}
+  end
+
+  def handle_event("clear_search", _params, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/parthistory")}
   end
 
   def handle_event("close_modal", _params, socket) do
@@ -154,6 +166,17 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
   def handle_params(params, _uri, socket) do
     if map_size(params) > 0 do
+      params = #sets default values if calling part history search from another page
+        params
+        |> Map.put_new("customer", "")
+        |> Map.put_new("customer_po", "")
+        |> Map.put_new("description", "")
+        |> Map.put_new("job", "")
+        |> Map.put_new("part", "")
+        |> Map.put_new("status", "")
+        |> Map.put_new("start-date", to_string(Date.add(Date.utc_today(), -3650)))
+        |> Map.put_new("end-date", to_string(Date.utc_today()))
+
       job_maps = Shophawk.Jobboss_db.jobs_search(params)
       case job_maps do
         [] ->
@@ -165,7 +188,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
           self = self()
           batch_size = 5
           # Group job numbers into batches
-          job_numbers = Enum.map(job_maps, & &1.job)
+          job_numbers = Enum.sort_by(job_maps, &(&1.order_date), {:desc, Date}) |> Enum.map(&(&1).job)
           batches = Enum.chunk_every(job_numbers, batch_size)
 
           # Start async task to process batches
@@ -184,9 +207,21 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
             end)
           end)
 
+          socket =
+            socket
+            |> assign(:customer, params["customer"])
+            |> assign(:customer_po, params["customer_po"])
+            |> assign(:description, params["description"])
+            |> assign(:job, params["job"])
+            |> assign(:part_number, params["part"])
+            |> assign(:status, params["status"])
+            |> assign(:start_date, to_string(Date.add(Date.utc_today(), -3650)))
+            |> assign(:end_date, to_string(Date.utc_today()))
+
           {:noreply, socket |> stream(:jobs, [], reset: true)}
       end
     else
+      socket = set_default_assigns(socket)
       {:noreply, socket |> stream(:jobs, [], reset: true)}
     end
   end
@@ -207,6 +242,35 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
   # Required to prevent Task.async/1 from crashing on exit
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
     {:noreply, socket}
+  end
+
+  def set_default_assigns(socket) do
+    socket
+    |> assign(:customer, "")
+    |> assign(:customer_po, "")
+    |> assign(:description, "")
+    |> assign(:job, "")
+    |> assign(:part_number, "")
+    |> assign(:status, "")
+    |> assign(:start_date, to_string(Date.add(Date.utc_today(), -3650)))
+    |> assign(:end_date, to_string(Date.utc_today()))
+    |> stream(:jobs, [])
+  end
+
+  def row_color(status, pick_qty, make_qty) do
+    cond do
+      make_qty == 0 and pick_qty > 0 -> "hover:bg-white bg-sky-100"
+      status == "Active" -> " hover:bg-emerald-200 bg-emerald-300"
+      true -> "hover:bg-cyan-400 bg-cyan-500"
+    end
+  end
+
+  def selected_status(selected) do
+    options = ["Active", "Complete", "Closed", "Hold", "Pending", "Template", "Canceled"]
+    case selected in options do
+      true -> [selected] ++ [""] ++ List.delete(options, selected)
+      false -> [""] ++ options
+    end
   end
 
 end

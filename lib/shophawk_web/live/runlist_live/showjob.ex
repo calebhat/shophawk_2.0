@@ -8,7 +8,9 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
           <div class="grid grid-cols-3" >
             <div class="text-base"><%= assigns.job_info.job_manager %></div>
             <div class="text-2xl underline"><%= assigns.job %> </div>
-            <div><.info_button phx-click="attachments">Attachments</.info_button> </div>
+            <div>
+              <.info_button phx-click="attachments">Attachments</.info_button>
+            </div>
           </div>
         </div>
         <div class="text-lg text-center border-b-4 border-zinc-400 p-4">
@@ -17,10 +19,24 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
             <div class="underline text-base">Make</div>
             <div class="underline text-base">Ordered</div>
             <div class="underline text-base">Customer </div>
-            <div class="text-lg row-span-2"><%= assigns.job_info.part_number %> </div>
+            <div class="text-lg row-span-2">
+              <.link
+                  navigate={~p"/parthistory?#{[part: assigns.job_info.part_number]}"}
+                  class="text-blue-900 font-bold underline mx-4"
+                >
+                <%= merge_part_number_and_rev(assigns.job_info.part_number, assigns.job_info.rev)  %>
+              </.link>
+            </div>
             <div class="text-lg row-span-2"><%= assigns.job_info.make_quantity %> </div>
             <div class="text-lg row-span-2"><%= assigns.job_info.order_quantity %> </div>
-            <div class="text-lg row-span-2"><%= assigns.job_info.customer %> </div>
+            <div class="text-lg row-span-2">
+              <.link
+                  navigate={~p"/parthistory?#{[customer: assigns.job_info.customer]}"}
+                  class="text-blue-900 font-bold underline mx-4"
+                >
+                <%= assigns.job_info.customer %>
+              </.link>
+             </div>
           </div>
           <div class="grid grid-cols-4">
             <div class="underline text-base">Description</div>
@@ -46,7 +62,14 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
                 </div>
               <% end %>
             </div>
-            <div class="text-lg"><%= (assigns.job_info.customer_po || "") <> ", line: " <> (assigns.job_info.customer_po_line || "") %> </div>
+            <div class="text-lg">
+              <.link
+                  navigate={~p"/parthistory?#{[customer_po: assigns.job_info.customer_po]}"}
+                  class="text-blue-900 font-bold underline mx-4"
+                >
+                <%= (assigns.job_info.customer_po || "") <> ", line: " <> (assigns.job_info.customer_po_line || "") %>
+              </.link>
+            </div>
             <div class="flex justify-center"><img src={ShophawkWeb.HotjobsComponent.display_dots(assigns.job_info.dots)} /></div>
 
           </div>
@@ -227,6 +250,13 @@ defmodule ShophawkWeb.RunlistLive.ShowJob do
     |> assign(job_info: updated_job_info)
     |> assign(current_user: current_user)
     }
+  end
+
+  def merge_part_number_and_rev(part, rev) do
+    case rev do
+      "" -> part
+      _ -> part <> ", Rev:" <> rev
+    end
   end
 
 end

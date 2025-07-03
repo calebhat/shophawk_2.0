@@ -25,13 +25,26 @@ defmodule Shophawk.Jb_job do
     field :released_date, :naive_datetime
     field :user_values, :integer
     field :last_updated, :naive_datetime
+    field :unit_price, :float
+    field :total_price, :float
+
+    field :est_rem_hrs, :float
+    field :est_total_hrs, :float
+    field :est_labor, :float
+    field :est_material, :float
+    field :est_service, :float
+
+    field :act_total_hrs, :float
+    field :act_labor, :float
+    field :act_material, :float
+    field :act_service, :float
     #timestamps()
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :customer, :order_date, :part_number, :status, :rev, :description, :order_quantity, :extra_quantity, :pick_quantity, :make_quantity, :customer_po, :customer_po_ln, :sched_end, :sched_start, :note_text, :released_date, :user_values, :last_updated])
+    |> cast(attrs, [:job, :customer, :order_date, :part_number, :status, :rev, :description, :order_quantity, :extra_quantity, :pick_quantity, :make_quantity, :customer_po, :customer_po_ln, :sched_end, :sched_start, :note_text, :released_date, :user_values, :last_updated, :unit_price, :total_price])
     |> validate_required([:job, :customer])
   end
 end
