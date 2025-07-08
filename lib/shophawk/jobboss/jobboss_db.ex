@@ -50,7 +50,7 @@ defmodule Shophawk.Jobboss_db do
     |> Enum.map(fn job_numbers ->
       #NEED TO MERGE DELIVERIES TO JOB MAPS AND THEN CLEAN UP UNESED FUNCTIONS IN THIS AND SHOW_JOB PAGES
       {jobs_map, mats_map, user_values_map, deliveries_map, operation_time_map, job_operation_numbers, operations_map, attachments_map} = jobboss_queries_for_jobs(job_numbers)
-
+      #operations show up
       operations = #merge all operation data from JB
         operations_map
         |> merge_job_data(jobs_map)
@@ -204,7 +204,7 @@ defmodule Shophawk.Jobboss_db do
             0 ->
               Map.from_struct(%Jb_material_req{})
               |> Map.drop([:__meta__])
-              |> Map.drop([:status, :description])
+              |> Map.drop([:status, :description, :job])
               |> Map.put(:material, "Customer Supplied")
               |> sanitize_map()
             1 ->
@@ -278,28 +278,8 @@ defmodule Shophawk.Jobboss_db do
 
   def merge_material_data(ops, mats_map) do
     Enum.map(ops, fn %{job: job} = op ->
-      matching_maps =
-        Enum.filter(mats_map, fn {jn, _data} -> jn == job end)
-        |> Enum.map(fn {_jn, mat} -> mat end)
-      case Enum.count(matching_maps) do
-        0 ->
-          Map.merge(op, Map.from_struct(%Jb_material_req{})
-            |> Map.drop([:__meta__])
-            |> Map.drop([:job, :status, :description]))
-            |> Map.put(:material, "Customer Supplied")
-            |> sanitize_map()
-        1 ->
-          Map.merge(op, Enum.at(matching_maps, 0))
-        _ ->
-          merged_matching_maps =
-            Enum.reduce(matching_maps, %{}, fn map, acc ->
-              map_without_job = Map.drop(map, [:job])
-              Map.merge(acc, map_without_job, fn _, value1, value2 ->
-                "#{value1} | #{value2}"
-              end)
-            end)
-          Map.merge(op, merged_matching_maps)
-      end
+        {_jn, mat} = Enum.find(mats_map, fn {jn, _data} -> jn == job end)
+      Map.merge(op, mat)
     end)
   end
 

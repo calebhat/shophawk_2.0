@@ -229,7 +229,9 @@ defmodule ShophawkWeb.StockedMaterialLive.Index do
   end
 
   def handle_event("bar_used", %{"selected-size" => selected_size, "selected-material" => selected_material, "id" => id}, socket) do
+
     found_bar = Material.get_stocked_material!(id)
+
     updated_in_jobboss =
       case found_bar.purchase_price do
         nil -> Material.delete_stocked_material(found_bar)

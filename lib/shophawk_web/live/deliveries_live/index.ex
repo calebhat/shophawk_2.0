@@ -34,7 +34,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
       |> List.flatten
 
     service_operations =
-      Enum.filter(active_routing_ops, fn j -> j.inside_oper == false and j.status == "O" end)
+      Enum.filter(active_routing_ops, fn j -> j.inside_oper == false and j.status == "Open" end)
       |> Enum.map(fn j ->
         if j.status != "C" do
           j
@@ -49,7 +49,6 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
         end
       end)
       |> Enum.reject(fn s -> s == nil end)
-
 
     unique_ops =
       #Enum.reject(active_routing_ops, fn r -> r.customer == "EDG GEAR" end)
