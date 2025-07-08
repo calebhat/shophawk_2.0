@@ -111,10 +111,10 @@ defmodule ShophawkWeb.CoreComponents do
         role="dialog"
         aria-modal="true"
         tabindex="0"
-        phx-hook="ModalScrollControl"
+        phx-hook="Pdf_js_render"
         id="modal-content"
       >
-        <div class="flex min-h-full items-center justify-center">
+        <div class="flex min-h-screen flex items-start justify-center p-4">
           <div class="min-w-[35%] p-4 sm:p-6 lg:py-8">
             <.focus_wrap
               id={"#{@id}-container"}

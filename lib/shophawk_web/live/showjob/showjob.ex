@@ -100,7 +100,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
         </div>
 
         <!-- operations table -->
-        <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
+        <div class="px-4 sm:overflow-visible sm:px-0">
           <table class="w-[40rem] mt-4 sm:w-full">
             <thead class="text-lg leading-6 text-black text-center">
               <tr>
@@ -213,7 +213,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
         <% end %>
 
         <%= unless Enum.all?(@job_info.attachments, &(&1.path =~ ~r/\.pdf$/i)) do %>
-          <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
+          <div class=" px-4 sm:overflow-visible sm:px-0">
             <table class="w-[40rem] mt-4 sm:w-full">
               <thead class="text-lg text-left leading-6 text-black text-center">
                 <tr>
@@ -261,13 +261,36 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
         <% end %>
 
         <div>
-          <!-- display PDFs -->
-          <%= for attachment <- @job_info.attachments do %>
-            <%= if String.contains?(attachment.path, ["pdf", "PDF"]) do %>
-              <iframe src={"/serve_pdf/" <> attachment.path} style="width:100%; height:900px;" type="application/pdf"></iframe>
+          <!-- display PDFs, uses  -->
+          <div id="pdf-container" phx-update="ignore">
+            <%= for {attachment, index} <- Enum.with_index(@job_info.attachments) do %>
+              <%= if String.contains?(String.downcase(attachment.path), ["pdf"]) do %>
+                <div style="width: 100%; display: block; margin-bottom: 20px;">
+                  <!-- Controls: Fixed or sticky -->
+                  <div class="pdf-controls sticky top-0 z-10 bg-white p-2 shadow-md" style="text-align: center;">
+                    <button type="button" class="zoom-in rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Zoom In</button>
+                    <button type="button" class="zoom-out rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Zoom Out</button>
+                    <button type="button" class="rotate rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Rotate</button>
+                    <button type="button" class="fit-to-container rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Fit to Container</button>
+                    <span class="page-display" style="margin-right: 10px;">Page 1 of ?</span>
+                    <button type="button" class="prev-page rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Previous Page</button>
+                    <button type="button" class="next-page rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Next Page</button>
+                  </div>
+                  <!-- Scrollable canvas container -->
+                  <div style="overflow: auto;">
+                    <canvas
+                      id={"pdf-canvas-#{index}"}
+                      data-pdf-path={"/serve_pdf/" <> attachment.path}
+                      style="border: 1px solid #ccc;"
+                    ></canvas>
+                  </div>
+                </div>
+              <% end %>
             <% end %>
-          <% end %>
+          </div>
+
         </div>
+
       </div>
     """
   end

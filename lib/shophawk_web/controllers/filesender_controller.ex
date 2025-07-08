@@ -16,16 +16,11 @@ defmodule ShophawkWeb.FileSenderController do
     end
   end
 
-  def serve_pdf(conn, %{"filepath" => filepath}) do
-    full_path = "//" <> Path.join(filepath)
-
-    if File.exists?(full_path) do
-      conn
-      |> put_resp_content_type("application/pdf")
-      |> send_file(200, full_path)
-    else
-      conn
-      |> send_resp(404, "File not found")
-    end
+  def serve_pdf(conn, %{"filepath" => path}) do
+    compiled_path = Enum.reduce(path, "/", fn p, acc -> acc <> "/" <> p end)
+    file_path = Path.join([compiled_path])
+    conn
+    |> put_resp_header("access-control-allow-origin", "*")
+    |> send_file(200, file_path)
   end
 end
