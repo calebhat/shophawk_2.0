@@ -109,6 +109,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                 <th class="p-0 pr-6 pb-4 font-normal">Total Hours</th>
                 <th class="p-0 pr-6 pb-4 font-normal">Status</th>
                 <th class="p-0 pr-6 pb-4 font-normal">Operator</th>
+                <th class="p-0 pr-6 pb-4 font-normal">Parts Completed</th>
                 <%= if @current_user do %>
                 <th class="p-0 pr-6 pb-4 font-normal">Run Time (hrs)</th>
                 <th class="p-0 pr-6 pb-4 font-normal">Est Run Time</th>
@@ -156,6 +157,14 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                       <span class="absolute -inset-y-px right-0 -left-4" />
                       <span class="relative">
                         <%= op.employee %>
+                      </span>
+                    </div>
+                  </td>
+                  <td class="relative p-0">
+                    <div class="block py-4 pr-6">
+                      <span class="absolute -inset-y-px right-0 -left-4" />
+                      <span class="relative">
+                        <%= trunc(op.act_run_qty) %>
                       </span>
                     </div>
                   </td>

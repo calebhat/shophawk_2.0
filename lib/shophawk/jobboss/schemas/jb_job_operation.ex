@@ -20,13 +20,14 @@ defmodule Shophawk.Jb_job_operation do
     field :est_total_hrs, :float
     field :last_updated, :naive_datetime
     field :note_text, :string
+    field :act_run_qty, :integer
     #timestamps()
   end
 
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:job, :job_operation, :wc_vendor, :inside_oper, :operation_service, :sched_end, :sched_end, :sequence, :status, :est_total_hrs, :note_text])
+    |> cast(attrs, [:job, :job_operation, :wc_vendor, :inside_oper, :operation_service, :sched_end, :sched_end, :sequence, :status, :est_total_hrs, :note_text, :act_run_qty])
     |> validate_required([:job, :job_operation, :status])
   end
 end
