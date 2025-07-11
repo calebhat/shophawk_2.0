@@ -191,8 +191,7 @@ let Pdf_js_render =
   
       // Restore scroll position after all PDFs are rendered
       Promise.all(renderPromises).then(() => {
-        console.log("All PDFs rendered, restoring scroll position:", initialScrollPosition);
-        this.el.scrollTop = initialScrollPosition;
+        console.log("All PDFs rendered");
       }).catch((error) => {
         console.error("Error rendering PDFs:", error);
       });

@@ -17,7 +17,13 @@ defmodule ShophawkWeb.FileSenderController do
   end
 
   def serve_pdf(conn, %{"filepath" => path}) do
-    compiled_path = Enum.reduce(path, "/", fn p, acc -> acc <> "/" <> p end)
+    IO.inspect(path)
+    compiled_path =
+      case List.first(path) do
+        "S:" -> Enum.reduce(List.delete(path, "S:"), List.first(path), fn p, acc -> acc <>"/" <> p end)
+        _ -> Enum.reduce(path, "/", fn p, acc -> acc <> "/" <> p end)
+      end
+
     file_path = Path.join([compiled_path])
     conn
     |> put_resp_header("access-control-allow-origin", "*")
