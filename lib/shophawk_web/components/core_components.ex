@@ -1699,7 +1699,7 @@ defmodule ShophawkWeb.CoreComponents do
         :gt -> "bg-cyan-800"
       end
 
-    color =  if status == "S", do: "bg-emerald-500 text-stone-950", else: color
+    color =  if status == "Started", do: "bg-emerald-500 text-stone-950", else: color
     color = case dots do
       1 -> "bg-cyan-500 text-stone-950"
       2 -> "bg-amber-500 text-stone-950"
