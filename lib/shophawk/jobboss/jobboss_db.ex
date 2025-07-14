@@ -86,11 +86,12 @@ defmodule Shophawk.Jobboss_db do
         user_values_map =
           user_values_map
           |> Enum.find(%{dots: nil}, &(&1.user_values == user_value))
-        merged_mats_map = Map.get(mats_map, job_number, %{})
+
+        mats_reqs = Map.get(mats_map, job_number, %{})
 
         merged_first_op_job_map =
           Map.merge(first_op_job_map, user_values_map)
-          |> Map.merge(merged_mats_map)
+          |> Map.put(:material_reqs, mats_reqs)
 
         job_info = create_job_info(merged_first_op_job_map, deliveries_map, matching_operations, attachments_map)
 
@@ -202,19 +203,15 @@ defmodule Shophawk.Jobboss_db do
         updated_mats =
           case Enum.count(mats) do
             0 ->
-              Map.from_struct(%Jb_material_req{})
-              |> Map.drop([:__meta__])
-              |> Map.drop([:status, :description, :job])
-              |> Map.put(:material, "Customer Supplied")
-              |> sanitize_map()
-            1 ->
-              Enum.at(mats, 0)
+              empty_map =
+                Map.from_struct(%Jb_material_req{})
+                |> Map.drop([:__meta__])
+                |> Map.drop([:status, :description, :job])
+                |> Map.put(:material, "Customer Supplied")
+                |> sanitize_map()
+                [empty_map]
             _ ->
-              Enum.reduce(mats, %{}, fn map, acc ->
-                Map.merge(acc, map, fn _, value1, value2 ->
-                  "#{value1} | #{value2}"
-                end)
-              end)
+              mats
           end
         {job_number, updated_mats}
       end)
@@ -279,7 +276,7 @@ defmodule Shophawk.Jobboss_db do
   def merge_material_data(ops, mats_map) do
     Enum.map(ops, fn %{job: job} = op ->
         {_jn, mat} = Enum.find(mats_map, fn {jn, _data} -> jn == job end)
-      Map.merge(op, mat)
+      Map.put(op, :material_reqs, mat)
     end)
   end
 
@@ -413,7 +410,6 @@ defmodule Shophawk.Jobboss_db do
         _ -> percent_profit
       end
 
-
     current_op =
       case operations do
         [] -> ""
@@ -431,7 +427,7 @@ defmodule Shophawk.Jobboss_db do
     |> Map.put(:customer_po, job.customer_po)
     |> Map.put(:customer_po_line, job.customer_po_line)
     |> Map.put(:description, job.description)
-    |> Map.put(:material, job.material)
+    |> Map.put(:material_reqs, job.material_reqs)
     |> Map.put(:currentop, current_op)
     |> Map.put(:job_manager, job_manager)
     |> Map.put(:deliveries, filter_deliveries_for_job(job.job, deliveries_map))

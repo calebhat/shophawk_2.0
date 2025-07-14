@@ -478,4 +478,22 @@ defmodule ShophawkWeb.RunlistLive.Index do
     end
   end
 
+  def create_material_string(material_reqs) do
+    IO.inspect(material_reqs)
+    if Map.has_key?(List.first(material_reqs), :material) do
+      case Enum.count(material_reqs) do
+        1 ->
+          Enum.reduce(material_reqs, "", fn mat, _acc ->
+            mat.material
+          end)
+        _ ->
+          Enum.reduce(material_reqs, "", fn mat, acc ->
+            mat.material <> " | " <> acc
+          end)
+      end
+    end
+
+
+  end
+
 end

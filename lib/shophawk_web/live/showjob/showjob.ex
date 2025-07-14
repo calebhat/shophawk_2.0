@@ -47,16 +47,17 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
           <div class="grid grid-cols-4">
             <div class="text-lg"><%= assigns.job_info.description %> </div>
             <div class="text-lg">
-              <%= for mat <- assigns.job_info.material do %>
+              <%= for mat <- assigns.job_info.material_reqs do %>
+              <% IO.inspect(mat) %>
                 <div class="truncate">
                 <%= case mat.size do %>
-                <% "" -> %> <%= mat.material_name %>
+                <% "" -> %> <%= mat.material_name %> - <%= mat.est_qty %> pcs
                 <% _ -> %>
                 <.link
                     navigate={~p"/stockedmaterials?#{[material: mat.material, size: mat.size]}"}
                     class="text-blue-900 font-bold underline"
                   >
-                  <%= mat.material_name %>
+                  <%= mat.material_name %> - <%= mat.part_length %>" Part Length
                 </.link>
                 <% end %>
                 </div>
@@ -314,32 +315,29 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
     {:ok, material_list} = Cachex.get(:material_list, :data)
 
     job_material_list =
-      assigns.job_info.material
-      |> String.split(" | ")
-      |> Enum.map(&String.trim/1)
-      |> Enum.map(fn mat ->
+      Enum.map(assigns.job_info.material_reqs, fn mat ->
+
         [size_str, material_name] =
-          case String.split(mat, "X") do
+          case String.split(mat.material, "X") do
             [size_str, material_name] -> [size_str, material_name]
             [size1, size2, material_name] -> [(size1 <> "X" <> size2), material_name]
+            [size1, size2, size3, material_name] -> [(size1 <> "X" <> size2 <> "X" <> size3), material_name]
             _ -> ["", ""]
           end
           |> Enum.map(&String.trim/1)
 
+        #put found name through material transformation function that merges names from jobboss if needed
+        found_material = Enum.find(material_list, fn mat_list -> mat_list.material == material_name end)
+        [size_str, material_name] =
+          case found_material do
+            nil -> ["", %{material: ""}]
+            _ -> [size_str, Shophawk.MaterialCache.merge_materials([%{material: material_name}]) |> List.first()]
+          end
 
-          found_material = Enum.find(material_list, fn mat -> mat.material == material_name end)
-          [size_str, material_name] =
-            case found_material do
-              nil -> ["", %{material: ""}]
-              _ -> [size_str, Shophawk.MaterialCache.merge_materials([%{material: material_name}]) |> List.first()]
-            end
-
-
-          %{material_name: mat, material: material_name.material, size: size_str}
+        %{material_name: mat.material, material: material_name.material, size: size_str, part_length: mat.part_length, est_qty: mat.est_qty}
       end)
-      #ending list: [%{size: "3", material: "3X4140HT", material_name: "4140HT"}]
 
-      updated_job_info = Map.put(assigns.job_info, :material, job_material_list)
+    updated_job_info = Map.put(assigns.job_info, :material_reqs, job_material_list)
 
 
     {:ok,
