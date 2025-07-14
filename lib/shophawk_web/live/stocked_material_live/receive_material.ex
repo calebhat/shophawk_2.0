@@ -172,9 +172,7 @@ defmodule ShophawkWeb.StockedMaterialLive.ReceiveMaterial do
         Map.put(mat, :job_assignments, found_assignments)
         |> Map.put(:bar_length_placeholder, mat.bar_length)
       end)
-      |> Enum.group_by(fn material ->
-        material.purchase_date
-      end)
+      |> Enum.group_by(fn material -> material.purchase_date end)
       |> Enum.map(fn {date, materials} ->
         sorted_materials =
           Enum.map(materials, fn bar ->

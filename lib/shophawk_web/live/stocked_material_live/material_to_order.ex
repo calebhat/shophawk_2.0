@@ -100,65 +100,73 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
               <div></div>
               <div></div>
             </div>
-            <div :for={bar <- @bars_being_quoted_form}>
-              <.form
-                for={bar}
-                id={"bar-#{bar.id}"}
-                phx-change="validate_bar_waiting_on_quote"
-                phx-submit="save_bar_waiting_on_quote"
-              >
-                <div class="grid grid-cols-6 p-1 place-items-center text-center text-lg bg-cyan-800 rounded-lg m-2">
-                  <div class="dark-tooltip-container">
-                      <%= "#{bar.data.material}" %>
-                      <!-- Loop through job assignments and display colored sections -->
-                      <div class="relative h-full w-full">
+            <div :for={{date, bars} <- @bars_being_quoted_form}>
+              <div class="underline my-2 text-xl">
+                <%= date %>
+              </div>
 
-                        <div class="tooltip ml-8 w-60" style="z-index: 12;">
-                          <.fixed_widths_table_with_show_job
-                          id="bar_assignments"
-                          rows={Enum.reverse(bar.data.job_assignments) |> Enum.filter(fn bar -> bar.length_to_use > 0.0 end)}
-                          row_click={fn _row_data -> "show_job" end}
-                          >
-                            <:col :let={bar_row} label="Job" width="w-20"><%= bar_row.job %></:col>
-                            <:col :let={bar_row} label="Length" width="w-16"><%= bar_row.length_to_use %>"</:col>
-                            <:col :let={bar_row} label="Parts" width="w-16"><%= bar_row.parts_from_bar %></:col>
-                          </.fixed_widths_table_with_show_job>
+              <div :for={bar <- bars}>
+                <.form
+                  for={bar}
+                  id={"bar-#{bar.id}"}
+                  phx-change="validate_bar_waiting_on_quote"
+                  phx-submit="save_bar_waiting_on_quote"
+                >
+                  <div class="grid grid-cols-6 p-1 place-items-center text-center text-lg bg-cyan-800 rounded-lg m-2">
+                    <div class="dark-tooltip-container">
+                        <%= "#{bar.data.material}" %>
+                        <!-- Loop through job assignments and display colored sections -->
+                        <div class="relative h-full w-full">
+
+                          <div class="tooltip ml-8 w-60" style="z-index: 12;">
+                            <.fixed_widths_table_with_show_job
+                            id="bar_assignments"
+                            rows={Enum.reverse(bar.data.job_assignments) |> Enum.filter(fn bar -> bar.length_to_use > 0.0 end)}
+                            row_click={fn _row_data -> "show_job" end}
+                            >
+                              <:col :let={bar_row} label="Job" width="w-20"><%= bar_row.job %></:col>
+                              <:col :let={bar_row} label="Length" width="w-16"><%= bar_row.length_to_use %>"</:col>
+                              <:col :let={bar_row} label="Parts" width="w-16"><%= bar_row.parts_from_bar %></:col>
+                            </.fixed_widths_table_with_show_job>
+                          </div>
                         </div>
-                      </div>
-                  </div>
+                    </div>
 
-                  <div>
-                    <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
-                  </div>
+                    <div>
+                      <%= "#{if bar.data.bar_length != nil, do: (Float.round((bar.data.bar_length / 12), 2)), else: 0} ft" %>
+                    </div>
 
-                  <div class="mx-2">
-                    <.input field={bar[:vendor]} type="text" phx-blur="autofill_vendor" phx-value-id={bar.data.id} phx-hook="AutofocusHook" id={"vendor-input-#{bar.data.id}"} />
-                    <.input field={bar[:id]} type="hidden" />
-                    <.input field={bar[:material]} type="hidden" />
-                  </div>
+                    <div class="mx-2">
+                      <.input field={bar[:vendor]} type="text" phx-blur="autofill_vendor" phx-value-id={bar.data.id} phx-hook="AutofocusHook" id={"vendor-input-#{bar.data.id}"} />
+                      <.input field={bar[:id]} type="hidden" />
+                      <.input field={bar[:material]} type="hidden" />
+                    </div>
 
-                  <div class="mx-2">
-                    <.input field={bar[:bar_length]} type="number" step=".01" placeholder="inches" />
-                  </div>
+                    <div class="mx-2">
+                      <.input field={bar[:bar_length]} type="number" step=".01" placeholder="inches" />
+                    </div>
 
-                  <div class="mx-2">
-                    <.input field={bar[:purchase_price]} type="number" step=".01" placeholder={"Per #{bar.data.cost_uofm}"} />
+                    <div class="mx-2">
+                      <.input field={bar[:purchase_price]} type="number" step=".01" placeholder={"Per #{bar.data.cost_uofm}"} />
+                    </div>
+                    <div class="mr-2 pb-2 hidden"><.input field={bar[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()}/></div>
+                    <div class="px-2 text-center flex items-center">
+                      <.button type="submit">
+                          Save
+                      </.button>
+                      <.link
+                        class="mx-2 hover:text-red-500"
+                        phx-click={JS.push("delete", value: %{id: bar.data.id}) |> hide("##{bar.data.id}")}
+                        data-confirm="Are you sure?"
+                      >
+                        Delete
+                      </.link>
+                    </div>
                   </div>
-                  <div class="mr-2 pb-2 hidden"><.input field={bar[:purchase_date]} type="date" label="Purchase Date" value={Date.utc_today()}/></div>
-                  <div class="px-2 text-center flex items-center">
-                    <.button type="submit">
-                        Save
-                    </.button>
-                    <.link
-                      class="mx-2 hover:text-red-500"
-                      phx-click={JS.push("delete", value: %{id: bar.data.id}) |> hide("##{bar.data.id}")}
-                      data-confirm="Are you sure?"
-                    >
-                      Delete
-                    </.link>
-                  </div>
-                </div>
-              </.form>
+                </.form>
+              </div>
+
+
             </div>
           </div>
 
@@ -370,8 +378,14 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
       end)
       |> Enum.sort_by(fn {size, material_name, _} -> {material_name, size} end)
       |> Enum.map(fn {_, _, material} -> material end)
+      |> Enum.map(fn m -> Map.put(m, :last_update, NaiveDateTime.to_date(m.updated_at)) end)
+      |> Enum.group_by(fn m -> m.last_update end)
+      |> Enum.sort_by(fn {date, _bars} -> date end, :desc)
 
-    Enum.map(sorted_material_to_order, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)
+
+    Enum.map(sorted_material_to_order, fn {date, bars} ->
+      {date, Enum.map(bars, fn bar -> Material.change_stocked_material(bar, %{}) |> to_form() end)}
+    end)
   end
 
   @impl true
@@ -409,7 +423,7 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
   end
 
   def handle_event("save_bar_waiting_on_quote", params, socket) do
-    params = params["stocked_material"] |> IO.inspect
+    params = params["stocked_material"]
     found_bar = Material.get_material_waiting_on_quote_by_name(params["material"])
     updated_params = Map.put(params, "being_quoted", false) |> Map.put("ordered", true)
 
@@ -418,7 +432,11 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
         target_id =
           case update_material_forms(socket).assigns.bars_being_quoted_form do
             [] -> nil
-            [first_form | _] -> "vendor-input-#{first_form.data.id}" # Focus first form's vendor input
+            form_list ->
+              first_date_range = List.first(form_list)
+              {_date, forms} = first_date_range
+              first_form = List.first(forms)
+              "vendor-input-#{first_form.data.id}" # Focus first form's vendor input
           end
         {:noreply, update_material_forms(socket) |> push_event("trigger_autofocus", %{target_id: target_id})}
 
@@ -473,16 +491,21 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     form_id = Map.get(params, "id")
 
     updated_bars =
-      Enum.map(bars, fn bar ->
-        if Integer.to_string(bar.data.id) == form_id do
-          changeset =
-            Material.change_stocked_material(bar.data, params, :waiting_on_quote)
+      Enum.map(bars, fn {date, bars} ->
+        updated_bar =
+            Enum.map(bars, fn bar ->
+            if Integer.to_string(bar.data.id) == form_id do
+              changeset =
+                Material.change_stocked_material(bar.data, params, :waiting_on_quote)
 
-          to_form(changeset)
-        else
-          bar
-        end
+              to_form(changeset)
+            else
+              bar
+            end
+          end)
+        {date, updated_bar}
       end)
+
     assign(socket, :bars_being_quoted_form, updated_bars)
   end
 
