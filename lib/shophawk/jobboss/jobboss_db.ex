@@ -1254,6 +1254,7 @@ defmodule Shophawk.Jobboss_db do
 
   #### Part History Search Function ####
   def jobs_search(params) do
+    IO.inspect(params)
     #params_map =
       #%{
       #  "customer" => "",
@@ -1262,6 +1263,7 @@ defmodule Shophawk.Jobboss_db do
       #  "end-date" => "2000-01-12",
       #  "job" => "",
       #  "part" => "",
+      #  "part_close_match" => "",
       #  "start-date" => "2025-06-13",
       #  "status" => ""
       #}
@@ -1276,7 +1278,7 @@ defmodule Shophawk.Jobboss_db do
       |> maybe_filter(:customer_po, params["customer_po"])
       |> maybe_filter_description(params["description"])
       |> maybe_filter(:job, params["job"])
-      |> maybe_filter(:part_number, params["part"])
+      |> maybe_filter_part(:part_number, params["part_number"], params["part_close_match"])
       |> maybe_filter(:status, params["status"])
       |> maybe_filter_date_range(start_date, end_date)
       |> order_by([desc: :order_date])
@@ -1303,6 +1305,19 @@ defmodule Shophawk.Jobboss_db do
   defp maybe_filter(query, _field, ""), do: query
   defp maybe_filter(query, field, value) when is_binary(value) do
     from r in query, where: field(r, ^field) == ^value
+  end
+
+  defp maybe_filter_part(query, _field, "", _close_match), do: query
+
+  defp maybe_filter_part(query, field, value, close_match) when is_binary(value) do
+    case close_match do
+      "true" ->
+        # For close/partial matches, use LIKE with wildcards for substring search
+        from r in query, where: ilike(field(r, ^field), ^"%#{value}%")
+      "false" ->
+        # Keep exact match as in the original function
+        from r in query, where: field(r, ^field) == ^value
+    end
   end
 
   # Helper for multiple wildcard searches on description

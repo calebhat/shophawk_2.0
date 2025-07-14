@@ -21,9 +21,25 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
               <div class="">
                 <.input name="job" value={@job} placeholder="Job"/>
               </div>
-              <div class="my-2">
-                <.input name="part" value={@part_number} placeholder="Part"/>
+              <div class="border-t border-b mt-2">
+                <div class="my-2">
+                  <.input name="part_number" value={@part_number} placeholder="Part Number"/>
+                </div>
+                <div class="my-2">
+                  <div class="flex">
+
+                    <div class="">
+                      <.input name="part_close_match" type="checkbox" value={@part_close_match} />
+                    </div>
+                    <div class="ml-2 text-white text-sm place-content-center">
+                      Partial match?
+                    </div>
+                  </div>
+                </div>
               </div>
+
+
+
               <div class="my-2">
                 <.input name="description" value={@description} placeholder="Description"/>
               </div>
@@ -74,6 +90,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                     <th class="truncate" style="width: 6.0%">est. rem. hrs</th>
                     <th class="truncate" style="width: 8.0%">Customer</th>
                     <th class="truncate" style="width: 10.0%">Current Operation</th>
+                    <th class="truncate" style="width: 8.0%">Part Number</th>
                     <th class="truncate" style="">Description</th>
                   </tr>
                 </thead>
@@ -100,6 +117,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                     <td class="truncate" ><%= row.job_info.est_rem_hrs%></td>
                     <td class="truncate" ><%= row.job_info.customer%></td>
                     <td class="truncate" ><%= row.job_info.currentop%></td>
+                    <td class="truncate" ><%= row.job_info.part_number%></td>
                     <td class="truncate"><%= row.job_info.description %></td>
                   </tr>
                 </tbody>
@@ -161,6 +179,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
         |> Map.put_new("description", "")
         |> Map.put_new("job", "")
         |> Map.put_new("part", "")
+        |> Map.put_new("part_close_match", "false")
         |> Map.put_new("status", "")
         |> Map.put_new("start-date", to_string(Date.add(Date.utc_today(), -3650)))
         |> Map.put_new("end-date", to_string(Date.utc_today()))
@@ -169,7 +188,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       case job_maps do
         [] ->
           Process.send_after(self(), :clear_flash, 1000)
-          socket = put_flash(socket, :error, "Job Not Found")
+          socket = put_flash(socket, :error, "No Data Found")
           {:noreply, socket |> stream(:jobs, [], reset: true)}
 
         job_maps ->
@@ -202,6 +221,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
             |> assign(:description, params["description"])
             |> assign(:job, params["job"])
             |> assign(:part_number, params["part"])
+            |> assign(:part_close_match, params["part_close_match"])
             |> assign(:status, params["status"])
             |> assign(:start_date, to_string(Date.add(Date.utc_today(), -3650)))
             |> assign(:end_date, to_string(Date.utc_today()))
@@ -218,7 +238,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     case job_data do
       {:error} ->
         Process.send_after(self(), :clear_flash, 1000)
-        {:noreply, socket |> put_flash(:error, "Job Not Found")}
+        {:noreply, socket |> put_flash(:error, "No Data Found")}
       _ -> {:noreply, stream_insert(socket, :jobs, job_data, at: -1)}
     end
   end
@@ -239,6 +259,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     |> assign(:description, "")
     |> assign(:job, "")
     |> assign(:part_number, "")
+    |> assign(:part_close_match, false)
     |> assign(:status, "")
     |> assign(:start_date, to_string(Date.add(Date.utc_today(), -3650)))
     |> assign(:end_date, to_string(Date.utc_today()))
