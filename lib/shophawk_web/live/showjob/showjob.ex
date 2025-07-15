@@ -21,7 +21,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
             <div class="underline text-base">Customer </div>
             <div class="text-lg row-span-2">
               <.link
-                  navigate={~p"/parthistory?#{[part: assigns.job_info.part_number]}"}
+                  navigate={~p"/parthistory?#{[part_number: assigns.job_info.part_number]}"}
                   class="text-blue-900 font-bold underline mx-4"
                 >
                 <%= merge_part_number_and_rev(assigns.job_info.part_number, assigns.job_info.rev)  %>
@@ -48,7 +48,6 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
             <div class="text-lg"><%= assigns.job_info.description %> </div>
             <div class="text-lg">
               <%= for mat <- assigns.job_info.material_reqs do %>
-              <% IO.inspect(mat) %>
                 <div class="truncate">
                 <%= case mat.size do %>
                 <% "" -> %> <%= mat.material_name %> - <%= mat.est_qty %> pcs
@@ -64,12 +63,27 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
               <% end %>
             </div>
             <div class="text-lg">
-              <.link
-                  navigate={~p"/parthistory?#{[customer_po: assigns.job_info.customer_po]}"}
-                  class="text-blue-900 font-bold underline mx-4"
-                >
-                <%= (assigns.job_info.customer_po || "") <> ", line: " <> (assigns.job_info.customer_po_line || "") %>
-              </.link>
+            <%= case assigns.job_info.customer_po do %>
+                <% "" -> %>
+                <% nil -> %>
+                <% _ -> %>
+                  <%= case assigns.job_info.customer_po_line do %>
+                    <% "" -> %>
+                      <.link
+                        navigate={~p"/parthistory?#{[customer_po: assigns.job_info.customer_po, customer: assigns.job_info.customer]}"}
+                        class="text-blue-900 font-bold underline mx-4"
+                      >
+                        <%= assigns.job_info.customer_po %>
+                      </.link>
+                    <% _ -> %>
+                      <.link
+                          navigate={~p"/parthistory?#{[customer_po: assigns.job_info.customer_po, customer: assigns.job_info.customer]}"}
+                          class="text-blue-900 font-bold underline"
+                        >
+                        <%= (assigns.job_info.customer_po || "") %>
+                      </.link>, line: <%= assigns.job_info.customer_po_line %>
+                  <% end %>
+              <% end %>
             </div>
             <div class="flex justify-center"><img src={ShophawkWeb.HotjobsComponent.display_dots(assigns.job_info.dots)} /></div>
 

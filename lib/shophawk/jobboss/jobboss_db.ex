@@ -1308,7 +1308,6 @@ defmodule Shophawk.Jobboss_db do
   end
 
   defp maybe_filter_part(query, _field, "", _close_match), do: query
-
   defp maybe_filter_part(query, field, value, close_match) when is_binary(value) do
     case close_match do
       "true" ->
