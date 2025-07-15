@@ -15,6 +15,7 @@ defmodule ScheduledTasks do
     Cachex.put(:runlist_loads, :data, [%{department: "ShopHawk Restarting, refresh in 1 minute", department_id: 0, weekone: 0, weektwo: 0, weekthree: 0, weekfour: 0}])  # Store the data in ETS
     Cachex.put(:employees, :data, Shophawk.Jobboss_db.employee_data)
     Cachex.put(:material_list, :data, []) #empty list gets populated upon first material page load
+    # Material list gets updated and broadcasted from it's own Shophawk.MaterialCache file
     Cachex.put(:delivery_list, :data, []) #empty list gets populated upon first material page load
 
     #inital Loading of Active jobs into cache
@@ -28,8 +29,13 @@ defmodule ScheduledTasks do
     ShophawkWeb.DashboardLive.Index.save_last_months_sales()
     ShophawkWeb.DashboardLive.Index.save_this_weeks_revenue()
 
+    #Load 10,000 closed/complete jobs into part history cache
+    if System.get_env("MIX_ENV") == "prod" do
+      Shophawk.Jobboss_db.load_part_history_jobs
+    end
+
     #tasks less than 1 minutes must be ran in the genserver.
-    #All other functions here are ran with Quantum dep that is controlled from /config/config.ex file
+    #All other functions here are ran with Quantum dependancy that is controlled from /config/config.ex file
     if System.get_env("MIX_ENV") == "prod" do
       Process.send_after(self(), :update_from_jobboss, 2000)
     end

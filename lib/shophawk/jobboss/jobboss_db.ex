@@ -31,11 +31,22 @@ defmodule Shophawk.Jobboss_db do
       |> distinct(true)
       |> Shophawk.Repo_jb.all()
 
-    active_jobs = load_job_history(job_numbers)
+    Cachex.put_many(:active_jobs, load_job_history(job_numbers))
+  end
 
-    Cachex.put_many(:active_jobs, active_jobs)
-    #Process.sleep(2000)
+  def load_part_history_jobs() do
+    job_numbers =
+      Jb_job
+      |> where([j], j.status == "Closed" or j.status == "Complete")
+      |> where([j], not is_nil(j.customer))
+      |> order_by([j], desc: j.last_updated)
+      |> select([j], [j.job, j.last_updated])
+      |> distinct(true)
+      |> limit(10000)
+      |> Shophawk.Repo_jb.all()
+      |> Enum.map(fn entry -> List.first(entry) end)
 
+    Cachex.put_many(:temporary_runlist_jobs_for_history, load_job_history(job_numbers))
   end
 
   def job_exists?(job_number), do: Shophawk.Repo_jb.exists?(from r in Jb_job, where: r.job == ^job_number)

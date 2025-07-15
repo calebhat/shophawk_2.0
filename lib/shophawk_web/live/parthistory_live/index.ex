@@ -147,15 +147,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
   end
 
   def mount(_params, _session, socket) do
-    if connected?(socket) do
-
-      #NEED TO GET PARAMS TO POPULATE VALUES IN SEARCH FIELDS
-      {:noreply, socket} = handle_params(%{}, nil, socket)
-      {:ok, socket}
-    else
-      {:noreply, socket} = handle_params(%{}, nil, socket)
-      {:ok, socket}
-    end
+    {:ok, socket}
   end
 
   def handle_event("submit_form", params, socket) do

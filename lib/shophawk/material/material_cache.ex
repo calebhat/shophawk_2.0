@@ -22,9 +22,9 @@ defmodule Shophawk.MaterialCache do
     # Broadcast the updated material list
     ShophawkWeb.Endpoint.broadcast(@topic, "material_update", material_list)
 
-    #if System.get_env("MIX_ENV") == "prod" do
+    if System.get_env("MIX_ENV") == "prod" do
       schedule_refresh()
-    #end
+    end
     {:noreply, state}
   end
 
