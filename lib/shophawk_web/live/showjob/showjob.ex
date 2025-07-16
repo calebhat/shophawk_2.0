@@ -56,8 +56,8 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                     navigate={~p"/stockedmaterials?#{[material: mat.material, size: mat.size]}"}
                     class="text-blue-900 font-bold underline"
                   >
-                  <%= mat.material_name %> - <%= mat.part_length %>" Part Length
-                </.link>
+                  <%= mat.material_name %>
+                </.link> - <%= mat.part_length %>" Part Length
                 <% end %>
                 </div>
               <% end %>
@@ -119,25 +119,23 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
           <table class="w-[40rem] mt-4 sm:w-full">
             <thead class="text-lg leading-6 text-black text-center">
               <tr>
-                <th class="p-0 pr-6 pb-4 font-normal">Operation</th>
-                <th class="p-0 pr-6 pb-4 font-normal">Start Date</th>
-                <th class="p-0 pr-6 pb-4 font-normal">Total Hours</th>
-                <th class="p-0 pr-6 pb-4 font-normal">Status</th>
-                <th class="p-0 pr-6 pb-4 font-normal">Operator</th>
-                <th class="p-0 pr-6 pb-4 font-normal">Parts Completed</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 20%">Operation</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 10%">Start Date</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Status</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 10%">Parts Completed</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Est Run Time</th>
                 <%= if @current_user do %>
-                <th class="p-0 pr-6 pb-4 font-normal">Run Time (hrs)</th>
-                <th class="p-0 pr-6 pb-4 font-normal">Est Run Time</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Act Run Time</th>
                 <% end %>
-                <th class="relative p-0 pb-4"><span class="sr-only">Actions</span></th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="">Operator</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Info</th>
               </tr>
             </thead>
             <tbody id={@job} class="relative divide-y divide-zinc-100 border-t border-zinc-400 text-lg leading-6 text-zinc-800">
               <%= for op <- @job_ops do %>
-                <tr id={"op-#{op.id}"} class="group hover:bg-zinc-300 text-center">
+                <tr id={"#{op.id}"} class="group hover:bg-zinc-300 text-center">
                   <td class="relative p-0">
                     <div class="block py-4 pr-6">
-                      <span class="absolute -inset-y-px right-0 -left-4 sm:rounded-l-xl" />
                       <span class="relative font-semibold text-zinc-800">
                         <%= op.wc_vendor %><%= op.operation_service %>
                       </span>
@@ -145,17 +143,8 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                   </td>
                   <td class="relative p-0">
                     <div class="block py-4 pr-6">
-                      <span class="absolute -inset-y-px right-0 -left-4" />
                       <span class="relative">
                         <%= op.sched_start %>
-                      </span>
-                    </div>
-                  </td>
-                  <td class="relative p-0">
-                    <div class="block py-4 pr-6">
-                      <span class="absolute -inset-y-px right-0 -left-4" />
-                      <span class="relative">
-                        <%= op.est_total_hrs %>
                       </span>
                     </div>
                   </td>
@@ -171,7 +160,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                     <div class="block py-4 pr-6">
                       <span class="absolute -inset-y-px right-0 -left-4" />
                       <span class="relative">
-                        <%= op.employee %>
+                        <%= trunc(op.act_run_qty) %>
                       </span>
                     </div>
                   </td>
@@ -179,7 +168,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                     <div class="block py-4 pr-6">
                       <span class="absolute -inset-y-px right-0 -left-4" />
                       <span class="relative">
-                        <%= trunc(op.act_run_qty) %>
+                        <%= op.est_total_hrs %>
                       </span>
                     </div>
                   </td>
@@ -192,34 +181,54 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                         </span>
                       </div>
                     </td>
-                    <td class="relative p-0">
-                      <div class="block py-4 pr-6">
-                        <span class="absolute -inset-y-px right-0 -left-4" />
-                        <span class="relative">
-                          <%= op.est_total_hrs %>
-                        </span>
-                      </div>
-                    </td>
                   <% end %>
-                  <td>
-                    <%= if String.length(op.operation_note_text) != 0 do %>
-                      <div class="bg-cyan-800 p-2 w-1 shadow-lg rounded-lg"></div>
+                  <td class="relative p-0">
+                    <div class="block py-4 pr-6">
+                      <span class="absolute -inset-y-px right-0 -left-4" />
+                      <span class="relative">
+                        <%= op.employee %>
+                      </span>
+                    </div>
+                  </td>
+                  <td >
+                    <%= if op.full_employee_log != [] and @current_user do %>
+                      <%= if String.length(op.operation_note_text) != 0 or op.full_employee_log != [] do %>
+                        <div class="flex justify-center hover:cursor-pointer" phx-click="toggle_expand" phx-value-op-id={op.id}><img src={arrow_change(op.id, assigns.expanded)}></div>
+                      <% end %>
+                    <% else %>
+                        <%= if String.length(op.operation_note_text) != 0 do %>
+                        <div class="flex justify-center hover:cursor-pointer" phx-click="toggle_expand" phx-value-op-id={op.id}><img src={arrow_change(op.id, assigns.expanded)} /></div>
+                        <% end %>
                     <% end %>
                   </td>
-                  <td class="relative">
-                    <div class="hidden group-hover:grid fixed bottom-0 right-0 z-50 mb-4 mr-8 p-2 text-white text-md bg-cyan-800 shadow-lg rounded-lg">
-                      <%= if op.full_employee_log != [] and @current_user do %>
-                        <%= for row <- op.full_employee_log do %>
-                          <%= row %>
-                          <br>
-                        <% end %>
+                </tr>
+                <!-- expandable info row -->
+                <%= if op.full_employee_log != [] or op.operation_note_text != "" do %>
+                <tr id={"expand-#{op.id}"} class={[toggle_content(op.id, assigns.expanded)]} style="height: auto;">
+                  <td colspan="6" class="px-2 pb-2 bg-zinc-300 rounded-bl-xl" style="border-top: 1px solid; vertical-align: top; height: 100%;">
+                    <div class="bg-zinc-100 px-2 pb-2 rounded-b-xl flex flex-col min-h-auto">
+                      <%= if op.operation_note_text != "" do %>
+                        <div class="whitespace-pre-line flex-grow overflow-auto">
+                          <%= String.trim(op.operation_note_text) %>
+                        </div>
                       <% end %>
-                      <div style="white-space: pre-line;">
-                        <%= if op.operation_note_text != nil, do: String.trim(op.operation_note_text) %>
+                    </div>
+                  </td>
+                  <td colspan="3" class="px-2 pb-2 bg-zinc-300 rounded-br-xl" style="border-top: 1px solid; vertical-align: top; height: 100%;">
+                    <div class="bg-zinc-100 px-2 pb-2 rounded-b-xl flex flex-col min-h-auto">
+                      <div class="flex-grow overflow-auto">
+                        <%= if op.full_employee_log != [] and @current_user do %>
+                          <%= for row <- op.full_employee_log do %>
+                            <div class="">
+                              <%= String.trim(row) %>
+                            </div>
+                          <% end %>
+                        <% end %>
                       </div>
                     </div>
                   </td>
                 </tr>
+                <% end %>
               <% end %>
             </tbody>
           </table>
@@ -360,13 +369,30 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
     |> assign(job_ops: assigns.job_ops)
     |> assign(job_info: updated_job_info)
     |> assign(current_user: current_user)
+    |> assign(:expanded, assigns.expanded)
     }
   end
 
   def merge_part_number_and_rev(part, rev) do
     case rev do
       "" -> part
+      "-" -> part
+      nil -> part
       _ -> part <> ", Rev:" <> rev
+    end
+  end
+
+  def toggle_content(id, content_toggle_list) do
+    case id in content_toggle_list do
+      true -> ""
+      false -> "hidden"
+    end
+  end
+
+  def arrow_change(id, content_toggle_list) do
+    case id in content_toggle_list do
+      true -> ~p"/images/up_arrow.svg"
+      false -> ~p"/images/right_arrow.svg"
     end
   end
 

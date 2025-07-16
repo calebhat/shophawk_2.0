@@ -19,6 +19,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJobMacroFunctions do
               |> assign(id: job.job)
               |> assign(:job_ops, job.job_ops) #routing operations for job
               |> assign(:job_info, job.job_info)
+              |> assign(:expanded, [])
           end
 
         {:noreply,
@@ -53,6 +54,16 @@ defmodule ShophawkWeb.ShowJobLive.ShowJobMacroFunctions do
         {:noreply,
         socket
         |> assign(live_action: :show_job)}
+      end
+
+      def handle_event("toggle_expand", %{"op-id" => op_id}, socket) do
+        expanded = socket.assigns.expanded
+        updated_expanded_list =
+          case op_id in expanded do
+            true -> List.delete(expanded, op_id)
+            false -> [op_id | expanded]
+          end
+        {:noreply, assign(socket, :expanded, updated_expanded_list)}
       end
 
 #      @impl true

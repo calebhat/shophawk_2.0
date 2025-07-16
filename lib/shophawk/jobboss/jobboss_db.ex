@@ -1265,7 +1265,6 @@ defmodule Shophawk.Jobboss_db do
 
   #### Part History Search Function ####
   def jobs_search(params) do
-    IO.inspect(params)
     #params_map =
       #%{
       #  "customer" => "",

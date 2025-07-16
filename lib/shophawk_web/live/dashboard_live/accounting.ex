@@ -43,6 +43,7 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
               title={@page_title}
               action={@live_action}
               current_user={@current_user}
+              expanded={@expanded || []}
           />
         </.showjob_modal>
       </div>
