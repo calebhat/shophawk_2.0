@@ -17,6 +17,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.LateShipmentsComponent
   alias ShophawkWeb.TopVendorsComponent
   alias Shophawk.Dashboard
+  #alias Shophawk.Dashboard.InvoiceComments
 
 
   @impl true
@@ -40,6 +41,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     |> assign(:open_invoices, %{})
     |> assign(:selected_range, "")
     |> assign(:open_invoice_values, [])
+    |> assign(:expanded_invoices, [])
 
     #anticated revenue
     |> assign(:six_weeks_revenue_amount, 0)
@@ -159,7 +161,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def load_open_invoices_component(socket) do
-    open_invoices = Jobboss_db.open_invoices
+    open_invoices =
+      Jobboss_db.open_invoices
+      |> merge_invoice_comments()
 
     open_invoice_values = Enum.reduce(open_invoices, %{zero_to_thirty: 0, thirty_to_sixty: 0, sixty_to_ninety: 0, ninety_plus: 0, late: 0, all: 0}, fn inv, acc ->
         days_open = Date.diff(Date.utc_today(), inv.document_date)
@@ -177,6 +181,17 @@ defmodule ShophawkWeb.DashboardLive.Index do
     assign(socket, :open_invoices, open_invoices)
     |> assign(:open_invoice_storage, open_invoices) #used when changing range of invoices viewed
     |> assign(:open_invoice_values, open_invoice_values)
+  end
+
+  def merge_invoice_comments(invoices) do
+    invoice_numbers = Enum.map(invoices, fn inv -> inv.document end)
+    comments = Shophawk.Dashboard.load_invoice_comments(invoice_numbers)
+    Enum.map(invoices, fn inv ->
+      matching_comments =
+        Enum.filter(comments, fn c -> c.invoice == inv.document end)
+        |> Enum.sort_by(&(&1.inserted_at), :desc)
+      Map.put(inv, :comments, matching_comments)
+    end)
   end
 
   def load_anticipated_revenue_component(socket) do

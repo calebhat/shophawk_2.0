@@ -109,7 +109,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                     <td class="truncate" ><%= row.job_info.order_quantity%></td>
                     <td class="truncate" ><%= row.job_info.spares_made%></td>
                     <td class="truncate" ><%= row.job_info.percent_profit %>%</td>
-                    <td class="truncate" ><%= row.job_info.order_date%></td>
+                    <td class="truncate" ><%= Calendar.strftime(row.job_info.order_date, "%m-%d-%Y")%></td>
                     <td class="truncate" ><%= Number.Currency.number_to_currency(row.job_info.cost_each) %></td>
                     <td class="truncate" ><%= Number.Currency.number_to_currency(row.job_info.unit_price) %></td>
                     <td class="" ><%= Number.Currency.number_to_currency(row.job_info.total_price) %></td>

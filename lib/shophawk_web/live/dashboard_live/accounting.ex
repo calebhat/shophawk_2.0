@@ -14,25 +14,38 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
       <div>
         <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
         <div class="px-4 py-4 sm:px-6 lg:px-8">
-          <div class="grid grid-cols-2 place-content-center text-stone-100">
+          <div class="grid grid-cols-1 place-content-center text-stone-100">
 
-              <!-- Checkbook Balance/tx's -->
-              <.live_component module={CheckbookComponent} id="checkbook-1"
-              current_balance={@current_balance}
-              checkbook_entries={@checkbook_entries}
-              height={%{border: "h-[800px]", frame: "h-[78vh]"}}
-              />
-
-
-              <!-- open invoices -->
-              <.live_component module={InvoicesComponent} id="invoices-1"
+            <!-- open invoices -->
+            <.live_component module={InvoicesComponent} id="invoices-1"
               open_invoices={@open_invoices}
               selected_range={@selected_range}
               open_invoice_values={@open_invoice_values}
               height={%{border: "h-[800px]", frame: "h-[88%]", content: "h-[68vh]"}}
-              />
+              expanded_invoices={@expanded_invoices || []}
+            />
+
+            <!-- Checkbook Balance/tx's -->
+            <.live_component module={CheckbookComponent} id="checkbook-1"
+              current_balance={@current_balance}
+              checkbook_entries={@checkbook_entries}
+              height={%{border: "h-[800px]", frame: "h-[78vh]"}}
+            />
+
+
+
           </div>
         </div>
+
+        <.modal :if={@live_action in [:add_comment]} id="add-comment-modal" show on_cancel={JS.patch("/dashboard/accounting")}>
+          <.live_component
+            module={ShophawkWeb.InvoiceCommentcomponent}
+            id={@document_to_add_comment}
+            title={@page_title}
+            action={@live_action}
+            document={@document_to_add_comment}
+          />
+        </.modal>
 
         <.showjob_modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard/accounting")}>
           <.live_component
@@ -46,6 +59,7 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
               expanded={@expanded || []}
           />
         </.showjob_modal>
+
       </div>
     """
   end
@@ -70,9 +84,11 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
     |> assign(:checkbook_entries, [])
     |> assign(:current_balance, "Loading...")
     #Invoices
-    |> assign(:open_invoices, %{})
+    |> assign(:open_invoices, [])
     |> assign(:selected_range, "")
     |> assign(:open_invoice_values, [])
+    |> assign_new(:expanded_invoices, fn -> [] end)
+    |> assign(:page_title, "Accounting")
   end
 
   @impl true
@@ -82,6 +98,32 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
       |> Index.load_checkbook_component()
       |> Index.load_open_invoices_component()
     }
+  end
+
+  def handle_info({ShophawkWeb.InvoiceCommentcomponent, {:saved, invoice_comment}}, socket) do
+    updated_open_invoices =
+      Enum.map(socket.assigns.open_invoices, fn invoice ->
+        case invoice.document == invoice_comment.invoice do
+          false -> invoice
+          true -> merge_invoice_comment(invoice, invoice_comment)
+        end
+      end)
+
+    socket =
+      socket
+      |> assign(:page_title, "Accounting")
+      |> assign(:open_invoices, updated_open_invoices)
+
+    {:noreply, socket}
+  end
+
+  def merge_invoice_comment(invoice, comment_struct) do
+    existing_comments = if Map.has_key?(invoice, :comments), do: invoice.comments, else: []
+    merged_comments =
+      [comment_struct | existing_comments]
+      |> Enum.sort_by(&(&1.inserted_at), :desc)
+
+   Map.put(invoice, :comments, merged_comments)
   end
 
   @impl true
@@ -100,6 +142,43 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
         end
       end)
     {:noreply, assign(socket, :open_invoices, ranged_open_invoices) |> assign(:selected_range, range)}
+  end
+
+  def handle_event("toggle_invoice_expand", %{"op-id" => op_id}, socket) do
+    expanded = socket.assigns.expanded_invoices
+    updated_expanded_list =
+      case op_id in expanded do
+        true -> List.delete(expanded, op_id)
+        false -> [op_id | expanded]
+      end
+    {:noreply, assign(socket, :expanded_invoices, updated_expanded_list)}
+  end
+
+  def handle_event("create_comment", %{"document" => document}, socket) do
+    socket =
+      socket
+      |> assign(:document_to_add_comment, document)
+      |> assign(:page_title, "Add Comment")
+      |> assign(:live_action, :add_comment)
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_comment", %{"id" => id}, socket) do
+    comment = Shophawk.Dashboard.get_invoice_comment(id)
+    {:ok, _} = Shophawk.Dashboard.delete_invoice_comment(comment)
+    invoices_with_removed_comment =
+      Enum.map(socket.assigns.open_invoices, fn inv ->
+        case Map.has_key?(inv, :comments) do
+          true -> Map.put(inv, :comments, List.delete(inv.comments, comment))
+          false -> inv
+        end
+      end)
+    {:noreply, assign(socket, :open_invoices, invoices_with_removed_comment)}
+  end
+
+  def handle_event("edit_comment", %{"id" => id}, socket) do
+
+    {:noreply, socket}
   end
 
   @impl true

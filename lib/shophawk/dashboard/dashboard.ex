@@ -7,6 +7,7 @@ defmodule Shophawk.Dashboard do
   alias DateTime
   alias Shophawk.Dashboard.Monthlysales
   alias Shophawk.Dashboard.Revenue
+  alias Shophawk.Dashboard.InvoiceComments
 
 
   def list_revenue do
@@ -123,6 +124,36 @@ defmodule Shophawk.Dashboard do
       from t in Revenue,
       where: t.status == "in cart"
     Repo.all(query)
+  end
+
+  ##### invoice functions #####
+
+  def load_invoice_comments(invoice_numbers) do
+    Repo.all(from r in InvoiceComments, where: r.invoice in ^invoice_numbers)
+  end
+
+  def get_invoice_comment(id) do
+    Repo.one(from r in InvoiceComments, where: r.id == ^id)
+  end
+
+  def create_invoice_comment(attrs \\ %{}) do
+    %InvoiceComments{}
+    |> InvoiceComments.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def delete_invoice_comment(%InvoiceComments{} = comment) do
+    Repo.delete(comment)
+  end
+
+  def change_invoice_comment(%InvoiceComments{} = comment, attrs \\ %{}) do
+    InvoiceComments.changeset(comment, attrs)
+  end
+
+  def update_invoice_comment(%InvoiceComments{} = comment, attrs) do
+    comment
+    |> InvoiceComments.changeset(attrs)
+    |> Repo.update()
   end
 
 end

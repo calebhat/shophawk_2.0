@@ -17,8 +17,8 @@ defmodule Shophawk.Shop do
     query =
       from r in Runlist,
       where: r.job_operation in ^operations_list
-      Repo.all(query)
-    end
+    Repo.all(query)
+  end
 
 
   def find_matching_job_ops(job_list) do #used in csvimport

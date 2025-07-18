@@ -20,6 +20,7 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_material
     alias Shophawk.Jb_material_location
     alias Shophawk.Jb_Ap_Check
+    #alias Shophawk.Jb_InvoiceDetail
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
   def load_all_active_jobs() do
@@ -811,34 +812,60 @@ defmodule Shophawk.Jobboss_db do
       from r in Jb_InvoiceHeader,
       where: r.open_invoice_amt > 0.0
 
-    failsafed_query(query)
-      |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
-      |> Enum.sort_by(&(&1.customer), :desc)
-      |> Enum.with_index()
-      |> Enum.map(fn {inv, index} -> Map.put(inv, :id, index) end)
-      |> Enum.reverse
-      |> Enum.map(fn inv ->
-        inv =
-          cond do
-            inv.terms in ["Net 30 days", "1% 10 Net 30", "2% 10 Net 30", "Due On Receipt"] -> Map.put(inv, :terms, 30)
-            inv.terms in ["Net 45 Days", "2% 10 NET 45", "NET 40 DAYS"] -> Map.put(inv, :terms, 45)
-            inv.terms in ["NET 60 DAYS"] -> Map.put(inv, :terms, 60)
-            inv.terms in ["Net 75 Days", "Net 60 mth end"] -> Map.put(inv, :terms, 75)
-            inv.terms in ["NET 90 DAYS"] -> Map.put(inv, :terms, 90)
-            true -> inv
-          end
-        inv = Map.put(inv, :open_invoice_amount, Float.round(inv.open_invoice_amt, 2))
-        inv = Map.put(inv, :days_open, Date.diff(Date.utc_today(), inv.document_date))
-        inv = if Date.diff(inv.due_date, Date.utc_today()) <= 0, do: Map.put(inv, :late, true), else: Map.put(inv, :late, false)
+    open_invoices =
+      failsafed_query(query)
+        |> Enum.map(fn op -> Map.from_struct(op) |> Map.drop([:__meta__]) |> sanitize_map() end)
+        |> Enum.sort_by(&(&1.customer), :desc)
+        |> Enum.with_index()
+        |> Enum.map(fn {inv, index} -> Map.put(inv, :id, index) end)
+        |> Enum.reverse
+        |> Enum.map(fn inv ->
+          inv =
+            cond do
+              inv.terms in ["Net 30 days", "1% 10 Net 30", "2% 10 Net 30", "Due On Receipt"] -> Map.put(inv, :terms, 30)
+              inv.terms in ["Net 45 Days", "2% 10 NET 45", "NET 40 DAYS"] -> Map.put(inv, :terms, 45)
+              inv.terms in ["NET 60 DAYS"] -> Map.put(inv, :terms, 60)
+              inv.terms in ["Net 75 Days", "Net 60 mth end"] -> Map.put(inv, :terms, 75)
+              inv.terms in ["NET 90 DAYS"] -> Map.put(inv, :terms, 90)
+              true -> inv
+            end
+          inv = Map.put(inv, :open_invoice_amount, Float.round(inv.open_invoice_amt, 2))
+          inv = Map.put(inv, :days_open, Date.diff(Date.utc_today(), inv.document_date))
+          inv = if Date.diff(inv.due_date, Date.utc_today()) <= 0, do: Map.put(inv, :late, true), else: Map.put(inv, :late, false)
 
-        cond do
-          inv.days_open < 30 -> Map.put(inv, :column, 1)
-          inv.days_open >= 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
-          inv.days_open > 60 and inv.days_open <= 90 -> Map.put(inv, :column, 3)
-          inv.days_open > 90 -> Map.put(inv, :column, 4)
-          true -> Map.put(inv, :column, 0)
-        end
-      end)
+          cond do
+            inv.days_open < 30 -> Map.put(inv, :column, 1)
+            inv.days_open >= 30 and inv.days_open <= 60 -> Map.put(inv, :column, 2)
+            inv.days_open > 60 and inv.days_open <= 90 -> Map.put(inv, :column, 3)
+            inv.days_open > 90 -> Map.put(inv, :column, 4)
+            true -> Map.put(inv, :column, 0)
+          end
+        end)
+
+      #load all job/invoice data for each invoice
+      #Enum.chunk_every(invoice_numbers, 1000)
+      #|> Enum.map(fn invoices ->
+      #  query =
+      #    from r in Jb_InvoiceDetail,
+      #    where: r.document in ^invoices,
+      #    #where: not is_nil(r.job) #anything with a nil job is a frieght charge or other
+      #    failsafed_query(query)
+      #    |> Enum.map(fn op ->
+      #      Map.from_struct(op)
+      #      |> Map.drop([:__meta__])
+      #      |> sanitize_map()
+      #    end)
+      #end)
+      #do we want to show charges other than jobs for invoice info? ie. freight charges, expedite fees?
+      #would have to load the extra cost data from the schema if so.
+      #|> IO.inspect
+
+      #query [Invoice_Detail] table to get jobs linked to invoice and qty on invoice
+      #link to showjob for easy viewing
+      #includes job creator from job cache for nicole to see easily
+      #also query/merge comments from postgres db
+
+      open_invoices
   end
 
   def active_jobs_with_cost() do
