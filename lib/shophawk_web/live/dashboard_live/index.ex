@@ -29,7 +29,6 @@ defmodule ShophawkWeb.DashboardLive.Index do
           socket
           |> put_flash(:error, message)
           |> redirect(to: "/")}
-          |> assign(:page_title, "Dashboard")
     end
   end
 
@@ -110,16 +109,16 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      #|> load_checkbook_component() #5 seconds
+      |> load_checkbook_component() #5 seconds
       |> load_open_invoices_component() #5 sec
-      #|> load_travelors_released_componenet() #1 second
-      #|> load_hot_jobs()
-      #|> load_time_off()
-      #|> load_late_shipments()
-      #|> load_anticipated_revenue_component() #2 sec
-      #|> load_monthly_sales_chart_component() #instant
-      #|> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
-      #|> load_top_vendors(socket.assigns.top_vendors_startdate, socket.assigns.top_vendors_enddate)
+      |> load_travelors_released_componenet() #1 second
+      |> load_hot_jobs()
+      |> load_time_off()
+      |> load_late_shipments()
+      |> load_anticipated_revenue_component() #2 sec
+      |> load_monthly_sales_chart_component() #instant
+      |> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
+      |> load_top_vendors(socket.assigns.top_vendors_startdate, socket.assigns.top_vendors_enddate)
     }
   end
 
