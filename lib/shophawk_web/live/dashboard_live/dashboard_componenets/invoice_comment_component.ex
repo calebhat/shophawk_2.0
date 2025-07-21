@@ -22,15 +22,16 @@ defmodule ShophawkWeb.InvoiceCommentcomponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:comment]} type="textarea" label={"Comment for Invoice #{@document}"} />
+        <.input field={@form[:comment]} type="text" label={"Comment for Invoice #{@document}"} />
         <div class="hidden">
-          <.input field={@form[:invoice]} type="text" value={@document} class="hidden" />
+          <.input field={@form[:invoice]} type="text" value={@document}/>
+          <.input field={@form[:id]} type="text" value={@comment.id}/>
         </div>
 
         <:actions>
         <div class="flex justify-between items-center">
         <div>
-          <.button phx-disable-with="Saving...">Checkin</.button>
+          <.button phx-disable-with="Saving...">Save</.button>
         </div>
         </div>
         </:actions>
@@ -39,11 +40,8 @@ defmodule ShophawkWeb.InvoiceCommentcomponent do
     """
   end
 
-  def update(%{document: document} = assigns, socket) do
-    params =
-      %InvoiceComments{}
-      |> InvoiceComments.changeset(%{document: document})
-
+  def update(%{comment: comment} = assigns, socket) do
+    params = InvoiceComments.changeset(comment, %{})
     {:ok,
      socket
      |> assign(assigns)
@@ -51,7 +49,7 @@ defmodule ShophawkWeb.InvoiceCommentcomponent do
   end
 
   def handle_event("save", %{"invoice_comments" => comment_params}, socket) do
-    save_tool(socket, comment_params)
+    save_tool(socket, socket.assigns.action, comment_params)
   end
 
   def handle_event("validate", %{"invoice_comments" => comment_params}, socket) do
@@ -65,16 +63,32 @@ defmodule ShophawkWeb.InvoiceCommentcomponent do
 
 
 
-  defp save_tool(socket, comment_params) do
+  defp save_tool(socket, :new_comment, comment_params) do
     case Dashboard.create_invoice_comment(comment_params) do
       {:ok, invoice} ->
         notify_parent({:saved, invoice})
 
+        {:noreply,
+          socket
+          |> put_flash(:info, "Comment Added")
+          |> push_patch(to: socket.assigns.patch)}  #NO PATCH ASSIGNED, WHAT DOES THE PATCH DO???
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign_form(socket, changeset)}
+    end
+  end
+
+
+  defp save_tool(socket, :edit_comment, comment_params) do
+    comment = Shophawk.Dashboard.get_invoice_comment(String.to_integer(comment_params["id"]))
+    case Dashboard.update_invoice_comment(comment, comment_params) do
+      {:ok, comment} ->
+        notify_parent({:saved, comment})
 
         {:noreply,
-         socket
-         |> put_flash(:info, "Comment Added")
-         |> push_patch(to: "/dashboard/accounting" )}  #NO PATCH ASSIGNED, WHAT DOES THE PATCH DO???
+          socket
+          |> put_flash(:info, "Comment Edited")
+          |> push_patch(to: socket.assigns.patch )}  #NO PATCH ASSIGNED, WHAT DOES THE PATCH DO???
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}

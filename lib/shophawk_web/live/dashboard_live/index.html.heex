@@ -1,7 +1,7 @@
 <.live_component module={ShophawkWeb.Components.Navbar} id="navbar" current_user={@current_user} />
 <div class="px-4 py-2 sm:px-6 lg:px-8">
     <div>
-        <div class="grid grid-cols-2 place-content-center text-stone-100">
+        <div class="grid grid-cols-1 place-content-center text-stone-100">
             
             <!-- Checkbook Balance/tx's -->
             <.live_component module={CheckbookComponent} id="checkbook-1" 
@@ -15,9 +15,11 @@
             open_invoices={@open_invoices} 
             selected_range={@selected_range}
             open_invoice_values={@open_invoice_values}
-            height={%{border: "h-96", frame: "h-[74%]", content: "h-[22vh]"}}
+            height={%{border: "h-[500px]", frame: "h-[80%]", content: "h-[35vh]"}}
+            expanded_invoices={@expanded_invoices || []}
             />
-
+        </div>
+        <div class="grid grid-cols-2 place-content-center text-stone-100">
             <!-- Travelor Count -->
             <.live_component module={TravelorcountComponent} id="travelor_count-1"
             travelor_count={@travelor_count}
@@ -92,6 +94,30 @@
             top_vendors_enddate={@top_vendors_enddate}
             />
         </div>
+
+        <.modal :if={@live_action in [:new_comment]} id="add-comment-modal" show on_cancel={JS.patch("/dashboard/accounting")}>
+          <.live_component
+            module={ShophawkWeb.InvoiceCommentcomponent}
+            id={@document_to_add_comment}
+            title={@page_title}
+            action={@live_action}
+            document={@document_to_add_comment}
+            comment={@comment_to_edit}
+            patch="/dashboard"
+          />
+        </.modal>
+
+        <.modal :if={@live_action in [:edit_comment]} id="add-comment-modal" show on_cancel={JS.patch("/dashboard/accounting")}>
+          <.live_component
+            module={ShophawkWeb.InvoiceCommentcomponent}
+            id={@document_to_add_comment}
+            title={@page_title}
+            action={@live_action}
+            document={@document_to_add_comment}
+            comment={@comment_to_edit}
+            patch="/dashboard"
+          />
+        </.modal>
 
         <.showjob_modal :if={@live_action in [:show_job]} id="runlist-job-modal" show on_cancel={JS.patch(~p"/dashboard?reload=#{false}")}>
         <.live_component

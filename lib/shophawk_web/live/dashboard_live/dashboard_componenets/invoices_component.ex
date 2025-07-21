@@ -60,7 +60,7 @@ defmodule ShophawkWeb.InvoicesComponent do
                                         <%= for inv <- @open_invoices do %>
                                             <tr
                                             id={"invoice_entry_#{inv.id}"}
-                                            class="border border-stone-500 hover:bg-cyan-700"
+                                            class="border border-stone-500 hover:bg-cyan-600"
                                             phx-click="toggle_invoice_expand"
                                             phx-value-op-id={inv.id}
                                             >
@@ -76,36 +76,36 @@ defmodule ShophawkWeb.InvoicesComponent do
                                                 <td class={[change_bg_color_if_late(inv.late, inv.column, 3), "border-r border-stone-500 overflow-hidden"]}><%= if inv.days_open > 60 and inv.days_open <= 90, do: number_to_currency(inv.open_invoice_amt) %></td>
                                                 <td class={[change_bg_color_if_late(inv.late, inv.column, 4), "border-r border-stone-500 overflow-hidden"]}><%= if inv.days_open > 90, do: number_to_currency(inv.open_invoice_amt) %></td>
                                                 <td class={["border-r border-stone-500 overflow-hidden hover:cursor-pointer"]} phx-click="create_comment" phx-value-document={inv.document}>
-                                                    <%= if Enum.count(inv.comments) > 0, do: "Add Comment (#{Enum.count(inv.comments)})", else: "Add Comment" %>
+                                                    <%= if Enum.count(inv.comments) > 0, do: "+ (#{Enum.count(inv.comments)})", else: "+" %>
                                                 </td>
                                             </tr>
 
                                             <%= if toggle_content(inv.id, assigns.expanded_invoices) == "" do %>
                                             <%= for c <- inv.comments do %>
-                                                <tr>
-                                                    <td colspan="8" class="pl-2 pb-1 bg-cyan-700 border-stone-500" style="vertical-align: top; height: 100%;">
-                                                        <div class="bg-cyan-800 pl-2 pb-2 rounded-bl-xl flex flex-col min-h-auto">
+                                                <tr class="bg-cyan-700 hover:bg-cyan-600">
+                                                    <td colspan="8" class="pl-2 border-stone-500 border-t hover:cursor-pointer" style="vertical-align: top; height: 100%;" phx-click="edit_comment" phx-value-id={c.id}>
+                                                        <div class="hover:bg-cyan-600 pl-2 rounded-bl-xl flex flex-col min-h-auto">
                                                             <div class="flex-grow overflow-auto text-white">
                                                                 <%= c.comment %>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td colspan="2" class="pb-1 bg-cyan-700 border-stone-500 hover:cursor-pointer" style="vertical-align: top; height: 100%;"  phx-click="edit_comment" phx-value-id={c.id}>
-                                                        <div class="bg-cyan-800 pb-2 flex flex-col min-h-auto hover:bg-cyan-700">
+                                                    <td colspan="2" class="border-stone-500 border-t hover:cursor-pointer" style="vertical-align: top; height: 100%;" phx-click="edit_comment" phx-value-id={c.id}>
+                                                        <div class="hover:bg-cyan-600 flex flex-col min-h-auto">
                                                             <div class="flex-grow overflow-auto text-white">
                                                                 <%= Calendar.strftime(NaiveDateTime.add(c.inserted_at, -5, :hour), "%B %d, %Y %I:%M %p") %>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td colspan="1" class="pb-1 bg-cyan-700 border-stone-500 hover:cursor-pointer" style="vertical-align: top; height: 100%;"  phx-click="edit_comment" phx-value-id={c.id}>
-                                                        <div class="bg-cyan-800 pb-2 flex flex-col min-h-auto hover:bg-cyan-700">
+                                                    <td colspan="1" class="border-stone-500 border-t hover:cursor-pointer" style="vertical-align: top; height: 100%;" phx-click="edit_comment" phx-value-id={c.id}>
+                                                        <div class="hover:bg-cyan-600 rounded-md flex flex-col min-h-auto hover:bg-cyan-800">
                                                             <div class="flex-grow overflow-auto text-white">
                                                                 Edit
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td colspan="1" class="pr-2 pb-1 bg-cyan-700 border-stone-500 hover:cursor-pointer" style="vertical-align: top; height: 100%;" phx-click="delete_comment" phx-value-id={c.id}>
-                                                        <div class="bg-cyan-800 pr-2 pb-2 rounded-br-xl flex flex-col min-h-auto hover:bg-cyan-700">
+                                                    <td colspan="1" class="pr-2 border-stone-500 border-t hover:cursor-pointer" style="vertical-align: top; height: 100%;" phx-click={JS.push("delete_comment", value: %{id: c.id}) |> hide("##{c.id}")} data-confirm="Are you sure?">
+                                                        <div class="pr-2 rounded-md flex flex-col min-h-auto hover:bg-cyan-800">
                                                             <div class="flex-grow overflow-auto text-white" >
                                                                 Delete
                                                             </div>
@@ -135,7 +135,7 @@ defmodule ShophawkWeb.InvoicesComponent do
   end
 
   def toggle_content(id, content_toggle_list) do
-    case Integer.to_string(id) in content_toggle_list do
+    case Integer.to_string(id) not in content_toggle_list do
       true -> ""
       false -> "hidden"
     end

@@ -17,7 +17,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   alias ShophawkWeb.LateShipmentsComponent
   alias ShophawkWeb.TopVendorsComponent
   alias Shophawk.Dashboard
-  #alias Shophawk.Dashboard.InvoiceComments
+  alias Shophawk.Dashboard.InvoiceComments
 
 
   @impl true
@@ -29,6 +29,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
           socket
           |> put_flash(:error, message)
           |> redirect(to: "/")}
+          |> assign(:page_title, "Dashboard")
     end
   end
 
@@ -109,22 +110,55 @@ defmodule ShophawkWeb.DashboardLive.Index do
   def handle_info(:load_data, socket) do
     {:noreply,
       socket
-      |> load_checkbook_component() #5 seconds
+      #|> load_checkbook_component() #5 seconds
       |> load_open_invoices_component() #5 sec
-      |> load_travelors_released_componenet() #1 second
-      |> load_hot_jobs()
-      |> load_time_off()
-      |> load_late_shipments()
-      |> load_anticipated_revenue_component() #2 sec
-      |> load_monthly_sales_chart_component() #instant
-      |> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
-      |> load_top_vendors(socket.assigns.top_vendors_startdate, socket.assigns.top_vendors_enddate)
+      #|> load_travelors_released_componenet() #1 second
+      #|> load_hot_jobs()
+      #|> load_time_off()
+      #|> load_late_shipments()
+      #|> load_anticipated_revenue_component() #2 sec
+      #|> load_monthly_sales_chart_component() #instant
+      #|> load_yearly_sales_chart(socket.assigns.top_10_startdate, socket.assigns.top_10_enddate)
+      #|> load_top_vendors(socket.assigns.top_vendors_startdate, socket.assigns.top_vendors_enddate)
     }
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
     # Handle task errors
     {:noreply, assign(socket, loading: false, error: reason)}
+  end
+
+  def handle_info({ShophawkWeb.InvoiceCommentcomponent, {:saved, invoice_comment}}, socket) do
+    updated_open_invoices =
+      Enum.map(socket.assigns.open_invoices, fn invoice ->
+        case invoice.document == invoice_comment.invoice do
+          false -> invoice
+          true -> merge_invoice_comment(invoice, invoice_comment)
+        end
+      end)
+
+    socket =
+      socket
+      |> assign(:page_title, "Accounting")
+      |> assign(:open_invoices, updated_open_invoices)
+
+    Process.send_after(self(), :clear_flash, 1500)
+
+    {:noreply, socket}
+  end
+
+  def merge_invoice_comment(invoice, comment_struct) do
+    filtered_comments =
+      case Map.has_key?(invoice, :comments) do
+        true -> Enum.reject(invoice.comments, fn c -> c.id == comment_struct.id end)
+        false -> []
+      end
+
+    merged_comments =
+      [comment_struct | filtered_comments]
+      |> Enum.sort_by(&(&1.inserted_at), :desc)
+
+   Map.put(invoice, :comments, merged_comments)
   end
 
   def load_checkbook_component(socket) do
@@ -713,12 +747,53 @@ defmodule ShophawkWeb.DashboardLive.Index do
     beginning_of_this_month = Date.utc_today() |> Date.add(-30) |> Date.beginning_of_month()
     end_of_month = Date.utc_today() |> Date.add(-30) |> Date.end_of_month()
     generate_monthly_sales(beginning_of_this_month, end_of_month) |> List.first()
+    {:noreply, socket}
+  end
 
+  def handle_event("toggle_invoice_expand", %{"op-id" => op_id}, socket) do
+    expanded = socket.assigns.expanded_invoices
+    updated_expanded_list =
+      case op_id in expanded do
+        true -> List.delete(expanded, op_id)
+        false -> [op_id | expanded]
+      end
+    {:noreply, assign(socket, :expanded_invoices, updated_expanded_list)}
+  end
+
+  def handle_event("create_comment", %{"document" => document}, socket) do
+    socket =
+      socket
+      |> assign(:document_to_add_comment, document)
+      |> assign(:live_action, :new_comment)
+      |> assign(:comment_to_edit, %InvoiceComments{})
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_comment", %{"id" => id}, socket) do
+    comment = Shophawk.Dashboard.get_invoice_comment(id)
+    {:ok, _} = Shophawk.Dashboard.delete_invoice_comment(comment)
+    invoices_with_removed_comment =
+      Enum.map(socket.assigns.open_invoices, fn inv ->
+        case Map.has_key?(inv, :comments) do
+          true -> Map.put(inv, :comments, List.delete(inv.comments, comment))
+          false -> inv
+        end
+      end)
+    {:noreply, assign(socket, :open_invoices, invoices_with_removed_comment)}
+  end
+
+  def handle_event("edit_comment", %{"id" => id}, socket) do
+      comment = Shophawk.Dashboard.get_invoice_comment(id)
+      socket =
+        socket
+        |> assign(:live_action, :edit_comment)
+        |> assign(:document_to_add_comment, comment.invoice)
+        |> assign(:comment_to_edit, comment)
+    {:noreply, socket}
+  end
 
     ######################Functions to load history into db for first load with new dashboard####################
     #load_10_year_history_into_db()
-    {:noreply, socket}
-  end
 
   @spec customer_key(any(), any()) :: any()
   def customer_key(map, matching_map) do

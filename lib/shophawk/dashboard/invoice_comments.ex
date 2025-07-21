@@ -10,8 +10,8 @@ defmodule Shophawk.Dashboard.InvoiceComments do
   end
 
   @doc false
-  def changeset(dashboard, attrs) do
-    dashboard
+  def changeset(comment, attrs) do
+    comment
     |> cast(attrs, [:invoice, :comment])
     |> validate_required([:invoice, :comment])
   end

@@ -7,6 +7,7 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
   alias ShophawkWeb.DashboardLive.Index # Import the helper functions from Index
   alias ShophawkWeb.CheckbookComponent
   alias ShophawkWeb.InvoicesComponent
+  alias Shophawk.Dashboard.InvoiceComments
 
   @impl true
   def render(assigns) do
@@ -37,13 +38,27 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
           </div>
         </div>
 
-        <.modal :if={@live_action in [:add_comment]} id="add-comment-modal" show on_cancel={JS.patch("/dashboard/accounting")}>
+        <.modal :if={@live_action in [:new_comment]} id="add-comment-modal" show on_cancel={JS.patch("/dashboard/accounting")}>
           <.live_component
             module={ShophawkWeb.InvoiceCommentcomponent}
             id={@document_to_add_comment}
             title={@page_title}
             action={@live_action}
             document={@document_to_add_comment}
+            comment={@comment_to_edit}
+            patch="/dashboard/accounting"
+          />
+        </.modal>
+
+        <.modal :if={@live_action in [:edit_comment]} id="add-comment-modal" show on_cancel={JS.patch("/dashboard/accounting")}>
+          <.live_component
+            module={ShophawkWeb.InvoiceCommentcomponent}
+            id={@document_to_add_comment}
+            title={@page_title}
+            action={@live_action}
+            document={@document_to_add_comment}
+            comment={@comment_to_edit}
+            patch="/dashboard/accounting"
           />
         </.modal>
 
@@ -97,6 +112,7 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
       socket
       |> Index.load_checkbook_component()
       |> Index.load_open_invoices_component()
+      |> assign(:page_title, "Accounting")
     }
   end
 
@@ -114,13 +130,20 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
       |> assign(:page_title, "Accounting")
       |> assign(:open_invoices, updated_open_invoices)
 
+    Process.send_after(self(), :clear_flash, 1500)
+
     {:noreply, socket}
   end
 
   def merge_invoice_comment(invoice, comment_struct) do
-    existing_comments = if Map.has_key?(invoice, :comments), do: invoice.comments, else: []
+    filtered_comments =
+      case Map.has_key?(invoice, :comments) do
+        true -> Enum.reject(invoice.comments, fn c -> c.id == comment_struct.id end)
+        false -> []
+      end
+
     merged_comments =
-      [comment_struct | existing_comments]
+      [comment_struct | filtered_comments]
       |> Enum.sort_by(&(&1.inserted_at), :desc)
 
    Map.put(invoice, :comments, merged_comments)
@@ -158,8 +181,8 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
     socket =
       socket
       |> assign(:document_to_add_comment, document)
-      |> assign(:page_title, "Add Comment")
-      |> assign(:live_action, :add_comment)
+      |> assign(:live_action, :new_comment)
+      |> assign(:comment_to_edit, %InvoiceComments{})
     {:noreply, socket}
   end
 
@@ -177,7 +200,12 @@ defmodule ShophawkWeb.DashboardLive.Accounting do
   end
 
   def handle_event("edit_comment", %{"id" => id}, socket) do
-
+      comment = Shophawk.Dashboard.get_invoice_comment(id)
+      socket =
+        socket
+        |> assign(:live_action, :edit_comment)
+        |> assign(:document_to_add_comment, comment.invoice)
+        |> assign(:comment_to_edit, comment)
     {:noreply, socket}
   end
 

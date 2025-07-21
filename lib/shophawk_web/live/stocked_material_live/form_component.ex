@@ -19,7 +19,6 @@ defmodule ShophawkWeb.StockedMaterialLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-     <%  IO.inspect(@form) %>
         <.input field={@form[:material]} type="text" label="Material" value={@material} disabled="true" />
         <div class="hidden"><.input field={@form[:material]} type="text" label="Material" value={@material} /></div>
         <.input field={@form[:bar_length]} type="number" label="Bar Length" />
