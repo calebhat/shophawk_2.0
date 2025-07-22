@@ -222,7 +222,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
         [] -> ["none_found"]
         matches -> matches
       end
-
     {:noreply, assign(socket, :customer_matches, matches)}
   end
 
@@ -231,7 +230,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       socket
       |> assign(:customer, name)
       |> assign(:customer_matches, []) # Clear suggestions after selection
-
     {:noreply, socket}
   end
 
@@ -240,7 +238,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       socket
       |> assign(:customer, "")
       |> assign(:customer_matches, []) # Clear suggestions after selection
-
     {:noreply, socket}
   end
 
@@ -251,7 +248,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
         [] -> ["none_found"]
         matches -> matches
       end
-
     {:noreply, assign(socket, :part_number_matches, matches)}
   end
 
@@ -260,7 +256,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       socket
       |> assign(:part_number, part_number)
       |> assign(:part_number_matches, []) # Clear suggestions after selection
-
     {:noreply, socket}
   end
 
@@ -269,7 +264,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       socket
       |> assign(:part_number, "")
       |> assign(:part_number_matches, []) # Clear suggestions after selection
-
     {:noreply, socket}
   end
 
@@ -368,6 +362,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     |> assign(:status, "")
     |> assign(:start_date, to_string(Date.add(Date.utc_today(), -3650)))
     |> assign(:end_date, to_string(Date.utc_today()))
+    |> assign(:page_title, "Part History")
     |> stream(:jobs, [])
   end
 

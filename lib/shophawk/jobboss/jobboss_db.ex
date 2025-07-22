@@ -1400,6 +1400,7 @@ defmodule Shophawk.Jobboss_db do
       limit: 10
     )
     |> failsafed_query(query)
+    |> Enum.map(fn c -> convert_binary_to_string(c) end)
   end
 
   def search_part_number_by_like_name(query) do
@@ -1422,6 +1423,7 @@ defmodule Shophawk.Jobboss_db do
       limit: 20
     )
     |> failsafed_query(query)
+    |> Enum.map(fn c -> convert_binary_to_string(c) end)
   end
 
 
