@@ -1388,6 +1388,7 @@ defmodule Shophawk.Jobboss_db do
       where: ilike(c.customer, ^like_query),
       where: c.status == "Active",
       select: c.customer,
+      group_by: c.customer, # Ensure unique customer names
       # Score based on match type
       order_by: [
         desc: fragment(
@@ -1409,6 +1410,7 @@ defmodule Shophawk.Jobboss_db do
     from(c in Jb_job,
       where: ilike(c.part_number, ^like_query),
       select: c.part_number,
+      group_by: c.part_number, # Ensure unique customer names
       # Score based on match type
       order_by: [
         desc: fragment(
