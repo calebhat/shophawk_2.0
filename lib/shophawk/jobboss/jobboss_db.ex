@@ -20,6 +20,7 @@ defmodule Shophawk.Jobboss_db do
     alias Shophawk.Jb_material
     alias Shophawk.Jb_material_location
     alias Shophawk.Jb_Ap_Check
+    alias Shophawk.Jb_customer
     #alias Shophawk.Jb_InvoiceDetail
     #This file is used for all loading and ecto calls directly to the Jobboss Database.
 
@@ -1315,7 +1316,7 @@ defmodule Shophawk.Jobboss_db do
       |> maybe_filter(:customer_po, params["customer_po"])
       |> maybe_filter_description(params["description"])
       |> maybe_filter(:job, params["job"])
-      |> maybe_filter_part(:part_number, params["part_number"], params["part_close_match"])
+      |> maybe_filter(:part_number, params["part_number"])
       |> maybe_filter(:status, params["status"])
       |> maybe_filter_date_range(start_date, end_date)
       |> order_by([desc: :order_date])
@@ -1344,18 +1345,6 @@ defmodule Shophawk.Jobboss_db do
     from r in query, where: field(r, ^field) == ^value
   end
 
-  defp maybe_filter_part(query, _field, "", _close_match), do: query
-  defp maybe_filter_part(query, field, value, close_match) when is_binary(value) do
-    case close_match do
-      "true" ->
-        # For close/partial matches, use LIKE with wildcards for substring search
-        from r in query, where: ilike(field(r, ^field), ^"%#{value}%")
-      "false" ->
-        # Keep exact match as in the original function
-        from r in query, where: field(r, ^field) == ^value
-    end
-  end
-
   # Helper for multiple wildcard searches on description
   defp maybe_filter_description(query, ""), do: query
   defp maybe_filter_description(query, value) when is_binary(value) do
@@ -1379,6 +1368,61 @@ defmodule Shophawk.Jobboss_db do
     from r in query,
       where: r.order_date >= ^start_date and r.order_date <= ^end_date
   end
+
+  def load_all_customers() do
+    query = from r in Jb_customer, where: r.status == "Active"
+    failsafed_query(query)
+    |> Enum.map(fn op ->
+      Map.from_struct(op)
+      |> Map.drop([:__meta__])
+      |> sanitize_map()
+    end)
+  end
+
+  def search_customers_by_like_name(query) do
+    query_lower = String.downcase(query)
+    like_query = "%#{query_lower}%"
+    prefix_query = "#{query_lower}%"
+
+    from(c in Jb_customer,
+      where: ilike(c.customer, ^like_query),
+      where: c.status == "Active",
+      select: c.customer,
+      # Score based on match type
+      order_by: [
+        desc: fragment(
+          "CASE WHEN LOWER(customer) = ? THEN 3 WHEN LOWER(customer) LIKE ? THEN 2 ELSE 1 END",
+          ^query_lower,
+          ^prefix_query
+        )
+      ],
+      limit: 10
+    )
+    |> failsafed_query(query)
+  end
+
+  def search_part_number_by_like_name(query) do
+    query_lower = String.downcase(query)
+    like_query = "%#{query_lower}%"
+    prefix_query = "#{query_lower}%"
+
+    from(c in Jb_job,
+      where: ilike(c.part_number, ^like_query),
+      select: c.part_number,
+      # Score based on match type
+      order_by: [
+        desc: fragment(
+          "CASE WHEN LOWER(part_number) = ? THEN 3 WHEN LOWER(part_number) LIKE ? THEN 2 ELSE 1 END",
+          ^query_lower,
+          ^prefix_query
+        )
+      ],
+      limit: 20
+    )
+    |> failsafed_query(query)
+  end
+
+
 
   #### Query Failsafes ####
   def failsafed_query(query, retries \\ 3, delay \\ 100) do #For jobboss db queries

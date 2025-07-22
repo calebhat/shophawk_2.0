@@ -587,7 +587,7 @@ defmodule ShophawkWeb.CoreComponents do
 
     ~H"""
     <div phx-feedback-for={@name}>
-      <label class="flex items-center gap-4 text-xl leading-6 text-white">
+      <label class="flex items-center gap-4 text-xl leading-6">
         <input type="hidden" name={@name} value="false" />
         <input
           type="checkbox"

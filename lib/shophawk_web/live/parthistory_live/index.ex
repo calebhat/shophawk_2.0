@@ -21,30 +21,83 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
               <div class="">
                 <.input name="job" value={@job} placeholder="Job"/>
               </div>
-              <div class="border-t border-b mt-2">
-                <div class="my-2">
-                  <.input name="part_number" value={@part_number} placeholder="Part Number"/>
-                </div>
-                <div class="my-2">
-                  <div class="flex">
+              <div class="my-2">
+                <div class="flex">
+                  <div class="">
+                    <!-- Part Number input with recommended matches -->
+                    <div class="relative">
+                      <.input
+                        name="part_number"
+                        value={@part_number}
+                        placeholder="Part Number"
+                        autocomplete="off"
+                        phx-debounce="300"
+                        phx-change="suggest_part_number"
+                        phx-blur="unsuggest_part_number"
+                        class="w-full p-2 border rounded"
+                      />
+                      <%= if @part_number_matches != [] do %>
+                        <ul class="absolute z-10 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+                          <%= if List.first(@part_number_matches) == "none_found" do %>
+                            <div class="p-2 bg-stone-300">
+                              No matches found
+                            </div>
 
-                    <div class="">
-                      <.input name="part_close_match" type="checkbox" value={@part_close_match} />
-                    </div>
-                    <div class="ml-2 text-white text-sm place-content-center">
-                      Partial match?
+                          <% else %>
+                            <%= for part_number <- @part_number_matches do %>
+                              <li
+                                phx-click="select_part_number"
+                                phx-value-name={part_number}
+                                class="p-2 hover:bg-gray-100 cursor-pointer"
+                              >
+                                <%= part_number %>
+                              </li>
+                            <% end %>
+                          <% end %>
+                        </ul>
+                      <% end %>
                     </div>
                   </div>
                 </div>
               </div>
-
-
-
               <div class="my-2">
                 <.input name="description" value={@description} placeholder="Description"/>
               </div>
               <div class="my-2">
-                <.input name="customer" value={@customer} placeholder="Customer"/>
+                <!-- Customer input with recommended matches -->
+                <div class="relative">
+                  <.input
+                    name="customer"
+                    value={@customer}
+                    placeholder="Customer"
+                    autocomplete="off"
+                    phx-debounce="300"
+                    phx-change="suggest_customer"
+                    phx-blur="unsuggest_customer"
+                    class="w-full p-2 border rounded"
+                  />
+                  <%= if @customer_matches != [] do %>
+                    <ul class="absolute z-10 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+                    <% IO.inspect(@customer_matches) %>
+                      <%= if List.first(@customer_matches) == "none_found" do %>
+                        <div class="p-2 bg-stone-300">
+                          No matches found
+                        </div>
+
+                      <% else %>
+                        <%= for customer <- @customer_matches do %>
+                          <li
+                            phx-click="select_customer"
+                            phx-value-name={customer}
+                            class="p-2 hover:bg-gray-100 cursor-pointer"
+                          >
+                            <%= customer %>
+                          </li>
+                        <% end %>
+                      <% end %>
+                    </ul>
+                  <% end %>
+                </div>
               </div>
               <div class="my-2">
                 <.input name="customer_po" value={@customer_po} placeholder="Customer PO"/>
@@ -123,8 +176,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                 </tbody>
               </table>
 
-
-
             </div>
           </div>
 
@@ -148,7 +199,8 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
   end
 
   def mount(_params, _session, socket) do
-    {:ok, socket}
+
+    {:ok, set_default_assigns(socket)}
   end
 
   def handle_event("submit_form", params, socket) do
@@ -163,6 +215,64 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     {:noreply, assign(socket, :live_action, nil)}
   end
 
+  def handle_event("suggest_customer", %{"customer" => query}, socket) do
+    # Example: Fetch customers matching the query (case-insensitive)
+    matches =
+      case Shophawk.Jobboss_db.search_customers_by_like_name(query) do
+        [] -> ["none_found"]
+        matches -> matches
+      end
+
+    {:noreply, assign(socket, :customer_matches, matches)}
+  end
+
+  def handle_event("select_customer", %{"name" => name}, socket) do
+    socket =
+      socket
+      |> assign(:customer, name)
+      |> assign(:customer_matches, []) # Clear suggestions after selection
+
+    {:noreply, socket}
+  end
+
+  def handle_event("unsuggest_customer", _params, socket) do
+    socket =
+      socket
+      |> assign(:customer, "")
+      |> assign(:customer_matches, []) # Clear suggestions after selection
+
+    {:noreply, socket}
+  end
+
+  def handle_event("suggest_part_number", %{"part_number" => query}, socket) do
+    # Example: Fetch customers matching the query (case-insensitive)
+    matches =
+      case Shophawk.Jobboss_db.search_part_number_by_like_name(query) do
+        [] -> ["none_found"]
+        matches -> matches
+      end
+
+    {:noreply, assign(socket, :part_number_matches, matches)}
+  end
+
+  def handle_event("select_part_number", %{"name" => part_number}, socket) do
+    socket =
+      socket
+      |> assign(:part_number, part_number)
+      |> assign(:part_number_matches, []) # Clear suggestions after selection
+
+    {:noreply, socket}
+  end
+
+  def handle_event("unsuggest_part_number", _params, socket) do
+    socket =
+      socket
+      |> assign(:part_number, "")
+      |> assign(:part_number_matches, []) # Clear suggestions after selection
+
+    {:noreply, socket}
+  end
+
   def handle_params(params, _uri, socket) do
     if map_size(params) > 0 do
       params = #sets default values if calling part history search from another page
@@ -172,7 +282,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
         |> Map.put_new("description", "")
         |> Map.put_new("job", "")
         |> Map.put_new("part_number", "")
-        |> Map.put_new("part_close_match", "false")
+        |> Map.put_new("part_number_matches", "")
         |> Map.put_new("status", "")
         |> Map.put_new("start-date", to_string(Date.add(Date.utc_today(), -3650)))
         |> Map.put_new("end-date", to_string(Date.utc_today()))
@@ -214,10 +324,11 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
             |> assign(:description, params["description"])
             |> assign(:job, params["job"])
             |> assign(:part_number, params["part_number"])
-            |> assign(:part_close_match, params["part_close_match"])
             |> assign(:status, params["status"])
             |> assign(:start_date, to_string(Date.add(Date.utc_today(), -3650)))
             |> assign(:end_date, to_string(Date.utc_today()))
+            |> assign(:customer_matches, [])
+            |> assign(:part_number_matches, [])
 
           {:noreply, socket |> stream(:jobs, [], reset: true)}
       end
@@ -247,12 +358,13 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
   def set_default_assigns(socket) do
     socket
-    |> assign(:customer, "")
+    |> assign(:customer, nil)
+    |> assign(:customer_matches, [])
     |> assign(:customer_po, "")
     |> assign(:description, "")
     |> assign(:job, "")
     |> assign(:part_number, "")
-    |> assign(:part_close_match, false)
+    |> assign(:part_number_matches, [])
     |> assign(:status, "")
     |> assign(:start_date, to_string(Date.add(Date.utc_today(), -3650)))
     |> assign(:end_date, to_string(Date.utc_today()))
