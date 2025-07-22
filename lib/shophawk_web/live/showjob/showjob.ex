@@ -308,6 +308,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                     <span class="page-display" style="margin-right: 10px;">Page 1 of ?</span>
                     <button type="button" class="prev-page rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Previous Page</button>
                     <button type="button" class="next-page rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Next Page</button>
+                    <a class="download-pdf rounded-lg p-2 bg-cyan-700 text-white" href={"/serve_pdf/" <> attachment.path} download style="margin-right: 10px;">Download PDF</a>
                   </div>
                   <!-- Scrollable canvas container -->
                   <div style="overflow: auto;">

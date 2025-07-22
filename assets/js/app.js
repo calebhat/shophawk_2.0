@@ -183,6 +183,8 @@ let Pdf_js_render =
               event.preventDefault();
               renderPage(state.currentPage, state.scale, state.rotation, true);
             });
+  
+            // Note: No JavaScript event listener needed for download as we're using an <a> tag with download attribute
           } else {
             console.error(`Controls not found for canvas ${index}`);
           }
@@ -196,6 +198,7 @@ let Pdf_js_render =
         console.error("Error rendering PDFs:", error);
       });
     }
+  
   }
 
 // Register hooks with LiveSocket
