@@ -159,14 +159,14 @@ defmodule ShophawkWeb.InformationLive.Index do
             <a class="hover:text-stone-900" href="https://accounts.principal.com" target="_blank">Principal Retirement Login</a>
           </div>
           <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2 underline hover:text-stone-900">
-            <div phx-click="download_file" phx-value-file-path="S:\General Share folder\shophawk_downloads\Employee_Handbook_EG_2024.pdf">
+            <div phx-click="download_file" phx-value-file-path="\\EG-SRV-FP01\Data\General Share folder\shophawk_downloads\Employee_Handbook_EG_2024.pdf">
               <a class="" href="" target="" >
                 Download Employee Handbook
               </a>
             </div>
           </div>
           <div class="text-md bg-cyan-800 rounded-2xl m-2 p-2 underline hover:text-stone-900">
-            <div phx-click="download_file" phx-value-file-path="S:\General Share folder\shophawk_downloads\esop_summary_2024.pdf">
+            <div phx-click="download_file" phx-value-file-path="\\EG-SRV-FP01\Data\General Share folder\shophawk_downloads\esop_summary_2024.pdf">
               <a class="" href="" target="" >
                 Download ESOP Information
               </a>
