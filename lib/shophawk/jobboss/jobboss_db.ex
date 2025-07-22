@@ -305,7 +305,7 @@ defmodule Shophawk.Jobboss_db do
         if matching_data != [] do
           Enum.reduce(matching_data, starting_map, fn row, acc ->
             acc
-            |> Map.put(:act_run_labor_hrs, (row.act_run_labor_hrs || 0) + acc.act_run_labor_hrs)
+            |> Map.put(:act_run_labor_hrs, Float.round(((row.act_run_labor_hrs || 0) + acc.act_run_labor_hrs), 2))
             |> Map.put(:act_run_qty, (row.act_run_qty || 0) + acc.act_run_qty)
             |> Map.put(:act_scrap_qty, (row.act_scrap_qty || 0) + acc.act_scrap_qty)
             |> Map.put(:employee,
