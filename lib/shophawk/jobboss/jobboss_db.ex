@@ -295,13 +295,15 @@ defmodule Shophawk.Jobboss_db do
 
   def merge_operation_time_data(ops, operation_time_map) do
     Enum.map(ops, fn %{job_operation: job_operation} = op ->
-      matching_data = Enum.filter(operation_time_map, &(&1.job_operation == job_operation))
+      matching_data =
+        Enum.filter(operation_time_map, &(&1.job_operation == job_operation))
+        |> Enum.sort_by(&(&1.work_date), {:asc, Date})
       starting_map =
         Map.from_struct(%Jb_job_operation_time{})
         |> Map.drop([:__meta__])
         |> Map.drop([:job_operation])
         |> Map.put(:full_employee_log, [])
-      combined_data_collection =
+      combined_data_collection = #merges all time entry data for the specific operation
         if matching_data != [] do
           Enum.reduce(matching_data, starting_map, fn row, acc ->
             acc

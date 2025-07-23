@@ -122,7 +122,8 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                 <th class="p-0 pr-6 pb-4 font-normal" style="width: 20%">Operation</th>
                 <th class="p-0 pr-6 pb-4 font-normal" style="width: 10%">Start Date</th>
                 <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Status</th>
-                <th class="p-0 pr-6 pb-4 font-normal" style="width: 10%">Parts Completed</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Completed</th>
+                <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Scrap</th>
                 <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Est Run Time</th>
                 <%= if @current_user do %>
                 <th class="p-0 pr-6 pb-4 font-normal" style="width: 5%">Act Run Time</th>
@@ -144,7 +145,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                   <td class="relative p-0">
                     <div class="block py-4 pr-6">
                       <span class="relative">
-                        <%= op.sched_start %>
+                        <%= Calendar.strftime(op.sched_start, "%m-%d-%Y") %>
                       </span>
                     </div>
                   </td>
@@ -161,6 +162,14 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                       <span class="absolute -inset-y-px right-0 -left-4" />
                       <span class="relative">
                         <%= trunc(op.act_run_qty) %>
+                      </span>
+                    </div>
+                  </td>
+                  <td class="relative p-0">
+                    <div class="block py-4 pr-6">
+                      <span class="absolute -inset-y-px right-0 -left-4" />
+                      <span class="relative">
+                        <%= trunc(op.act_scrap_qty) %>
                       </span>
                     </div>
                   </td>

@@ -33,7 +33,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                         autocomplete="off"
                         phx-debounce="300"
                         phx-change="suggest_part_number"
-                        phx-blur="unsuggest_part_number"
+                        phx-blur="clear_suggestions"
                         class="w-full p-2 border rounded"
                       />
                       <%= if @part_number_matches != [] do %>
@@ -71,14 +71,15 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                     value={@customer}
                     placeholder="Customer"
                     autocomplete="off"
-                    phx-debounce="300"
                     phx-change="suggest_customer"
-                    phx-blur="unsuggest_customer"
+                    phx-debounce="300"
+                    phx-blur="clear_suggestions"
+
+
                     class="w-full p-2 border rounded"
                   />
                   <%= if @customer_matches != [] do %>
                     <ul class="absolute z-10 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
-                    <% IO.inspect(@customer_matches) %>
                       <%= if List.first(@customer_matches) == "none_found" do %>
                         <div class="p-2 bg-stone-300">
                           No matches found
@@ -233,13 +234,6 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("unsuggest_customer", _params, socket) do
-    socket =
-      socket
-      |> assign(:customer, "")
-      |> assign(:customer_matches, []) # Clear suggestions after selection
-    {:noreply, socket}
-  end
 
   def handle_event("suggest_part_number", %{"part_number" => query}, socket) do
     # Example: Fetch customers matching the query (case-insensitive)
@@ -259,11 +253,13 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("unsuggest_part_number", _params, socket) do
-    socket =
-      socket
-      |> assign(:part_number, "")
-      |> assign(:part_number_matches, []) # Clear suggestions after selection
+  def handle_event("clear_suggestions", _params, socket) do
+    self = self()
+    Task.async(fn ->
+      Process.sleep(150)
+      send(self, {:close_reccomendations, nil})
+    end)
+
     {:noreply, socket}
   end
 
@@ -339,6 +335,10 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
         {:noreply, socket |> put_flash(:error, "No Data Found")}
       _ -> {:noreply, stream_insert(socket, :jobs, job_data, at: -1)}
     end
+  end
+
+  def handle_info({:close_reccomendations, nil}, socket) do
+    {:noreply, socket |> assign(:customer_matches, []) |> assign(:part_number_matches, [])}
   end
 
   def handle_info({_ref, _result}, state) do
