@@ -56,7 +56,7 @@ defmodule ShophawkWeb.DeliveriesLive.Index do
       |> Enum.uniq_by(fn r -> r.job end)
     job_numbers = Enum.map(unique_ops, fn r -> r.job end)
     jobs_with_current_location = Enum.map(unique_ops, fn j -> %{job: j.job, currentop: j.currentop, customer: j.customer} end)
-    deliveries = Shophawk.Jobboss_db.load_deliveries(job_numbers)
+    deliveries = Shophawk.Jobboss_db_dashboard.load_deliveries(job_numbers)
 
     deliveries_and_services = deliveries ++ service_operations
 

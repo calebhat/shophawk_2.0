@@ -19,7 +19,7 @@ defmodule ScheduledTasks do
     Cachex.put(:delivery_list, :data, []) #empty list gets populated upon first material page load
 
     #inital Loading of Active jobs into cache
-    Shophawk.Jobboss_db.load_all_active_jobs
+    Shophawk.Jobboss_db_job.load_all_active_jobs
     IO.puts("active jobs loaded into cache")
 
     # Initial scheduled tasks
@@ -31,7 +31,7 @@ defmodule ScheduledTasks do
 
     #Load 10,000 closed/complete jobs into part history cache
     if System.get_env("MIX_ENV") == "prod" do
-      Shophawk.Jobboss_db.load_part_history_jobs
+      Shophawk.Jobboss_db_job.load_part_history_jobs
     end
 
     #tasks less than 1 minutes must be ran in the genserver.
@@ -59,7 +59,7 @@ defmodule ScheduledTasks do
 
     # Store the current time with timezone
     Cachex.put(:runlist_refresh_time, :refresh_time, current_time)
-    Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
+    Shophawk.Jobboss_db_job.sync_recently_updated_jobs(previous_check)
 
     Process.send_after(self(), :update_from_jobboss, 7000)  # Runs again 7 seconds after finishing function
     {:noreply, nil}

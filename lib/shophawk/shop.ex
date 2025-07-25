@@ -47,12 +47,7 @@ defmodule Shophawk.Shop do
 
   """
   def list_runlists(workcenter_list, department) do #takes in a list of workcenters to load runlist rows, weekly load, and jobs that ship today
-    #Shophawk.Jobboss_db.load_all_active_jobs()
-    #THIS FUNCTION NOT LOADING DEPARTMENTS PROPERLY
-    #IO.inspect(workcenter_list, label: "workcenter list")
-    #IO.inspect(department, label: "department")
     runlists = Shophawk.RunlistCache.get_runlist_ops(workcenter_list, department)
-
 
     if Enum.empty?(runlists) do
       {[], [], []}

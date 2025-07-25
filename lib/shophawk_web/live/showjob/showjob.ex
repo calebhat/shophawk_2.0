@@ -57,7 +57,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                     class="text-blue-900 font-bold underline"
                   >
                   <%= mat.material_name %>
-                </.link> - <%= mat.part_length %>" Part Length
+                </.link> - <%= Float.round(mat.part_length, 2) %>" Part Length
                 <% end %>
                 </div>
               <% end %>

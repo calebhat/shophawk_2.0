@@ -174,7 +174,7 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
   end
 
   def load_performance_for_dates(socket, employee_initial, startdate, enddate) do
-    employee_entries = Shophawk.Jobboss_db.load_job_operation_time_by_employee(employee_initial, startdate, enddate)
+    employee_entries = Shophawk.Jobboss_db_material.load_job_operation_time_by_employee(employee_initial, startdate, enddate)
     average_hours_logged_per_day =
       case employee_entries do
         [] -> 0.0
@@ -213,7 +213,7 @@ defmodule ShophawkWeb.DashboardLive.EmployeePerformance do
       |> Enum.reject(fn a -> a.act_run_labor_hrs <= 0.001 end)
 
     operation_numbers = Enum.map(aggregated_entries, fn e -> e.job_operation end) |> Enum.uniq()
-    job_operations = Shophawk.Jobboss_db.load_job_operations(operation_numbers)
+    job_operations = Shophawk.Jobboss_db_material.load_job_operations(operation_numbers)
     merged_entries =
       Enum.map(aggregated_entries, fn a ->
         case Enum.find(job_operations, fn j -> j.job_operation == a.job_operation end) do

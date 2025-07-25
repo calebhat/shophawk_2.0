@@ -1,6 +1,6 @@
 defmodule Shophawk.MaterialCache do
   use GenServer
-  alias Shophawk.Jobboss_db
+  alias Shophawk.Jobboss_db_material
   alias Shophawk.Material
   import Number.Currency
 
@@ -37,13 +37,13 @@ defmodule Shophawk.MaterialCache do
     {material_list, jobboss_material_info} = create_barebones_material_list()
 
     #load all data needed
-    mat_reqs = Jobboss_db.load_material_requirements()
-    year_history = Jobboss_db.load_year_history_of_material_requirements()
+    mat_reqs = Jobboss_db_material.load_material_requirements()
+    year_history = Jobboss_db_material.load_year_history_of_material_requirements()
     all_material_not_used = Material.list_material_not_used
     all_material_purchased_in_past_12_months = Material.list_stockedmaterials_last_12_month_entries()
     jb_material_on_hand_qty =
       Enum.map(jobboss_material_info, fn mat -> mat.material end)
-      |> Jobboss_db.load_all_jb_material_on_hand()
+      |> Jobboss_db_material.load_all_jb_material_on_hand()
     all_jb_material_info =
       Enum.map(jb_material_on_hand_qty, fn mat ->
         jb_info = Enum.find(jobboss_material_info, fn mat_info -> mat_info.material == mat.material_name end)
@@ -262,7 +262,7 @@ defmodule Shophawk.MaterialCache do
   end
 
   def create_barebones_material_list() do
-    jobboss_material_info = Shophawk.Jobboss_db.load_materials_and_sizes()
+    jobboss_material_info = Shophawk.Jobboss_db_material.load_materials_and_sizes()
     #round_stock = jobboss_material_info
       #Enum.filter(jobboss_material_info, fn m -> m.shape == "Round" end)
 
@@ -506,7 +506,7 @@ defmodule Shophawk.MaterialCache do
           Enum.map(mat.sizes, fn s ->
             case s.material_name == material_name do
               true ->
-                matching_size_reqs = Jobboss_db.load_single_material_requirements(material_name)
+                matching_size_reqs = Jobboss_db_material.load_single_material_requirements(material_name)
 
                 matching_material = Material.list_material_not_used_by_material(material_name)
                 matching_material_on_floor_or_being_quoted_or_on_order = Enum.filter(matching_material, fn mat -> mat.in_house == true || mat.being_quoted == true || mat.ordered ==  true end)
@@ -554,11 +554,6 @@ defmodule Shophawk.MaterialCache do
 
     Cachex.put(:material_list, :data, updated_material_list)
     updated_material_list
-  end
-
-  def convert_string_to_float(string) do
-    string = if String.at(string, 0) == ".", do: "0" <> string, else: string
-    elem(Float.parse(string), 0)
   end
 
   def assign_jobs_to_material(jobs, material_on_floor, material) do

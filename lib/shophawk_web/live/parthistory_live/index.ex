@@ -219,7 +219,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
   def handle_event("suggest_customer", %{"customer" => query}, socket) do
     # Example: Fetch customers matching the query (case-insensitive)
     matches =
-      case Shophawk.Jobboss_db.search_customers_by_like_name(query) do
+      case Shophawk.Jobboss_db_parthistory.search_customers_by_like_name(query) do
         [] -> ["none_found"]
         matches -> matches
       end
@@ -238,7 +238,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
   def handle_event("suggest_part_number", %{"part_number" => query}, socket) do
     # Example: Fetch customers matching the query (case-insensitive)
     matches =
-      case Shophawk.Jobboss_db.search_part_number_by_like_name(query) do
+      case Shophawk.Jobboss_db_parthistory.search_part_number_by_like_name(query) do
         [] -> ["none_found"]
         matches -> matches
       end
@@ -277,7 +277,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
         |> Map.put_new("start-date", to_string(Date.add(Date.utc_today(), -3650)))
         |> Map.put_new("end-date", to_string(Date.utc_today()))
 
-      job_maps = Shophawk.Jobboss_db.jobs_search(params)
+      job_maps = Shophawk.Jobboss_db_parthistory.jobs_search(params)
       case job_maps do
         [] ->
           Process.send_after(self(), :clear_flash, 1000)

@@ -209,7 +209,7 @@ defmodule Shophawk.Material do
             end
           end)
         if size_info != nil do
-          case Shophawk.Jobboss_db.update_material(size_info, on_hand_qty + 0.01) do
+          case Shophawk.Jobboss_db_material.update_material(size_info, on_hand_qty + 0.01) do
             true ->
               Repo.delete(stocked_material)
               true
@@ -262,7 +262,7 @@ defmodule Shophawk.Material do
       end
 
     if size_info != nil do
-      case Shophawk.Jobboss_db.update_material(size_info, on_hand_qty) do
+      case Shophawk.Jobboss_db_material.update_material(size_info, on_hand_qty) do
         true ->
           case action do
             :new ->

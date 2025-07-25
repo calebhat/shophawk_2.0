@@ -3,7 +3,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   use ShophawkWeb.ShowJobLive.ShowJobMacroFunctions #functions needed for showjob modal to work
   use ShophawkWeb.FlashRemover
   alias ShophawkWeb.UserAuth
-  alias Shophawk.Jobboss_db
+  alias Shophawk.Jobboss_db_dashboard
   import Number.Currency
   alias ShophawkWeb.CheckbookComponent
   alias ShophawkWeb.InvoicesComponent
@@ -162,7 +162,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def load_checkbook_component(socket) do
     bank_statements =
-      Jobboss_db.bank_statements
+      Jobboss_db_dashboard.bank_statements
       |> Enum.reverse
 
     last_statement = List.first(bank_statements)
@@ -171,7 +171,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     {:ok, days_to_load} = NaiveDateTime.new(Date.add(last_statement.statement_date, -30), ~T[00:00:00.000])
 
     checkbook_entries = #journal entries from 30 days before last bank statement
-      Jobboss_db.journal_entry(days_to_load, elem(NaiveDateTime.new(Date.utc_today(), ~T[00:00:00.000]), 1))
+      Jobboss_db_dashboard.journal_entry(days_to_load, elem(NaiveDateTime.new(Date.utc_today(), ~T[00:00:00.000]), 1))
       |> Enum.map(fn entry -> if entry.reference == "9999", do: Map.put(entry, :reference, "9999 - ACH Check"), else: entry end)
       |> Enum.reverse
 
@@ -195,7 +195,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
 
   def load_open_invoices_component(socket) do
     open_invoices =
-      Jobboss_db.open_invoices
+      Jobboss_db_dashboard.open_invoices
       |> merge_invoice_comments()
 
     open_invoice_values = Enum.reduce(open_invoices, %{zero_to_thirty: 0, thirty_to_sixty: 0, sixty_to_ninety: 0, ninety_plus: 0, late: 0, all: 0}, fn inv, acc ->
@@ -302,9 +302,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def calc_current_revenue() do
-    jobs = Jobboss_db.active_jobs_with_cost()
+    jobs = Jobboss_db_dashboard.active_jobs_with_cost()
     job_numbers = Enum.map(jobs, fn job -> job.job end)
-    deliveries = Jobboss_db.load_active_deliveries(job_numbers)
+    deliveries = Jobboss_db_dashboard.load_active_deliveries(job_numbers)
     merged_deliveries = Enum.reduce(deliveries, [], fn d, acc ->
       job = Enum.find(jobs, fn job -> job.job == d.job end)
       acc ++ [Map.merge(d, job)]
@@ -448,7 +448,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       list
     else
       start_date = Date.beginning_of_month(start_date)
-      case Jobboss_db.load_invoices(start_date, Date.end_of_month(start_date)) do
+      case Jobboss_db_dashboard.load_invoices(start_date, Date.end_of_month(start_date)) do
         [] -> list #if no deliveries found
         invoices ->
           invoice_total = Enum.reduce(invoices, 0, fn inv, acc -> inv.orig_invoice_amt + acc end) |> Float.round(2)
@@ -505,7 +505,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
     if Date.after?(start_date, end_date) do
       list
     else
-      released_jobs = Jobboss_db.released_jobs(start_date)
+      released_jobs = Jobboss_db_dashboard.released_jobs(start_date)
       totals_list = %{date: nil, caleb: 0, dave: 0, greg: 0, brent: 0, jamie: 0, mike: 0, nolan: 0, total: 0}
       job_totals =
         Enum.reduce(released_jobs, totals_list, fn job, acc ->
@@ -563,7 +563,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       ["tyson"] => "Tyson Foods",
       ["valmet"] => "Valmet"
     }
-    deliveries_this_year = case Jobboss_db.load_invoices(start_date, end_date) do
+    deliveries_this_year = case Jobboss_db_dashboard.load_invoices(start_date, end_date) do
       [] -> [] #if no deliveries found
       invoices -> invoices
     end
@@ -592,7 +592,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
   end
 
   def load_top_vendors(socket, start_date, end_date) do
-    payments = case Jobboss_db.load_vendor_payments(start_date, end_date) do
+    payments = case Jobboss_db_dashboard.load_vendor_payments(start_date, end_date) do
       [] -> [] #if no deliveries found
       checks -> checks
     end
@@ -623,7 +623,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> Enum.map(fn job_data -> job_data.job_ops end)
       |> List.flatten
 
-    late_deliveries = case Shophawk.Jobboss_db.load_late_deliveries() do
+    late_deliveries = case Shophawk.Jobboss_db_dashboard.load_late_deliveries() do
         [] -> [] #if no deliveries found
         deliveries ->
           Enum.reduce(deliveries, [], fn d, acc ->
@@ -642,7 +642,7 @@ defmodule ShophawkWeb.DashboardLive.Index do
       |> Enum.reject(fn op -> op.customer == "EDG GEAR" end)
 
     two_week_late_history =
-      case Shophawk.Jobboss_db.load_late_delivery_history() do
+      case Shophawk.Jobboss_db_dashboard.load_late_delivery_history() do
         [] -> [] #if no deliveries found
         deliveries ->
           Enum.reduce(deliveries, [], fn d, acc ->
@@ -874,9 +874,9 @@ defmodule ShophawkWeb.DashboardLive.Index do
       if Date.after?(start_date, end_date) do
         list
       else
-        total_revenue = Jobboss_db.total_revenue_at_date(start_date)
-        six_week_revenue = Jobboss_db.total_worth_of_orders_in_six_weeks_from_date(start_date)
-        total_jobs = Jobboss_db.total_jobs_at_date(start_date)
+        total_revenue = Jobboss_db_dashboard.total_revenue_at_date(start_date)
+        six_week_revenue = Jobboss_db_dashboard.total_worth_of_orders_in_six_weeks_from_date(start_date)
+        total_jobs = Jobboss_db_dashboard.total_jobs_at_date(start_date)
         map = %{total_revenue: Float.round(total_revenue, 2), six_week_revenue: Float.round(six_week_revenue, 2), total_jobs: total_jobs, week: start_date}
         generate_full_revenue_history(Date.add(start_date, 7), end_date, [map | list])
       end

@@ -515,11 +515,6 @@ defmodule ShophawkWeb.StockedMaterialLive.MaterialToOrder do
     |> Map.get(material)
   end
 
-  def convert_string_to_float(string) do
-    string = if String.at(string, 0) == ".", do: "0" <> string, else: string
-    elem(Float.parse(string), 0)
-  end
-
   def autofill_vendor(params) do
     vendor_list =
       %{

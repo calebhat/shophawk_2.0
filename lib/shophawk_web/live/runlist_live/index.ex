@@ -69,13 +69,13 @@ defmodule ShophawkWeb.RunlistLive.Index do
   #end
 
   defp apply_action(socket, :edit_department, _) do
-    Shophawk.Jobboss_db.update_workcenters()
+    Shophawk.Jobboss_db_job.update_workcenters()
     socket
     |> assign(:page_title, "Edit Department")
   end
 
   defp apply_action(socket, :new_department, _) do
-    Shophawk.Jobboss_db.update_workcenters()
+    Shophawk.Jobboss_db_job.update_workcenters()
     socket
     |> assign(:page_title, "New Department")
     |> assign(:department, %Department{})
@@ -252,18 +252,6 @@ defmodule ShophawkWeb.RunlistLive.Index do
   end
 
   def handle_event("test", _, socket) do
-
-    #Shophawk.Jobboss_db.update_workcenters
-
-    #{:ok, previous_check} = Cachex.get(:runlist_refresh_time, :refresh_time)
-    #Cachex.put(:runlist, {:refresh_time, NaiveDateTime.utc_now()})
-    #jobs = Shophawk.Jobboss_db.sync_recently_updated_jobs(previous_check)
-
-
-    #Enum.each(runlists, fn op ->
-    #if op.job =="135480" do
-    #end
-    #end)
 
     {:noreply, socket}
   end

@@ -76,7 +76,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJobMacroFunctions do
           0 -> {:error}
           1 -> #single job to load
             job_number = List.first(jobs, "")
-            case Shophawk.Jobboss_db.job_exists?(job_number) do
+            case Shophawk.Jobboss_db_job.job_exists?(job_number) do
               true -> [showjob(job_number)]
               false -> {:error}
             end
@@ -101,7 +101,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJobMacroFunctions do
               [] -> jobs_with_any_cached_data #all jobs already loaded
               _ ->
                 loaded_jobs =
-                  case Shophawk.Jobboss_db.load_job_history(list_of_jobs_needed_to_load) do #batch load jobs if passed a list of jobs
+                  case Shophawk.Jobboss_db_job.load_job_history(list_of_jobs_needed_to_load) do #batch load jobs if passed a list of jobs
                     [] ->
                       {:error}
                     job_data_list ->
@@ -128,7 +128,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJobMacroFunctions do
           [] ->
             case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
               [] ->
-                case Shophawk.Jobboss_db.load_job_history([job]) do #load single job if no list is passed to function
+                case Shophawk.Jobboss_db_job.load_job_history([job]) do #load single job if no list is passed to function
                   [] ->
                     {:error}
                   [{_job, job_data}] ->
