@@ -16,6 +16,36 @@ defmodule Shophawk.Jobboss_db_quote do
   alias Shophawk.Jb_Quote_req
 
 
+  def load_quotes(quotes) do
+      #quotes is a list of quote structs from Jobboss_db_quote.get_quotes_by_part_number(part_number)
+      quotes
+      |> Enum.map(fn q ->
+        quantities = get_quote_qty_by_quote_id(q.quote)
+        operations = get_quote_operations_by_quote_id(q.quote)
+        requirements = get_quote_requirements_by_quote_id(q.quote)
+        top_level_quote = get_rfq(q.rfq) |> IO.inspect
+
+        Map.put(q, :quantities, quantities)
+        |> Map.put(:operations, operations)
+        |> Map.put(:requirements, requirements)
+        |> Map.put(:id, q.quote)
+        |> Map.put(:customer, top_level_quote.customer)
+        |> Map.put(:quote_date, top_level_quote.quote_date)
+      end)
+
+    #|> IO.inspect
+
+
+    #get_rfq("78853") #works
+    #|> IO.inspect
+
+    #quotes = get_quotes_by_rfq("78853") #works
+    #list_of_quotes = Enum.map(quotes, fn q -> q.quote end)
+    #Enum.map(list_of_quotes, fn q ->
+    #  populate_quote(q)
+    #end)
+
+  end
   def load_quote(part_number) do
     #part_number = "341034"
     #quotes =
@@ -24,7 +54,7 @@ defmodule Shophawk.Jobboss_db_quote do
         quantities = get_quote_qty_by_quote_id(q.quote)
         operations = get_quote_operations_by_quote_id(q.quote)
         requirements = get_quote_requirements_by_quote_id(q.quote)
-        top_level_quote = get_rfq(q.rfq) |> IO.inspect
+        top_level_quote = get_rfq(q.rfq)
 
         Map.put(q, :quantities, quantities)
         |> Map.put(:operations, operations)
@@ -58,6 +88,7 @@ defmodule Shophawk.Jobboss_db_quote do
       #|> rename_key(:customer_po_ln, :customer_po_line) #example to change key name
       |> sanitize_map()
     end)
+    |> Enum.sort_by(&(&1).status_date, {:desc, Date})
   end
 
   def get_quote_qty_by_quote_id(quote_id) do

@@ -1,4 +1,5 @@
 defmodule ShophawkWeb.PartHistoryLive.Index do
+  alias Shophawk.Jobboss_db_quote
   use ShophawkWeb, :live_view
   use ShophawkWeb.ShowJobLive.ShowJobMacroFunctions #functions needed for showjob modal to work
   use ShophawkWeb.FlashRemover
@@ -233,7 +234,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
               <!-- Display Quotes -->
               <div class={["mx-2", (if @show_job_history == true, do: "hidden", else: "")]}>
               <div class="flex mb-4">
-                <div id="quotehistory" class="w-2/5 px-4 text-lg text-center rounded-lg">
+                <div id="quotehistory" class="w-2/5 px-4 text-lg text-center rounded-lg overflow-y-auto" style="height: calc(100vh - 12rem);">
                   <div class="grid grid-cols-[10%_20%_15%_10%_30%_15%] text-sm text-white sticky top-0 z-10 bg-cyan-800 rounded-lg">
                     <div class="truncate py-2 font-bold">Quote</div>
                     <div class="truncate py-2 font-bold">Customer</div>
@@ -505,14 +506,37 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       end
 
       #CHANGES QUOTES MAP TO LOAD WITH ASYNC PROCESSES JUST LIKE JOBS AND SAVE TO CACHEX FOR QUICK LOADING
+      quotes_to_load =
+        case params_updated["part_number"] != "" do
+         true -> Jobboss_db_quote.get_quotes_by_part_number(params_updated["part_number"])
+         _ -> []
+        end
+
+
       quotes_map =
         case params_updated["part_number"] != "" do
-          true -> Shophawk.Jobboss_db_quote.load_quote(params["part_number"]) |> Enum.sort_by(&(&1.quote_date), {:desc, Date}) |> IO.inspect
+          true ->
+            batches = Enum.chunk_every(quotes_to_load, 5)
+            self = self()
+            Task.async(fn ->
+              batches
+              |> Enum.map(fn batch ->
+                # Process each batch and maintain job order within batch
+                batch_results = Shophawk.Jobboss_db_quote.load_quotes(batch) |> Enum.sort_by(&(&1.quote_date), {:desc, Date})
+                # Immediately send job data for this batch
+                batch_results
+                |> Enum.each(fn
+                  {:error} -> :skip
+                  loaded_quote -> send(self, {:loaded_quote, loaded_quote})
+                end)
+              end)
+            end)
+
           false -> []
         end
 
 
-      if jobs_map == [] and quotes_map == [] do
+      if jobs_map == [] and params_updated["part_number"] == "" do
         Process.send_after(self(), :clear_flash, 1000)
         socket = put_flash(socket, :error, "No Data Found")
         {:noreply, socket |> stream(:jobs, [], reset: true) |> stream(:quotes, [], reset: true)}
@@ -537,13 +561,13 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
         |> assign(:customer_matches, [])
         |> assign(:part_number_matches, [])
         |> assign(:stock_status, stock_status)
-        |> assign(:selected_quote, List.first(quotes_map).id)
-        |> assign(:quotes, quotes_map)
+        |> assign(:selected_quote, List.first(quotes_to_load).quote)
+        |> assign(:quotes, [])
 
-      {:noreply, socket |> stream(:jobs, [], reset: true) |> stream(:quotes, quotes_map, reset: true)}
+      {:noreply, socket |> stream(:jobs, [], reset: true)}
     else
       socket = set_default_assigns(socket)
-      {:noreply, socket |> stream(:jobs, [], reset: true) |> stream(:quotes, [], reset: true)}
+      {:noreply, socket |> stream(:jobs, [], reset: true)}
     end
   end
 
@@ -561,7 +585,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       {:error} ->
         Process.send_after(self(), :clear_flash, 1000)
         {:noreply, socket |> put_flash(:error, "No Data Found")}
-      _ -> {:noreply, stream_insert(socket, :quotes, quote_data, at: -1)}
+      _ -> {:noreply, assign(socket, :quotes, socket.assigns.quotes ++ [quote_data])}
     end
   end
 
