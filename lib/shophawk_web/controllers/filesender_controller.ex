@@ -20,9 +20,11 @@ defmodule ShophawkWeb.FileSenderController do
     IO.inspect(path)
     compiled_path =
       case List.first(path) do
-        "S:" -> Enum.reduce(List.delete(path, "S:"), List.first(path), fn p, acc -> acc <>"/" <> p end)
+        "S:" -> Enum.reduce(List.delete(path, "S:"), "//EG-SRV-FP01/Data", fn p, acc -> acc <>"/" <> p end)
+        "GEARSERVER" -> Enum.reduce(List.delete(path, "GEARSERVER"), "//EG-SRV-FP01/Data", fn p, acc -> acc <>"/" <> p end)
         _ -> Enum.reduce(path, "/", fn p, acc -> acc <> "/" <> p end)
       end
+      |> IO.inspect
 
     file_path = Path.join([compiled_path])
     conn

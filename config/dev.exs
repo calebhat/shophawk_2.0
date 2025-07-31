@@ -58,7 +58,8 @@ config :shophawk, ShophawkWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/shophawk_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/shophawk_web/(controllers|live|components)/.*(ex|heex)$",
+      ~r"lib/shophawk/jobboss/jobboss_db_quote.ex"
     ]
   ]
 

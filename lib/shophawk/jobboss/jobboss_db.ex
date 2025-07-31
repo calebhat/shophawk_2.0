@@ -15,6 +15,7 @@ defmodule Shophawk.Jobboss_db do
           value
           |> convert_binary_to_string()
           |> convert_to_date()
+          #|> trim_string()
         Map.put(acc, key, value)
       end)
     end
@@ -30,6 +31,9 @@ defmodule Shophawk.Jobboss_db do
 
   def convert_to_date(%NaiveDateTime{} = value), do: NaiveDateTime.to_date(value)
   def convert_to_date(value), do: value
+
+  def trim_string(value) when is_binary(value), do: String.trim((value))
+  def trim_string(value), do: value
 
   def rename_key(map, old_key, new_key) do
     map

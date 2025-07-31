@@ -145,7 +145,7 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                   <td class="relative p-0">
                     <div class="block py-4 pr-6">
                       <span class="relative">
-                        <%= Calendar.strftime(op.sched_start, "%m-%d-%Y") %>
+                        <%= if op.sched_start != nil, do: Calendar.strftime(op.sched_start, "%m-%d-%Y"), else: op.sched_start %>
                       </span>
                     </div>
                   </td>
@@ -317,13 +317,13 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
                     <span class="page-display" style="margin-right: 10px;">Page 1 of ?</span>
                     <button type="button" class="prev-page rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Previous Page</button>
                     <button type="button" class="next-page rounded-lg p-2 bg-cyan-700 text-white" style="margin-right: 10px;">Next Page</button>
-                    <a class="download-pdf rounded-lg p-2 bg-cyan-700 text-white" href={"/serve_pdf/" <> attachment.path} download style="margin-right: 10px;">Download PDF</a>
+                    <a class="download-pdf rounded-lg p-2 bg-cyan-700 text-white" href={"/serve_pdf/" <> ensure_attachment_path(attachment.path)} download style="margin-right: 10px;">Download PDF</a>
                   </div>
                   <!-- Scrollable canvas container -->
                   <div style="overflow: auto;">
                     <canvas
                       id={"pdf-canvas-#{index}"}
-                      data-pdf-path={"/serve_pdf/" <> attachment.path}
+                      data-pdf-path={"/serve_pdf/" <> ensure_attachment_path(attachment.path)}
                       style="border: 1px solid #ccc;"
                     ></canvas>
                   </div>
@@ -404,6 +404,11 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
       true -> ~p"/images/up_arrow.svg"
       false -> ~p"/images/right_arrow.svg"
     end
+  end
+
+  def ensure_attachment_path(attachment) do #ensures all paths start from root file location
+    String.replace(attachment, "S:", "\\\\EG-SRV-FP01\\Data", global: false)
+    |> String.replace("\\\\GEARSERVER", "\\\\EG-SRV-FP01\\Data", global: false)
   end
 
 end
