@@ -155,7 +155,7 @@ defmodule Shophawk.MaterialCache do
     |> merge_material("12FT. 1117 CR KNURLED BAR", "Knurled 1117", ["12FT. 1117 CR KNURLED BAR", "12FT 1117CF KNURLED BAR", "12FT.1117 CR KNURLED BAR"])
     |> merge_material("12FT. 1144 CR KNURLED BAR", "Knurled 1144", ["12FT. 1144 CR KNURLED BAR", "12FT. 1545 CR KNURLED BAR", "12FT 1144 CF KNURLED BAR "])
     |> merge_material("17-4PH", "17-4PH", ["17-4", "17-4PH", "17-4PH ", "17-4SS"])
-    |> merge_material(["304"])
+    |> merge_material("304", "304", ["304", "304SS"])
     |> merge_material("4140", "4140", ["4140", "4140."])
     |> merge_material("4140CR", "4140CR", ["4140CF", "4140CR"])
     |> merge_material("4140HT C.F.", "4140HT CF", ["4140HT C.F.", "4140HT CR", "4140HTCR"])

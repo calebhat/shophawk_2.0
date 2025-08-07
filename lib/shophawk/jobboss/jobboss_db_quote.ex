@@ -23,21 +23,23 @@ defmodule Shophawk.Jobboss_db_quote do
         quantities = get_quote_qty_by_quote_id(q.quote)
         operations = get_quote_operations_by_quote_id(q.quote)
         requirements = get_quote_requirements_by_quote_id(q.quote)
-        top_level_quote = get_rfq(q.rfq) |> IO.inspect
+        top_level_quote = get_rfq(q.rfq)
+        quote_date =
+          case top_level_quote.quote_date do
+            nil -> q.status_date
+            _ -> top_level_quote.quote_date
+          end
 
         Map.put(q, :quantities, quantities)
         |> Map.put(:operations, operations)
         |> Map.put(:requirements, requirements)
         |> Map.put(:id, q.quote)
         |> Map.put(:customer, top_level_quote.customer)
-        |> Map.put(:quote_date, top_level_quote.quote_date)
+        |> Map.put(:quote_date, quote_date)
       end)
-
-    #|> IO.inspect
 
 
     #get_rfq("78853") #works
-    #|> IO.inspect
 
     #quotes = get_quotes_by_rfq("78853") #works
     #list_of_quotes = Enum.map(quotes, fn q -> q.quote end)
@@ -46,7 +48,9 @@ defmodule Shophawk.Jobboss_db_quote do
     #end)
 
   end
-  def load_quote(part_number) do
+
+
+  def load_quote(part_number) do #not used I think
     #part_number = "341034"
     #quotes =
       get_quotes_by_part_number(part_number)
@@ -64,11 +68,9 @@ defmodule Shophawk.Jobboss_db_quote do
         |> Map.put(:quote_date, top_level_quote.quote_date)
       end)
 
-    #|> IO.inspect
 
 
     #get_rfq("78853") #works
-    #|> IO.inspect
 
     #quotes = get_quotes_by_rfq("78853") #works
     #list_of_quotes = Enum.map(quotes, fn q -> q.quote end)
@@ -91,6 +93,80 @@ defmodule Shophawk.Jobboss_db_quote do
     |> Enum.sort_by(&(&1).status_date, {:desc, Date})
   end
 
+  def quotes_search(params) do
+    #params_map =
+      #%{
+      #  "customer" => "",
+      #  "customer_po" => "",
+      #  "description" => "",
+      #  "end-date" => "2000-01-12",
+      #  "job" => "",
+      #  "part" => "",
+      #  "start-date" => "2025-06-13",
+      #  "status" => ""
+      #}
+
+
+      #MAKE CACHEX SYSTEM FOR QUOTES SIMILAR TO JOBS
+
+    # Convert string dates to NaiveDateTime or nil if empty/invalid
+    start_date = Shophawk.Jobboss_db_parthistory.parse_date(params["start-date"])
+    end_date = Shophawk.Jobboss_db_parthistory.parse_date(params["end-date"])
+
+    query =
+      Jb_Quote
+      |> maybe_filter_quote_job(params["job"])
+      |> Shophawk.Jobboss_db_parthistory.maybe_filter(:part_number, params["part_number"])
+      |> Shophawk.Jobboss_db_parthistory.maybe_filter_description(params["description"])
+      |> maybe_filter_quote_customer(params["customer"])
+      |> maybe_filter_quote(params["quote"])
+      #no search for customer_po, too many parts/history
+      |> Shophawk.Jobboss_db_parthistory.maybe_filter(:status, params["status"])
+      |> maybe_filter_date_range(start_date, end_date)
+      |> order_by(desc: :rfq, asc: :line)
+      |> limit(100)
+
+    failsafed_query(query)
+      |> Enum.map(fn op ->
+        Map.from_struct(op)
+        |> Map.drop([:__meta__])
+        |> sanitize_map()
+      end)
+      #|> Enum.sort_by(&{(&1).rfq, (&1).line}, :desc)
+  end
+
+  defp maybe_filter_quote_customer(query, ""), do: query
+  defp maybe_filter_quote_customer(query, value) do
+    from(q in query,
+    join: r in Jb_RFQ, on: q.rfq == r.rfq,
+    where: r.customer == ^value,
+    select: q
+    )
+  end
+
+  defp maybe_filter_quote_job(query, ""), do: query
+  defp maybe_filter_quote_job(query, value) do
+    from(q in query,
+    join: r in Shophawk.Jb_job, on: q.part_number == r.part_number,
+    where: r.job == ^value,
+    select: q
+    )
+  end
+
+  defp maybe_filter_quote(query, ""), do: query
+  defp maybe_filter_quote(query, value) do
+    from r in query,
+    where: r.rfq == ^value
+  end
+
+  defp maybe_filter_date_range(query, nil, _), do: query
+  defp maybe_filter_date_range(query, _, nil), do: query
+  defp maybe_filter_date_range(query, start_date, end_date) do
+    from r in query,
+      where: r.status_date >= ^start_date and r.status_date <= ^end_date
+  end
+
+
   def get_quote_qty_by_quote_id(quote_id) do
     Jb_Quote_qty.get_by_quote_id(quote_id)
     |> Enum.map(fn q ->
@@ -102,6 +178,37 @@ defmodule Shophawk.Jobboss_db_quote do
     |> Enum.sort_by(&(&1).quote_qty, :asc)
   end
 
+  def get_quotes_by_customer(customer) do
+    from(q in Jb_Quote,
+    join: r in Jb_RFQ, on: q.rfq == r.rfq,
+    where: r.customer == ^customer,
+    select: q
+    )
+    |> Shophawk.Repo_jb.all()
+    |> Enum.map(fn q ->
+      Map.from_struct(q)
+      |> Map.drop([:__meta__,])
+      |> sanitize_map()
+    end)
+  end
+
+  def get_quotes_by_job(job) do
+    from(q in Jb_Quote,
+    join: r in Jb_job, on: q.part_number == r.part_number,
+    where: r.job == ^job,
+    select: q
+    )
+    |> Shophawk.Repo_jb.all()
+    |> Enum.map(fn q ->
+      Map.from_struct(q)
+      |> Map.drop([:__meta__,])
+      |> sanitize_map()
+    end)
+  end
+
+
+
+
   #WIP
   def get_quote_operations_by_quote_id(quote_id) do
     Jb_Quote_operation
@@ -110,6 +217,7 @@ defmodule Shophawk.Jobboss_db_quote do
     |> Enum.map(fn q ->
       Map.from_struct(q)
       |> Map.drop([:__meta__,])
+      |> Map.update(:run_method, "", fn r -> if r == nil, do: "", else: r end)
       |> sanitize_map()
     end)
     |> Enum.sort_by(&(&1.sequence), :asc)
@@ -127,6 +235,8 @@ defmodule Shophawk.Jobboss_db_quote do
     |> Enum.sort_by(&(&1).material, :asc)
   end
 
+
+
   def get_rfq(rfq) do
     Jb_RFQ
     |> where([j], j.rfq == ^rfq)
@@ -135,9 +245,6 @@ defmodule Shophawk.Jobboss_db_quote do
     |> Map.drop([:__meta__])
     |> sanitize_map()
   end
-
-
-
 
   def get_quotes_by_rfq(rfq) do
     Jb_Quote

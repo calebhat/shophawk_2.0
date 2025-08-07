@@ -111,6 +111,9 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                 <.input name="customer_po" value={@customer_po} placeholder="Customer PO"/>
               </div>
               <div class="my-2">
+                <.input name="quote" value={@quote} placeholder="Quote"/>
+              </div>
+              <div class="my-2">
                 <div class="text-white"> Status</div>
                 <.input class="" name="status" type="select" options={selected_status(@status)}/>
               </div>
@@ -175,10 +178,10 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
               </div>
               <% end %>
             </div>
-            <div class="mx-4 bg-cyan-800 rounded-md w-auto " style="max-height: calc(100vh - 12rem);">
+            <div class="mx-4 bg-cyan-800 rounded-md w-auto" style="max-height: calc(100vh - 12rem);">
 
               <!-- Job history -->
-              <div id="jobs" class={["mx-2 overflow-y-auto", (if @show_job_history == true, do: "", else: "hidden")]}>
+              <div id="jobs" class={["mx-2 overflow-y-auto", (if @show_job_history == true, do: "", else: "hidden")]} style="max-height: calc(100vh - 12rem);">
                 <table id="parthistory" class="text-center w-full px-4 table-fixed text-lg">
                   <thead class="text-white text-base sticky top-0 z-10 bg-cyan-800">
                     <tr>
@@ -233,14 +236,15 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
               <!-- Display Quotes -->
               <div class={["mx-2", (if @show_job_history == true, do: "hidden", else: "")]}>
+              <%= if @quotes != [] do %>
               <div class="flex mb-4">
                 <div id="quotehistory" class="w-2/5 px-4 text-lg text-center rounded-lg overflow-y-auto" style="height: calc(100vh - 12rem);">
-                  <div class="grid grid-cols-[10%_20%_15%_10%_30%_15%] text-sm text-white sticky top-0 z-10 bg-cyan-800 rounded-lg">
+                  <div class="grid grid-cols-[10%_20%_15%_30%_10%_15%] text-sm text-white sticky top-0 z-10 bg-cyan-800 border-b-2 border-stone-700">
                     <div class="truncate py-2 font-bold">Quote</div>
                     <div class="truncate py-2 font-bold">Customer</div>
                     <div class="truncate py-2 font-bold">Quote Date</div>
-                    <div class="truncate py-2 font-bold">Rev</div>
-                    <div class="truncate py-2 font-bold">Description</div>
+                    <div class="truncate py-2 font-bold">Part</div>
+                    <div class="truncate py-2 font-bold">Line</div>
                     <div class="truncate py-2 font-bold">Quoted By</div>
                   </div>
                   <div id="quotes-rows">
@@ -250,15 +254,15 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                         id={row.id}
                         phx-click="display_quote_details"
                         phx-value-id={row.id}
-                        class={["grid grid-cols-[10%_20%_15%_10%_30%_15%] text-base text-white hover:cursor-pointer hover:bg-stone-600 border-b-2 border-stone-700 rounded-lg",
+                        class={["grid grid-cols-[10%_20%_15%_30%_10%_15%] text-base text-white hover:cursor-pointer hover:bg-stone-600 border-b-2 border-stone-700 rounded-lg",
                         (if row.id == @selected_quote, do: "bg-cyan-600", else: "bg-cyan-700")
                         ]}
                       >
                         <div class="truncate py-2"><%= row.rfq %></div>
                         <div class="truncate py-2"><%= row.customer %></div>
                         <div class="truncate py-2"><%= Calendar.strftime(row.quote_date, "%m-%d-%Y") %></div>
-                        <div class="truncate py-2"><%= row.rev %></div>
-                        <div class="truncate py-2"><%= row.description %></div>
+                        <div class="truncate py-2"><%= row.part_number%></div>
+                        <div class="truncate py-2"><%= row.line %></div>
                         <div class="truncate py-2"><%= row.quoted_by %></div>
                       </div>
                     <% end %>
@@ -268,6 +272,9 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
                 <div class="w-3/5 px-2 text-center overflow-y-auto" id="quotes-rows-qty" style="height: calc(100vh - 12rem);">
                   <%= for row <- @quotes do %>
                   <%= if row.id == @selected_quote do %>
+                        <div class="by-cyan-700 flex justify-center text-white">
+                          <div class="border-b-2 border-stone-700 my-2"><%= row.description %></div>
+                        </div>
                       <!-- Qty's -->
                       <div class="bg-cyan-800">
                       <div class="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr] text-sm text-white sticky top-0 z-10 bg-cyan-800 border-b-2 border-stone-700">
@@ -354,6 +361,8 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
               </div>
 
+              <% end %>
+
               </div>
 
             </div>
@@ -403,7 +412,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
 
   def handle_event("submit_form", params, socket) do
-    {:noreply, push_patch(socket, to: ~p"/parthistory?#{params}")}
+    {:noreply, push_navigate(socket, to: ~p"/parthistory?#{params}")}
   end
 
   def handle_event("clear_search", _params, socket) do
@@ -466,108 +475,116 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
   end
 
   def handle_params(params, _uri, socket) do
-    if map_size(params) > 0 do
-      params_updated = #sets default values if calling part history search from another page
-        params
-        |> Map.put_new("customer", "")
-        |> Map.put_new("customer_po", "")
-        |> Map.put_new("description", "")
-        |> Map.put_new("job", "")
-        |> Map.put_new("part_number", "")
-        |> Map.put_new("part_number_matches", "")
-        |> Map.put_new("status", "")
-        |> Map.put_new("start-date", to_string(~D[1990-01-01]))
-        |> Map.put_new("end-date", to_string(Date.utc_today()))
+    case map_size(params) do
+      0 -> {:noreply, set_default_assigns(socket) |> stream(:jobs, [], reset: true)}
+      _ ->
+        params_updated = #sets default values if calling part history search from another page
+          params
+          |> Map.put_new("customer", "")
+          |> Map.put_new("customer_po", "")
+          |> Map.put_new("description", "")
+          |> Map.put_new("job", "")
+          |> Map.put_new("part_number", "")
+          |> Map.put_new("part_number_matches", "")
+          |> Map.put_new("status", "")
+          |> Map.put_new("start-date", to_string(~D[1990-01-01]))
+          |> Map.put_new("end-date", to_string(Date.utc_today()))
+          |> Map.put_new("quote", "")
 
-      jobs_map = Shophawk.Jobboss_db_parthistory.jobs_search(params_updated)
+        jobs_map = Shophawk.Jobboss_db_parthistory.jobs_search(params_updated)
+        quotes_to_load = Jobboss_db_quote.quotes_search(params_updated)
 
-      if jobs_map != [] do
-        self = self()
-        batch_size = 5
-        # Group job numbers into batches
-        job_numbers = Enum.sort_by(jobs_map, &(&1.order_date), {:desc, Date}) |> Enum.map(&(&1).job)
-        batches = Enum.chunk_every(job_numbers, batch_size)
-
-        # Start async task to process batches
-        Task.async(fn ->
-          batches
-          |> Enum.map(fn batch ->
-            # Process each batch and maintain job order within batch
-            batch_results = showjob(batch)
-
-            # Immediately send job data for this batch
-            batch_results
-            |> Enum.each(fn
-              {:error} -> :skip
-              job_data -> send(self, {:loaded_job, job_data})
-            end)
-          end)
-        end)
-      end
-
-      #CHANGES QUOTES MAP TO LOAD WITH ASYNC PROCESSES JUST LIKE JOBS AND SAVE TO CACHEX FOR QUICK LOADING
-      quotes_to_load =
-        case params_updated["part_number"] != "" do
-         true -> Jobboss_db_quote.get_quotes_by_part_number(params_updated["part_number"])
-         _ -> []
-        end
-
-
-      quotes_map =
-        case params_updated["part_number"] != "" do
+        case jobs_map == [] and quotes_to_load == [] do
           true ->
-            batches = Enum.chunk_every(quotes_to_load, 5)
-            self = self()
-            Task.async(fn ->
-              batches
-              |> Enum.map(fn batch ->
-                # Process each batch and maintain job order within batch
-                batch_results = Shophawk.Jobboss_db_quote.load_quotes(batch) |> Enum.sort_by(&(&1.quote_date), {:desc, Date})
-                # Immediately send job data for this batch
-                batch_results
-                |> Enum.each(fn
-                  {:error} -> :skip
-                  loaded_quote -> send(self, {:loaded_quote, loaded_quote})
+            Process.send_after(self(), :clear_flash, 1000)
+            socket =
+              put_flash(socket, :error, "No Data Found")
+              |> assign(:customer, params_updated["customer"])
+              |> assign(:customer_po, params_updated["customer_po"])
+              |> assign(:description, params_updated["description"])
+              |> assign(:job, params_updated["job"])
+              |> assign(:part_number, params_updated["part_number"])
+              |> assign(:status, params_updated["status"])
+              |> assign(:start_date, params_updated["start-date"])
+              |> assign(:end_date, params_updated["end-date"])
+              |> assign(:quote, params_updated["quote"])
+            {:noreply, socket |> stream(:jobs, [], reset: true) |> assign(:quotes, [])}
+          false ->
+            #async load jobs
+            if jobs_map != [] do
+              self = self()
+              batch_size = 5
+              # Group job numbers into batches
+              job_numbers = Enum.sort_by(jobs_map, &(&1.order_date), {:desc, Date}) |> Enum.map(&(&1).job)
+              batches = Enum.chunk_every(job_numbers, batch_size)
+
+              # Start async task to process batches
+              Task.async(fn ->
+                batches
+                |> Enum.map(fn batch ->
+                  # Process each batch and maintain job order within batch
+                  batch_results = showjob(batch)
+
+                  # Immediately send job data for this batch
+                  batch_results
+                  |> Enum.each(fn
+                    {:error} -> :skip
+                    job_data -> send(self, {:loaded_job, job_data})
+                  end)
                 end)
               end)
-            end)
+            end
 
-          false -> []
+            #async load quotes
+            if quotes_to_load != [] do
+              batches = Enum.chunk_every(quotes_to_load, 5)
+              self = self()
+              Task.async(fn ->
+                batches
+                |> Enum.map(fn batch ->
+                  # Process each batch and maintain job order within batch
+                  batch_results = Shophawk.Jobboss_db_quote.load_quotes(batch) |> Enum.sort_by(&(&1.quote_date), {:desc, Date})
+                  # Immediately send job data for this batch
+                  batch_results
+                  |> Enum.each(fn
+                    {:error} -> :skip
+                    loaded_quote -> send(self, {:loaded_quote, loaded_quote})
+                  end)
+                end)
+              end)
+            end
+
+            selected_quote =
+              case quotes_to_load do
+                [] -> ""
+                quotes -> List.first(quotes).quote
+              end
+
+            stock_status =
+              case params_updated["part_number"] != "" do
+                true -> load_stock_status(params["part_number"])
+                false -> nil
+              end
+
+            {:noreply,
+              socket
+              |> assign(:customer, params_updated["customer"])
+              |> assign(:customer_po, params_updated["customer_po"])
+              |> assign(:description, params_updated["description"])
+              |> assign(:job, params_updated["job"])
+              |> assign(:part_number, params_updated["part_number"])
+              |> assign(:status, params_updated["status"])
+              |> assign(:start_date, params_updated["start-date"])
+              |> assign(:end_date, params_updated["end-date"])
+              |> assign(:quote, params_updated["quote"])
+              |> assign(:customer_matches, [])
+              |> assign(:part_number_matches, [])
+              |> assign(:stock_status, stock_status)
+              |> assign(:selected_quote, selected_quote)
+              |> assign(:quotes, [])
+              |> stream(:jobs, [], reset: true)
+            }
         end
-
-
-      if jobs_map == [] and params_updated["part_number"] == "" do
-        Process.send_after(self(), :clear_flash, 1000)
-        socket = put_flash(socket, :error, "No Data Found")
-        {:noreply, socket |> stream(:jobs, [], reset: true) |> stream(:quotes, [], reset: true)}
-      end
-
-      stock_status =
-        case params_updated["part_number"] != "" do
-          true -> load_stock_status(params["part_number"])
-          false -> nil
-        end
-
-      socket =
-        socket
-        |> assign(:customer, params_updated["customer"])
-        |> assign(:customer_po, params_updated["customer_po"])
-        |> assign(:description, params_updated["description"])
-        |> assign(:job, params_updated["job"])
-        |> assign(:part_number, params_updated["part_number"])
-        |> assign(:status, params_updated["status"])
-        |> assign(:start_date, to_string(~D[1990-01-01]))
-        |> assign(:end_date, to_string(Date.utc_today()))
-        |> assign(:customer_matches, [])
-        |> assign(:part_number_matches, [])
-        |> assign(:stock_status, stock_status)
-        |> assign(:selected_quote, List.first(quotes_to_load).quote)
-        |> assign(:quotes, [])
-
-      {:noreply, socket |> stream(:jobs, [], reset: true)}
-    else
-      socket = set_default_assigns(socket)
-      {:noreply, socket |> stream(:jobs, [], reset: true)}
     end
   end
 
@@ -614,12 +631,12 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     |> assign(:status, "")
     |> assign(:start_date, to_string(~D[1990-01-01]))
     |> assign(:end_date, to_string(Date.utc_today()))
+    |> assign(:quote, "")
     |> assign(:page_title, "Part History")
     |> assign(:stock_status, nil)
-    |> assign(:show_job_history, false)
+    |> assign(:show_job_history, true)
     |> assign(:quotes, [])
     |> stream(:jobs, [])
-    |> stream(:quotes, [])
   end
 
   def load_stock_status(part_number) do

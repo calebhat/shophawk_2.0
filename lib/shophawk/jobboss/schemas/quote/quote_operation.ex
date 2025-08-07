@@ -14,11 +14,11 @@ defmodule Shophawk.Jb_Quote_operation do
     field :operation_service, :string
     field :description, :string
     field :sequence, :integer
-    field :run_labor_rate, :float
+    field :run_labor_rate, :float, default: 0.0
     field :note_text, :string
-    field :run, :float
-    field :run_method, :string
-    field :est_setup_hrs, :float
+    field :run, :float, default: 0.0
+    field :run_method, :string, default: ""
+    field :est_setup_hrs, :float, default: 0.0
 
     #timestamps()
   end
@@ -28,7 +28,10 @@ defmodule Shophawk.Jb_Quote_operation do
     order
     |> cast(attrs, [:quote, :quote_operation, :wc_vendor, :inside_oper, :operation_service, :description, :sequence, :run_labor_rate, :note_text, :run, :run_method, :est_setup_hrs])
     |> validate_required([:quote, :quote_operation, :wc_vendor, :inside_oper, :operation_service, :description, :sequence, :run_labor_rate, :note_text, :run, :run_method, :est_setup_hrs])
-    #|> put_quoted_unit_price_float()
+    |> put_change(:run_method, fn
+      nil -> "" # Replace nil with ""
+      value -> value # Keep existing value
+    end)
   end
 
 end
