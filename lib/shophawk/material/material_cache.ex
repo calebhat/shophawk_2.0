@@ -396,9 +396,11 @@ defmodule Shophawk.MaterialCache do
     {floats, strings} =
       Enum.reduce(sizes, {[], []}, fn s, {floats, strings} ->
         size = if String.starts_with?(s.size, "."), do: "0" <> s.size, else: s.size
+
         case Float.parse(size) do
           {_f, ""} -> {floats ++ [s], strings}
           {_, _s} -> {floats, strings ++ [s]}
+          :error -> IO.inspect(size)
         end
       end)
 

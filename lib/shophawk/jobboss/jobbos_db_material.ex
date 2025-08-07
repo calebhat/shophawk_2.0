@@ -107,6 +107,7 @@ defmodule Shophawk.Jobboss_db_material do
       |> Map.drop([:__meta__])
     end)
     |> Enum.reject(fn mat -> String.contains?(mat.material, ["GROB", "NGSM", "NMSM", "NNSM", "TEST", "ATN"]) end)
+    |> Enum.reject(fn mat -> String.starts_with?(mat.material, ["MC907 ", "NMC907"]) end)
   end
 
   def load_material_requirements do
