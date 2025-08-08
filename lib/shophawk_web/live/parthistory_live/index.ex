@@ -573,7 +573,7 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
 
             stock_status =
               case params_updated["part_number"] != "" do
-                true -> load_stock_status(params["part_number"])
+                true -> load_stock_status(params_updated["part_number"])
                 false -> nil
               end
 
