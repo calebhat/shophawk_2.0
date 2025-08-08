@@ -661,13 +661,10 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
       |> Enum.to_list
       |> List.flatten
       |> Enum.filter(fn j -> j.job_info.part_number == part_number end)
+
     allocated =
       Enum.reduce(runlists, 0, fn j, acc ->
-        case j.job_info.pick_quantity do
-          0 -> acc
-          nil -> acc
-          _ -> acc + j.job_info.pick_quantity
-        end
+        acc + j.job_info.pick_quantity + j.job_info.order_quantity
       end)
 
     in_production =
