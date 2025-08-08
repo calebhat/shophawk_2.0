@@ -17,6 +17,7 @@ defmodule Shophawk.Jobboss_db_quote do
 
 
   def load_quotes(quotes) do
+    IO.inspect(quotes)
       #quotes is a list of quote structs from Jobboss_db_quote.get_quotes_by_part_number(part_number)
       quotes
       |> Enum.map(fn q ->
@@ -238,12 +239,18 @@ defmodule Shophawk.Jobboss_db_quote do
 
 
   def get_rfq(rfq) do
-    Jb_RFQ
-    |> where([j], j.rfq == ^rfq)
-    |> Shophawk.Repo_jb.one()
-    |> Map.from_struct()
-    |> Map.drop([:__meta__])
-    |> sanitize_map()
+    rfq =
+      Jb_RFQ
+      |> where([j], j.rfq == ^rfq)
+      |> Shophawk.Repo_jb.one()
+
+    case rfq do
+      nil -> %{rfq: "", customer: "", quote_date: nil}
+      _ ->
+        Map.from_struct(rfq)
+        |> Map.drop([:__meta__])
+        |> sanitize_map()
+    end
   end
 
   def get_quotes_by_rfq(rfq) do
