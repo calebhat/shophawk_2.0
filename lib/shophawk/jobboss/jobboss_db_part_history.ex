@@ -28,7 +28,7 @@ defmodule Shophawk.Jobboss_db_parthistory do
           |> maybe_filter(:customer, params["customer"])
           |> maybe_filter(:customer_po, params["customer_po"])
           |> maybe_filter_description(params["description"])
-          |> maybe_filter(:job, params["job"])
+          #|> maybe_filter(:job, params["job"])
           |> maybe_filter(:part_number, params["part_number"])
           |> maybe_filter(:status, params["status"])
           |> maybe_filter_date_range(start_date, end_date)

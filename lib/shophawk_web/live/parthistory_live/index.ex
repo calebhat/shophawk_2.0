@@ -478,13 +478,24 @@ defmodule ShophawkWeb.PartHistoryLive.Index do
     case map_size(params) do
       0 -> {:noreply, set_default_assigns(socket) |> stream(:jobs, [], reset: true)}
       _ ->
+        part_number = #optionally load part number if job is provided or not
+          cond do
+            params["part_number"] != "" -> params["part_number"]
+            params["part_number"] != "" and params["job"] != "" -> params["part_number"]
+            params["job"] != "" ->
+              case ShophawkWeb.ShowJobLive.ShowJob.showjob(params["job"]) do
+                {:error} -> ""
+                job -> job.job_info.part_number
+              end
+            true -> ""
+          end
         params_updated = #sets default values if calling part history search from another page
           params
           |> Map.put_new("customer", "")
           |> Map.put_new("customer_po", "")
           |> Map.put_new("description", "")
           |> Map.put_new("job", "")
-          |> Map.put_new("part_number", "")
+          |> Map.put("part_number", part_number)
           |> Map.put_new("part_number_matches", "")
           |> Map.put_new("status", "")
           |> Map.put_new("start-date", to_string(~D[1990-01-01]))

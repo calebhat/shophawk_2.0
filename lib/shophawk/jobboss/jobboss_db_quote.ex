@@ -17,7 +17,6 @@ defmodule Shophawk.Jobboss_db_quote do
 
 
   def load_quotes(quotes) do
-    IO.inspect(quotes)
       #quotes is a list of quote structs from Jobboss_db_quote.get_quotes_by_part_number(part_number)
       quotes
       |> Enum.map(fn q ->

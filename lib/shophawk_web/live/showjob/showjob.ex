@@ -411,4 +411,23 @@ defmodule ShophawkWeb.ShowJobLive.ShowJob do
     |> String.replace("\\\\GEARSERVER", "\\\\EG-SRV-FP01\\Data", global: false)
   end
 
+  def showjob(job) do
+    case Shophawk.RunlistCache.job(job) do
+      [] ->
+        case Shophawk.RunlistCache.non_active_job(job) do #check non-active job cache
+          [] ->
+            case Shophawk.Jobboss_db_job.load_job_history([job]) do #load single job if no list is passed to function
+              [] ->
+                {:error}
+              [{_job, job_data}] ->
+                Cachex.put(:temporary_runlist_jobs_for_history, job, job_data)
+                job_data
+            end
+          non_active_job ->
+            non_active_job
+        end
+      active_job -> active_job
+    end
+  end
+
 end
